@@ -1,0 +1,46 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  /* New Palette */
+  --color-navy: #0f3e32;
+  --color-navy-light: #165a49;
+  --color-navy-dark: #08221b;
+  
+  --color-gold: #d7b03d;
+  --color-gold-hover: #c09d35;
+  
+  --color-teal: #93f08e;
+  --color-teal-light: #b3f5b0;
+  --color-teal-dark: #6bd465;
+
+  --color-orange: #ad5712;
+
+  /* Neutrals */
+  --color-background: #faf9f7;
+  --color-surface: #ffffff;
+  --color-foreground: #2d333a;
+  --color-muted: #6b7280;
+  --color-border: #e5e7eb;
+  
+  /* Status */
+  --color-warning: #d7b03d;
+  --color-danger: #ad5712;
+
+  /* Changed from Merriweather to Poppins to match Cybercampus UNAIR style */
+  --font-serif: 'Poppins', sans-serif;
+  --font-sans: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-serif);
+  }
+}
