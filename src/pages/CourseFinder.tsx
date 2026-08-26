@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Search, Filter, BookOpen, Clock, X, Plus, ChevronRight, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { cn } from '../utils';
-import { MOCK_COURSES, Course, PrerequisiteNode } from '../data';
+import { Course } from '../data';
+import { ALL_COURSES, PROGRAMS } from '../courseData';
 
 interface CourseFinderProps {
   onAddToPlanner: (course: Course) => void;
@@ -13,11 +14,16 @@ export default function CourseFinder({ onAddToPlanner, addedCourseIds }: CourseF
   const [activeFilter, setActiveFilter] = useState<'all' | 'odd' | 'even' | '3sks' | '4sks'>('all');
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [detailCourse, setDetailCourse] = useState<Course | null>(null);
+  const [activeProgram, setActiveProgram] = useState<string>('all');
 
-  const filtered = MOCK_COURSES.filter(c => {
+  const pool =
+    activeProgram === 'all' ? ALL_COURSES : ALL_COURSES.filter(c => c.program === activeProgram);
+  const filtered = pool.filter(c => {
+    const q = searchQuery.toLowerCase();
     const matchesSearch =
-      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.id.toLowerCase().includes(searchQuery.toLowerCase());
+      c.name.toLowerCase().includes(q) ||
+      c.id.toLowerCase().includes(q) ||
+      (c.code ?? '').toLowerCase().includes(q);
     const matchesFilter =
       activeFilter === 'all' ||
       (activeFilter === 'odd' && c.parity === 'odd') ||
@@ -56,6 +62,22 @@ export default function CourseFinder({ onAddToPlanner, addedCourseIds }: CourseF
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
+        </div>
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {[{ key: 'all', label: 'Semua Program' }, ...PROGRAMS.map(p => ({ key: p, label: p }))].map(f => (
+            <button
+              key={f.key}
+              onClick={() => setActiveProgram(f.key)}
+              className={cn(
+                "px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-colors",
+                activeProgram === f.key
+                  ? "bg-gold text-white"
+                  : "bg-surface border border-border text-muted hover:text-navy"
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1">
           {[
@@ -99,7 +121,7 @@ export default function CourseFinder({ onAddToPlanner, addedCourseIds }: CourseF
               >
                 <div className="flex justify-between items-start gap-2">
                   <div className="min-w-0">
-                    <span className="font-mono text-xs font-bold text-teal block">{course.id}</span>
+                    <span className="font-mono text-xs font-bold text-teal block">{course.code ?? course.id}</span>
                     <h4 className="font-serif font-bold text-navy mt-0.5 group-hover:text-gold transition-colors leading-tight">{course.name}</h4>
                   </div>
                   <span className={cn(
@@ -153,7 +175,7 @@ export default function CourseFinder({ onAddToPlanner, addedCourseIds }: CourseF
                 <X className="w-5 h-5" />
               </button>
               <div className="relative z-10">
-                <span className="font-mono text-teal-light font-bold text-sm">{selectedCourse.id}</span>
+                <span className="font-mono text-teal-light font-bold text-sm">{selectedCourse.code ?? selectedCourse.id}</span>
                 <h2 className="font-serif text-2xl font-bold mt-1 mb-4">{selectedCourse.name}</h2>
                 <div className="flex gap-2 flex-wrap">
                   <span className="px-2.5 py-1 bg-white/10 rounded-md text-xs font-medium backdrop-blur-sm">
@@ -186,7 +208,9 @@ export default function CourseFinder({ onAddToPlanner, addedCourseIds }: CourseF
                     {selectedCourse.prerequisites.map(p => (
                       <li key={p.id} className="flex items-center gap-2 text-sm">
                         <div className="w-2 h-2 rounded-full bg-teal flex-shrink-0" />
-                        <span className="font-mono text-xs font-bold text-navy">{p.id}</span>
+                        {p.id !== p.name && (
+                          <span className="font-mono text-xs font-bold text-navy">{p.id}</span>
+                        )}
                         <span className="text-foreground">{p.name}</span>
                       </li>
                     ))}
@@ -269,7 +293,7 @@ function CourseDetailView({ course, onBack, onAdd, addedCourseIds }: CourseDetai
           <ArrowLeft className="w-4 h-4" /> Kembali ke Daftar Matkul
         </button>
         <div className="relative z-10">
-          <span className="font-mono text-teal-light font-bold">{course.id}</span>
+          <span className="font-mono text-teal-light font-bold">{course.code ?? course.id}</span>
           <h1 className="font-serif text-3xl font-bold mt-1 mb-4">{course.name}</h1>
           <div className="flex gap-2 flex-wrap">
             <span className="px-3 py-1 bg-white/10 rounded-md text-sm font-medium backdrop-blur-sm">{course.credits} SKS</span>
@@ -447,11 +471,13 @@ function PrerequisiteDiagram({ course }: { course: Course }) {
             <g key={node.id}>
               <rect x={x} y={y} width={NODE_W} height={NODE_H} rx="8"
                 fill="#f9fafb" stroke="#e5e7eb" strokeWidth="1.5" />
-              <text x={x + NODE_W / 2} y={y + 17} textAnchor="middle"
-                fontSize="9" fontWeight="700" letterSpacing="0.5" fill="#165a49"
-                fontFamily="JetBrains Mono, monospace">
-                {node.id}
-              </text>
+              {node.id !== node.name && (
+                <text x={x + NODE_W / 2} y={y + 17} textAnchor="middle"
+                  fontSize="9" fontWeight="700" letterSpacing="0.5" fill="#165a49"
+                  fontFamily="JetBrains Mono, monospace">
+                  {node.id}
+                </text>
+              )}
               <text x={x + NODE_W / 2} y={y + 32} textAnchor="middle"
                 fontSize="10.5" fill="#374151" fontWeight="500">
                 {node.name.length > 20 ? node.name.slice(0, 20) + '…' : node.name}
@@ -472,11 +498,13 @@ function PrerequisiteDiagram({ course }: { course: Course }) {
             <g key={node.id}>
               <rect x={x} y={y} width={NODE_W} height={NODE_H} rx="8"
                 fill="#f0fdf8" stroke="#93f08e" strokeWidth="1.5" />
-              <text x={x + NODE_W / 2} y={y + 17} textAnchor="middle"
-                fontSize="9" fontWeight="700" letterSpacing="0.5" fill="#0f3e32"
-                fontFamily="JetBrains Mono, monospace">
-                {node.id}
-              </text>
+              {node.id !== node.name && (
+                <text x={x + NODE_W / 2} y={y + 17} textAnchor="middle"
+                  fontSize="9" fontWeight="700" letterSpacing="0.5" fill="#0f3e32"
+                  fontFamily="JetBrains Mono, monospace">
+                  {node.id}
+                </text>
+              )}
               <text x={x + NODE_W / 2} y={y + 32} textAnchor="middle"
                 fontSize="10.5" fill="#165a49" fontWeight="500">
                 {node.name.length > 20 ? node.name.slice(0, 20) + '…' : node.name}
@@ -500,7 +528,7 @@ function PrerequisiteDiagram({ course }: { course: Course }) {
               <text x={x + NODE_W / 2} y={y + 17} textAnchor="middle"
                 fontSize="9" fontWeight="700" letterSpacing="0.5" fill="#93f08e"
                 fontFamily="JetBrains Mono, monospace">
-                {course.id}
+                {course.code ?? course.id}
               </text>
               <text x={x + NODE_W / 2} y={y + 33} textAnchor="middle"
                 fontSize="10.5" fill="#ffffff" fontWeight="600">

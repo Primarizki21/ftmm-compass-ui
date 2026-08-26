@@ -16,3 +16,4 @@ logs/
 .figma/make/*
 !.figma/make/site.json
 .codegraph/
+/Ekstrak/

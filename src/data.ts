@@ -12,6 +12,10 @@ export interface WorkloadInfo {
 
 export interface Course {
   id: string;
+  /** Official course code (e.g. EF401); differs from id when ids are program-scoped. */
+  code?: string;
+  /** Owning study program, set for courses loaded from the curriculum catalog. */
+  program?: string;
   name: string;
   credits: number;
   semester: number;
