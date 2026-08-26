@@ -1,6 +1,7 @@
 # Schema Review — `RANCANGAN DIAGRAM AWAL.sql`
 
 Scope: 21 tables, 33 foreign keys, 14 indexes. Static review — DDL was not executed against a live PostgreSQL instance.
+Version: v2 — owner decisions captured; retake IPS treatment and IPS rounding remain open.
 
 ## Verdict
 
@@ -16,35 +17,50 @@ Normalization is good: surrogate UUID keys, proper junction tables, no JSON blob
 ## HIGH
 
 ### H1 — Zero CHECK constraints
-Every enumeration, range, and ordering rule is unenforced:
-- `users.role` accepts `'banana'`.
-- `class_schedules.day_of_week` accepts `0` or `99` (doc says 1–7).
+Every enumeration, range, and ordering rule is currently unenforced:
+- `users.role` accepts arbitrary text.
+- `class_schedules.day_of_week` currently allows values outside the FTMM weekday rule.
 - `class_schedules.end_time <= start_time` is legal.
-- `requirement_groups.minimum_courses > maximum_courses` is legal.
-- Negative `credits_total`, `current_semester`, `admission_year` are legal. User Input: ok goood
+- Negative `credits_total`, `current_semester`, and `admission_year` are legal.
 
-Fix: `CHECK` constraints (or domains) on ~16 enum columns + numeric ranges. Cheap now, painful after data exists.
-User Input: users.role i think is only student, lecturer, Facullty staf (Tendik or tenaga didik fakultas i think), and admin. class_schedules.day_of_week i think only until Monday until Friday. if start time start at 7 AM and end at 9 AM, it should but end_time >= start_time? (by number wise?). for maximum or minimum courses is determined by the SKS point, it determined by stundet IPS, here's the SKS rule
-IPS < 2,00: Maksimal mengambil 15 SKS.IPS 2,00 – 2,50: Maksimal mengambil 18 SKS.IPS 2,51 – 3,00: Maksimal mengambil 20 SKS.IPS > 3,00: 24 SKS.
+V2 decisions:
+- `users.role` is one of `student`, `lecturer`, `faculty_staff`, or `admin`.
+- Class schedules are Monday–Friday only, from 07:00 through 17:00; `end_time` must be later than `start_time`; overnight classes are forbidden.
+- `current_semester`, `recommended_semester`, and `planned_semester` are 1–8; `credits_total` is 1–24.
+- `admission_year` may not be later than the current year.
+- Grades are `A`, `AB`, `B`, `BC`, `C`, `D`, or `E`; D is passing. Grade points are 4, 3.5, 3, 2.5, 2, 1, and 0 respectively.
+- The IPS-to-maximum-SKS rule is separate from requirement groups and is stored in a database rule table. Semester one defaults to 24 SKS; IPS is calculated from course records.
+
+The exact IPS rounding rule remains open. Do not encode the dynamic IPS load limit as a static `CHECK` until that policy is confirmed.
+
+Fix: `CHECK` constraints on the fixed-value columns and numeric ranges; a separate rule table plus application validation for the student-specific IPS load limit.
 
 ### H2 — Nullable column defeats its own UNIQUE index
 `student_course_records.academic_period_id` is nullable but part of `UNIQUE (user_id, curriculum_course_id, academic_period_id)`. In PostgreSQL, NULLs are distinct in unique indexes, so unlimited duplicate `(user, course, NULL)` rows are allowed — dedup silently fails exactly where the period is unknown.
 
-Decision: retakes confirmed — one record per attempt across periods, best score counts toward IPK. Keep the unique key shape and make `academic_period_id` NOT NULL (an attempt without a period is meaningless). "Best score wins" is a query-time rule (`MAX(final_grade)` per course); never prune losing attempts.
+Decision: make `academic_period_id` NOT NULL. Keep every attempt across periods; do not prune the losing attempt. A `taking` record is created when KRS is final and is a temporary academic snapshot, not proof of official enrollment. Retakes still consume the semester's SKS limit. Transfer records contribute credits toward study completion but not IPS/IPK. The exact IPS treatment of a retake remains open.
 
 ### H3 — Timetable can hold sections from a foreign period
-`timetable_items → class_sections` and `timetables.academic_period_id` are independent chains. Nothing forces `class_sections.academic_period_id = timetables.academic_period_id`. A 2025/ganjil timetable can contain a 2023/genap section.
+`timetable_items → class_sections` and `timetables.academic_period_id` are independent chains. Nothing currently forces `class_sections.academic_period_id = timetables.academic_period_id`.
 
-Fix: add `academic_period_id` to `timetable_items` and use a composite FK back to `(timetable_id, academic_period_id)` on `timetables`, or enforce via trigger.
+V2 decision: timetables are personal planners. A user may keep several alternative timetables for one period, with at most one active. Every item must use a section from the timetable's period.
 
-### H4 — Curriculum mixing is unconstrained
-- `degree_plan_items.curriculum_course_id` is not checked against `degree_plans.curriculum_id`.
-- `student_course_records` has no curriculum anchor at all.
-- Same pattern for `timetable_items` via `class_sections`.
+Each `curriculum_course` also has one fixed term, `ganjil` or `genap`. A section opened in a mismatched term must be rejected. Planned semesters must match that term: ganjil → 1/3/5/7 and genap → 2/4/6/8.
 
-With multiple curriculum generations in the catalog, rows can silently combine curricula (profile says 2021, record points at the 2024 row of the same course).
+Fix: add the term to `curriculum_courses`; use composite FKs or a trigger for timetable-period and course-term consistency, and validate planned-semester parity.
 
-Fix: propagate `curriculum_id` down and add composite FKs, or accept app-level enforcement knowingly.
+### H4 — Curriculum mixing is constrained by policy, not the current FK shape
+The current foreign keys do not ensure that a degree plan, its items, and a student's profile use the same curriculum.
+
+V2 decisions:
+- Admission year 2024 and earlier uses curriculum 2021; admission year 2025 and later uses curriculum 2025.
+- Both curricula remain available at the same time because older cohorts cannot be moved to the new curriculum.
+- `student_profiles.curriculum_id` is required and is assigned from the admission year. An admin may override it; the override must record who changed it, when, the old and new curriculum, and the reason.
+- An active degree plan must use the same curriculum as the student profile. Cross-curriculum course selection is forbidden.
+
+For now, the existing unique key `(study_program_id, curriculum_year)` remains valid because the two active curricula have different years. Revisit it if same-year revisions become possible.
+
+Fix: enforce the profile/plan/course relationship with composite FKs, a trigger, or mandatory backend validation; add an audit record for curriculum overrides.
 
 ### H5 — No RLS / grants / policies (conditional)
 Decision: local Docker PostgreSQL first, hosted provider later. With backend-only DB access, RLS is not required today.
@@ -56,51 +72,50 @@ Trigger condition: the moment tables are exposed directly to clients (Supabase-s
 ## MEDIUM
 
 ### M1 — `updated_at` never updates
-`DEFAULT now()` fires on INSERT only. Six tables (`users`, `student_profiles`, `courses`, `curriculum_courses`, `degree_plans`, `timetables`) have permanently stale `updated_at`.
+`DEFAULT now()` fires on INSERT only. Six entity tables (`users`, `student_profiles`, `courses`, `curriculum_courses`, `degree_plans`, `timetables`) have permanently stale `updated_at` values.
 
-Fix: one `BEFORE UPDATE` trigger function, attached to those six tables.
+V2 decision: use live `updated_at` triggers on important entity tables. Do not add audit timestamps to every junction table unless a later audit requirement needs them.
 
-### M2 — "Exactly one active" is unguarded
-Multiple rows can be active simultaneously:
-- active `curricula` per program,
-- active `academic_periods` (globally),
-- `timetables.is_active` per (user, period),
-- `degree_plans.status = 'active'` per user.
+Fix: one `BEFORE UPDATE` trigger function, attached to the important entity tables.
 
-Fix: partial unique indexes, e.g. `CREATE UNIQUE INDEX ON curricula (study_program_id) WHERE is_active;`
+### M2 — Active flags have different meanings
+V2 decisions:
+- Multiple curricula may be available for one program at the same time because cohorts remain on older curricula.
+- Multiple academic periods may be active at the same time.
+- A user may have at most one active timetable per academic period.
+- A user may have at most one degree plan with `status = 'active'`; having none is allowed.
+
+Fix: create partial unique indexes only for timetables and degree plans. Do not create a one-active index for curricula or academic periods.
 
 ### M3 — Prerequisite graph unprotected
 Self-loop is legal today (`curriculum_course_id = prerequisite_curriculum_course_id`). Longer cycles (A↔B) cannot be prevented declaratively.
 
-Fix: `CHECK (curriculum_course_id <> prerequisite_curriculum_course_id)` now; detect longer cycles app-side (recursive CTE at write time).
+V2 decision: reject self-loops with a `CHECK`; detect longer cycles at write time. Do not create guessed prerequisite links from unresolved source text; hold them for manual verification.
 
-### M4 — No delete strategy
-All 33 FKs are `NO ACTION` (deferrable). Deleting one curriculum requires ordered deletes across ≥8 child tables. No edge documents a `CASCADE`/`SET NULL` choice.
+### M4 — Delete strategy is explicit
+Catalog data is not deleted permanently. Courses, curricula, and source documents remain for history and are deactivated with `is_active` or another status. Student accounts are deactivated and anonymized; academic records remain available. Planner data may be archived, but it must not erase the academic history.
 
-Fix: decide per-edge delete behavior (catalog edges: RESTRICT; owned data like plan items: CASCADE), and document the seed order the deferrable FKs imply.
+Fix: keep catalog references restrictive and document the archive/anonymization flow instead of cascading destructive deletes.
 
 ### M5 — Missing FK-side indexes
-PostgreSQL does not auto-index the referencing side. Reverse lookups and FK checks scan full tables on:
-`class_schedules.class_section_id`, `timetable_items.class_section_id`, `curriculum_courses.course_id`, `requirement_group_courses.curriculum_course_id`, `course_prerequisites.prerequisite_curriculum_course_id`, `class_sections.curriculum_course_id`, `course_reports.user_id` / `.curriculum_course_id`, `student_profiles.study_program_id` / `.curriculum_id`, `course_instructor_references.curriculum_course_id`, `student_course_records.academic_period_id`.
+PostgreSQL does not auto-index the referencing side. Reverse lookups and FK checks scan full tables on the relationships used by section schedules, timetable items, curriculum membership, prerequisites, reports, student profiles, instructor references, and academic records.
 
-Fix: index the ones real queries hit (per-section schedule, per-course usage, per-user reports).
+V2 decision: the removed requirement-group tables are not part of the index plan. Name the remaining indexes and add the FK-side indexes that support the actual planner, history, report, and import queries.
 
 ### M6 — Grade domain undefined
-`final_grade` and `course_prerequisites.minimum_grade` are `varchar(5)` with no scale. UNAIR uses A/B+/B/C+/C/D/E; `'zz'` is currently a passing grade as far as the DB cares. Server-side IPK and prereq checks degrade to string comparison.
+`final_grade` and `course_prerequisites.minimum_grade` use `varchar(5)`, but the accepted scale is now fixed: `A`, `AB`, `B`, `BC`, `C`, `D`, `E`. The grade points are 4, 3.5, 3, 2.5, 2, 1, and 0; D is passing.
 
-Fix: CHECK IN-list or lookup table + grade-point mapping.
+Fix: add the grade-label `CHECK` or lookup table and use numeric grade points for IPK, IPS, retake comparison, and prerequisite thresholds. Never compare grade strings.
 
-### M7 — Group bounds never consumed
-`requirement_groups.minimum_courses/maximum_courses` are stored but nothing validates membership count. A group of 10 members with `maximum_courses = 1` is storable.
+### M7 — Requirement groups do not model the FTMM rule
+FTMM's current rule limits a student's total semester SKS from the previous IPS; it does not require a number of courses from a requirement group. `minimum_courses` and `maximum_courses` therefore model a rule FTMM is not using.
 
-Acceptable if app-enforced by design — recorded here so it is a decision, not an oversight.
+V2 decision: remove `requirement_groups` and `requirement_group_courses` for the FTMM schema. If a broader university version later needs group credit requirements, design that separately.
 
-### M8 — `capacity` is decorative
-No enrollment fact links students to `class_sections` (`timetable_items` is a personal planner, not enrollment). Capacity and `enrollment_status` can never be evaluated against reality.
+### M8 — `capacity` is future metadata
+No enrollment fact links students to `class_sections`; `timetable_items` is a personal planner, not enrollment. Capacity and `enrollment_status` cannot be checked against real registrations yet.
 
-Fix: add a `section_enrollments` table when real KRS integration lands, or drop `capacity` until then.
-
-Decision: timetables become the personal KRS planner later, with multiple alternative folds per period ("fold 1" default plan, "fold 2" internship variant, ...). Current schema already fits: `UNIQUE (user_id, academic_period_id, timetable_name)` permits many folds per period; use `is_active` to mark the chosen fold (pairs with the M2 partial index). Stays planner-only until real enrollment exists.
+V2 decision: keep both fields as preparation for future KRS integration, but do not present them as validated enrollment data. Add `section_enrollments` when official KRS data is integrated.
 
 ---
 
@@ -108,22 +123,22 @@ Decision: timetables become the personal KRS planner later, with multiple altern
 
 | # | Finding | Fix |
 |---|---------|-----|
-| L1 | All indexes unnamed → auto-generated names, painful future `DROP ... IF EXISTS`. | Name every index. |
-| L2 | Audit columns inconsistent: `student_profiles` has no `created_at`; `course_learning_outcomes`, `course_instructor_references`, `course_prerequisites`, `requirement_groups`, `requirement_group_courses`, `academic_periods`, `class_schedules` have neither timestamp. | Standardize. |
-| L3 | `source_documents.verified_by_user_id` and `last_verified_at` settable independently (verifier without date, date without verifier). | `CHECK ((a IS NULL) = (b IS NULL))` or merge into one status. |
-| L4 | ~16 varchar enum columns (roles, statuses, types, scopes, terms) documented in comments only. | CHECKs now; native ENUMs/lookup tables when stable. |
+| L1 | All indexes unnamed → auto-generated names, painful future `DROP ... IF EXISTS`. | Name every remaining index. |
+| L2 | Audit columns are inconsistent. | Add timestamps to important entity tables only; do not add them to every junction table unless a later audit need appears. |
+| L3 | `source_documents.verified_by_user_id` and `last_verified_at` can be set independently. | Require both to be null or both to be filled; record curriculum overrides with actor, time, old/new curriculum, and reason. |
+| L4 | Enum columns are documented in comments only. | Add `CHECK`s using the v2 role, grade, term, status, and type values. |
 | L5 | `gen_random_uuid()` needs PG 13+ (or `pgcrypto`). | Moot with Docker `postgres:16+`; pin the image tag explicitly. |
-| L6 | `room_name` free text; no room/schedule overlap prevention (no `EXCLUDE` constraint). Double-bookings undetectable. | Fine for planner-only scope; revisit if rooms matter. |
-| L7 | `curricula UNIQUE (study_program_id, curriculum_year)` forbids two revisions in one year, yet `valid_from/valid_until` imply range logic. | Confirm one-curriculum-per-year is the rule. |
-| L8 | RESOLVED with real data — `Ekstrak/` catalogs hold 265 distinct codes and **47 of them are shared across programs** (8 in all 5: e.g. `TNM101`, `AGI101`, `NOP103`, `SIP107`, `MNM106`). Shared MKWU/faculty courses are the norm, not the exception. | Keep global UNIQUE — required so shared courses stay single entities referenced by many curricula. Import must MERGE by code, never blind-insert. Add format CHECK `kode ~ '^[A-Z]+[0-9]{3,4}$'` to catch malformed entries like the bare `PNJ`. |
+| L6 | `room_name` is free text and room overlap is not prevented. | Accept this for the planner-only v2; revisit when room scheduling becomes a requirement. |
+| L7 | `curricula UNIQUE (study_program_id, curriculum_year)` forbids same-year revisions. | Keep it for now: curriculum 2021 and 2025 have different years and may both be available. Revisit if same-year revisions are introduced. |
+| L8 | RESOLVED with real data — `Ekstrak/` catalogs hold 265 distinct codes and **47 of them are shared across programs** (8 in all 5: e.g. `TNM101`, `AGI101`, `NOP103`, `SIP107`, `MNM106`). Shared MKWU/faculty courses are the norm, not the exception. | Keep global UNIQUE; merge only non-conflicting rows by code and hold conflicting identities for manual review. Add format CHECK `kode ~ '^[A-Z]+[0-9]{3,4}$'` to catch malformed entries like the bare `PNJ`. |
 
 ---
 
 ## Design tensions (not bugs — decide consciously)
 
-- **D1 — Three overlapping "what am I taking" stores:** `degree_plan_items.item_status`, `student_course_records.record_status`, `timetable_items`. Sync contract undefined; which is source of truth at which lifecycle stage? Suggested pipeline: plan item → record → section booking.
-- **D2 — Prerequisites are curriculum-scoped:** the same logical prereq is duplicated per curriculum generation and drifts independently. Recognizing old `MA1101` ≡ new `MA1101` requires `course_code` comparison, which FKs do not give you. Consider prereq-by-`course_id` + applicability window. Source data reinforces this: `prasyarat` in `Ekstrak/` is free text ("Matematika"), so resolution should happen once against the global `courses` table, not per curriculum.
-- **D3 — Instructors are document references only** (per column comment: not actual schedules). Section ↔ instructor assignment is unrepresentable. Fine for V0.1; flagged so it is not forgotten.
+- **D1 — Three overlapping "what am I taking" stores:** V2 assigns clear roles: `degree_plan_items` is the long-term study plan; `timetable_items` is a personal planner for one academic period, with alternatives and at most one active; `student_course_records` stores academic attempts and grades, including a temporary `taking` snapshot created at final KRS. Official student-to-section enrollment is intentionally deferred.
+- **D2 — Prerequisites are curriculum-scoped for now:** only verified links within the student's curriculum may be created. Source prerequisites that are still free text stay in manual review and are not guessed into `course_prerequisites`.
+- **D3 — Instructors are document references only:** keep the documented instructor name for v2. Actual section-to-instructor assignment is deferred. Lecturer, faculty staff, and admin may verify documents and resolve course reports.
 
 ---
 
@@ -140,52 +155,97 @@ Analysis of the five extracted curricula (369 rows, 265 distinct `kode_mk`) — 
 - **Cosmetic drift, safe to canonicalize:** "Buddha"/"Budha", "Khonghucu"/"Konghucu", roman vs arabic numerals ("Katolik 1"/"Katolik I"), stray double spaces. Choose one canonical name per code at import.
 - **Malformed code:** bare `PNJ` (no numeric suffix) appears in two files.
 - **Program label inconsistency:** metadata mixes "S1 Rekayasa Nanoteknologi" with unprefixed names — normalize against `study_programs.program_name` at import.
-- **Prerequisites are free text**, not codes. Loading them into `course_prerequisites` needs fuzzy/manual resolution; import them with `verification_status='unverified'` (the schema default) until confirmed.
+- **Prerequisites are free text**, not codes. Hold unresolved entries for manual review and do not create guessed `course_prerequisites` links. Insert only verified same-curriculum relationships.
 
 ## Suggested patch sketch
 
-Highest-value fixes, ready to adapt into a migration file:
+Highest-value fixes, ready to adapt into a migration file. This is a sketch only; the DDL has not been executed.
 
 ```sql
--- 1. Rule inside the database: fixed-value columns (same pattern for all ~16 enum columns)
+-- 1. Fixed values and basic ranges
 ALTER TABLE users ADD CONSTRAINT users_role_check
-  CHECK (role IN ('student', 'admin', 'reviewer'));
-ALTER TABLE class_schedules ADD CONSTRAINT class_schedules_day_check
-  CHECK (day_of_week BETWEEN 1 AND 7),
-  ADD CONSTRAINT class_schedules_time_check CHECK (end_time > start_time);
-ALTER TABLE requirement_groups ADD CONSTRAINT requirement_groups_bounds_check
-  CHECK (minimum_courses <= maximum_courses);
-ALTER TABLE curriculum_courses ADD CONSTRAINT curriculum_courses_credits_check
-  CHECK (credits_total BETWEEN 1 AND 24);
--- grade scale: adjust list to FTMM's exact letters
-ALTER TABLE student_course_records ADD CONSTRAINT student_course_records_grade_check
-  CHECK (final_grade IS NULL OR final_grade IN ('A', 'AB', 'B+', 'B', 'C+', 'C', 'D', 'E'));
+  CHECK (role IN ('student', 'lecturer', 'faculty_staff', 'admin'));
 
--- 2. Retake model: an attempt must have a period
+ALTER TABLE class_schedules
+  ADD CONSTRAINT class_schedules_day_check
+    CHECK (day_of_week BETWEEN 1 AND 5),
+  ADD CONSTRAINT class_schedules_time_check
+    CHECK (start_time >= TIME '07:00'
+       AND end_time <= TIME '17:00'
+       AND end_time > start_time);
+
+ALTER TABLE student_profiles
+  ADD CONSTRAINT student_profiles_semester_check
+    CHECK (current_semester BETWEEN 1 AND 8);
+ALTER TABLE student_profiles ALTER COLUMN curriculum_id SET NOT NULL;
+ALTER TABLE curriculum_courses
+  ADD CONSTRAINT curriculum_courses_semester_check
+    CHECK (recommended_semester BETWEEN 1 AND 8),
+  ADD CONSTRAINT curriculum_courses_credits_check
+    CHECK (credits_total BETWEEN 1 AND 24);
+ALTER TABLE degree_plan_items
+  ADD CONSTRAINT degree_plan_items_semester_check
+    CHECK (planned_semester BETWEEN 1 AND 8);
+
+-- admission_year must not be in the future; enforce that dynamic rule in the backend.
+-- Backfill curriculum_courses.term before making it NOT NULL.
+ALTER TABLE curriculum_courses ADD COLUMN term varchar(20);
+ALTER TABLE curriculum_courses
+  ADD CONSTRAINT curriculum_courses_term_check
+    CHECK (term IN ('ganjil', 'genap'));
+
+ALTER TABLE student_course_records ADD CONSTRAINT student_course_records_grade_check
+  CHECK (final_grade IS NULL OR final_grade IN ('A', 'AB', 'B', 'BC', 'C', 'D', 'E'));
+-- Use the same grade ordering/points for minimum_grade and GPA calculations.
+-- Repeat the CHECK pattern for the remaining status/type columns from the comments.
+
+-- 2. Retake attempts require an academic period
 ALTER TABLE student_course_records ALTER COLUMN academic_period_id SET NOT NULL;
 
--- 3. Exactly-one-active guards
-CREATE UNIQUE INDEX curricula_one_active_per_program ON curricula (study_program_id) WHERE is_active;
-CREATE UNIQUE INDEX academic_periods_one_active ON academic_periods ((1)) WHERE is_active;
-CREATE UNIQUE INDEX timetables_one_active_per_period ON timetables (user_id, academic_period_id) WHERE is_active;
+-- 3. FTMM does not use requirement-course groups for its IPS load rule
+-- Drop requirement_group_courses before requirement_groups after any data review.
+-- Store the IPS-to-maximum-SKS bands in a separate rule table.
 
--- 4. No course is its own prerequisite
+-- 4. Active guards selected for v2
+CREATE UNIQUE INDEX timetables_one_active_per_period
+  ON timetables (user_id, academic_period_id) WHERE is_active;
+CREATE UNIQUE INDEX degree_plans_one_active_per_user
+  ON degree_plans (user_id) WHERE status = 'active';
+-- Do not create one-active indexes for curricula or academic_periods.
+
+-- 5. Cross-table curriculum and period consistency
+-- Add timetable_items.academic_period_id and composite keys/FKs (or a trigger)
+-- so every item matches both its timetable period and its class-section period.
+-- Enforce profile curriculum = active degree-plan curriculum and reject
+-- cross-curriculum degree-plan items. A trigger or composite FK is required.
+-- Enforce curriculum_course.term against academic_periods.term and planned
+-- semester parity with a trigger or mandatory backend validation.
+
+-- 6. No course is its own prerequisite
 ALTER TABLE course_prerequisites ADD CONSTRAINT course_prerequisites_no_self
   CHECK (curriculum_course_id <> prerequisite_curriculum_course_id);
 
--- 5. Live updated_at: one function, attached per table
+-- 7. Live updated_at
 CREATE OR REPLACE FUNCTION touch_updated_at() RETURNS trigger AS $$
 BEGIN NEW.updated_at := now(); RETURN NEW; END $$ LANGUAGE plpgsql;
-CREATE TRIGGER users_touch BEFORE UPDATE ON users
-  FOR EACH ROW EXECUTE FUNCTION touch_updated_at();
--- repeat the CREATE TRIGGER for student_profiles, courses, curriculum_courses,
--- degree_plans, timetables
+-- Attach the function to important entity tables.
+-- Add a curriculum-change audit table for admin overrides.
 ```
+
+The IPS rule is dynamic and depends on student records, so it should not be represented by a simple column `CHECK`. Keep all attempts, calculate IPS from records, and leave retake treatment and IPS rounding open until the academic policy is confirmed.
 
 ## Decisions log
 
 - **Platform:** Docker PostgreSQL locally now; hosted provider TBD. H5 (RLS) deferred until client-facing hosting is chosen.
-- **Retakes:** multiple attempts allowed, best score counts. Resolves H2 direction: `academic_period_id` NOT NULL, unique-key shape unchanged.
-- **Course codes:** global UNIQUE kept and re-confirmed against the real `Ekstrak/` catalog — 47 cross-program shared codes make merge-by-code mandatory. L8 closed.
-- **Timetables:** future multi-fold KRS planner; schema fits unchanged.
-- **Enum enforcement:** CHECK constraints inside the database (author choice). Closes L4; concrete statements in the patch sketch above.
+- **Roles:** one role per account: `student`, `lecturer`, `faculty_staff`, or `admin`. Lecturer, faculty staff, and admin may verify documents and resolve course reports.
+- **Schedule:** Monday–Friday, 07:00–17:00, no overnight classes. A course has one fixed term, ganjil or genap, and planned semester parity is strict.
+- **Academic load:** FTMM limits total semester SKS using the previous IPS; the first semester gets 24 SKS. IPS is calculated from course records and the rules live in a database table. IPS rounding remains open.
+- **Requirement groups:** FTMM does not use minimum/maximum course counts for this rule. Remove `requirement_groups` and `requirement_group_courses` from the FTMM schema.
+- **Retakes:** keep one record per attempt across periods; an attempt requires `academic_period_id`; a retake consumes semester SKS; keep `taking` as a temporary snapshot created at final KRS. The exact effect of a retake on the new semester's IPS remains open.
+- **Grades:** accepted labels are `A`, `AB`, `B`, `BC`, `C`, `D`, `E`, with points 4, 3.5, 3, 2.5, 2, 1, 0. D is passing. Transfer credits count toward study completion but not IPS/IPK.
+- **Curricula:** admission year 2024 and earlier uses curriculum 2021; 2025 and later uses curriculum 2025. Both remain available; older cohorts cannot be moved automatically. `curriculum_id` is required, admin overrides are audited, and active degree plans must use the profile's curriculum.
+- **Timetables:** planner only for v2. Several alternatives may exist for one period, with at most one active; every item must match the timetable's academic period. Official section enrollment is deferred.
+- **Prerequisites:** insert only verified same-curriculum links. Unresolved source text is held for manual review; no guessed foreign keys.
+- **Catalog lifecycle:** catalog rows are not hard-deleted. Student accounts are deactivated and anonymized while academic records remain. Conflicting imports wait for manual review; non-conflicting shared course codes keep the global unique identity.
+- **Capacity and instructors:** keep section capacity/status as future metadata; instructor data remains document references. Actual enrollment and section-to-instructor assignment are deferred.
+- **Enum enforcement:** use database `CHECK`s for the fixed values, plus triggers/composite foreign keys or mandatory backend validation for rules that span tables.
