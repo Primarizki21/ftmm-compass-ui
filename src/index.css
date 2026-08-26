@@ -27,8 +27,8 @@
   --color-warning: #d7b03d;
   --color-danger: #ad5712;
 
-  /* Changed from Merriweather to Poppins to match Cybercampus UNAIR style */
-  --font-serif: 'Poppins', sans-serif;
+  /* Heading font — Poppins, matching Cybercampus UNAIR style */
+  --font-heading: 'Poppins', sans-serif;
   --font-sans: 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 }
@@ -41,6 +41,6 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-serif);
+    font-family: var(--font-heading);
   }
 }

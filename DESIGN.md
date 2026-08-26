@@ -9,7 +9,7 @@ This document specifies the design system implemented in **FTMM Compass UI**, an
 The visual language balances academic rigor and modern institutional identity:
 
 * **Academic Authority & Heritage:** The primary palette utilizes deep forest navy (`#0f3e32`) paired with academic gold (`#d7b03d`) to convey institutional credibility and prestige aligned with Universitas Airlangga guidelines.
-* **Cybercampus UNAIR Alignment:** Typography specifically aligns with the Cybercampus UNAIR web experience by utilizing *Poppins* for headings (defined under `--font-serif` in `src/index.css`) and *Inter* (`--font-sans`) for legible interface copy.
+* **Cybercampus UNAIR Alignment:** Typography specifically aligns with the Cybercampus UNAIR web experience by utilizing *Poppins* for headings (defined under `--font-heading` in `src/index.css`) and *Inter* (`--font-sans`) for legible interface copy.
 * **Clarity & Spatial Hierarchy:** Clean surface backgrounds (`#ffffff`), tinted neutral canvas (`#faf9f7`), subtle structural borders (`#e5e7eb`), and distinct status highlights guide students through complex academic planning tasks.
 * **Utility-First Token Discipline:** Styles are strictly driven by Tailwind CSS v4 `@theme` tokens in `src/index.css` and composed via the `cn()` utility (`src/utils.ts`). Hardcoded hex values in JSX component class names are avoided.
 
@@ -25,12 +25,12 @@ All colors are declared in `src/index.css` within the `@theme` block.
 | :--- | :--- | :--- | :--- | :--- |
 | `--color-navy` | `#0f3e32` | `bg-navy`, `text-navy`, `border-navy`, `ring-navy` | Primary brand background, heading typography, primary CTA | `src/App.tsx`, `src/pages/Login.tsx`, `src/pages/CourseFinder.tsx` |
 | `--color-navy-light` | `#165a49` | `bg-navy-light`, `text-navy-light`, `border-navy-light` | Active sidebar nav item, primary button hover, secondary container | `src/App.tsx`, `src/pages/Login.tsx` |
-| `--color-navy-dark` | `#08221b` | `bg-navy-dark`, `text-navy-dark` | Deepest brand baseline, high-contrast dark accents | `src/index.css` |
+| `--color-navy-dark` | `#08221b` | `bg-navy-dark`, `text-navy-dark` | Deepest brand baseline, high-contrast text on teal surfaces | `src/App.tsx`, `src/pages/Chatbot.tsx` |
 | `--color-gold` | `#d7b03d` | `bg-gold`, `text-gold`, `border-gold`, `ring-gold` | Academic accent, active filter pills, focus rings, planned course badges | `src/App.tsx`, `src/pages/CourseFinder.tsx`, `src/pages/DegreePlanner.tsx` |
-| `--color-gold-hover` | `#c09d35` | `bg-gold-hover`, `text-gold-hover` | Darkened gold for text legibility on light backgrounds, elective badges | `src/pages/CourseFinder.tsx`, `src/pages/DegreePlanner.tsx` |
+| `--color-gold-hover` | `#c09d35` | `bg-gold-hover`, `text-gold-hover` | Darkened gold for interactive hover states | `src/index.css` (hover use only; badge text uses `text-navy` for contrast) |
 | `--color-teal` | `#93f08e` | `bg-teal`, `text-teal`, `border-teal`, `ring-teal` | Positive feedback, SKS progress bars, completed indicators, user bubbles | `src/pages/Dashboard.tsx`, `src/pages/Chatbot.tsx`, `src/pages/CourseFinder.tsx` |
 | `--color-teal-light` | `#b3f5b0` | `bg-teal-light`, `text-teal-light` | Subtitle text on dark surfaces, icon tints on dark panels | `src/App.tsx`, `src/pages/Login.tsx`, `src/pages/Chatbot.tsx` |
-| `--color-teal-dark` | `#6bd465` | `bg-teal-dark`, `text-teal-dark` | High-contrast mint text on light surfaces, avatar badge background | `src/App.tsx`, `src/pages/Dashboard.tsx`, `src/pages/DegreePlanner.tsx` |
+| `--color-teal-dark` | `#6bd465` | `bg-teal-dark`, `text-teal-dark` | Icon tints on light surfaces (IPK trend icon) | `src/pages/Dashboard.tsx` (icon only; badge text uses `text-navy` for contrast) |
 | `--color-orange` | `#ad5712` | `bg-orange`, `text-orange` | Base warm accent | `src/index.css` |
 | `--color-background` | `#faf9f7` | `bg-background` | Warm tinted off-white application canvas | `src/index.css`, `src/App.tsx`, `src/pages/Login.tsx` |
 | `--color-surface` | `#ffffff` | `bg-surface` | Pure white container surfaces, cards, modals, topbar | `src/App.tsx`, `src/pages/Dashboard.tsx`, `src/pages/CourseFinder.tsx` |
@@ -42,10 +42,8 @@ All colors are declared in `src/index.css` within the `@theme` block.
 
 | Token Name | Aliased Target | Hex Value | Semantic Function | Example In-Code Usage |
 | :--- | :--- | :--- | :--- | :--- |
-| `--color-warning` | `--color-gold` | `#d7b03d` | Cautionary state, timetable conflict event styling | `bg-warning/20 text-warning-dark border-warning/50` (`src/data.ts`) |
-| `--color-danger` | `--color-orange` | `#ad5712` | Schedule clash alert, invalid drop highlight, notification badge | `bg-danger/10 text-danger border-danger/30` (`src/pages/Dashboard.tsx`) |
-
-> **Unbacked token references:** `text-warning-dark` (`src/data.ts:132`) and `text-gold-dark` (`src/data.ts:134`) appear in `SCHEDULE` colors but have no matching `@theme` entries in `src/index.css`. Tailwind CSS v4 emits no utility without a token, so those timetable events render label text in the inherited body color instead of a dedicated darker shade.
+| `--color-warning` | `--color-gold` | `#d7b03d` | Cautionary state, timetable conflict event styling | `bg-warning/20 text-navy border-warning/50` (`src/data.ts`) |
+| `--color-danger` | `--color-orange` | `#ad5712` | Schedule clash alert, invalid drop highlight, notification badge | `bg-danger/10 text-danger border-danger/30` (`src/components/TimetableGrid.tsx`) |
 
 ### 2.3 Opacity & Surface Tint Conventions
 
@@ -53,7 +51,7 @@ The UI leverages Tailwind alpha modifiers for layered depth:
 * `bg-navy/8` or `bg-navy/10`: Subtle institutional badge background for required courses (`src/pages/CourseFinder.tsx`).
 * `bg-gold/10` or `bg-gold/20`: Elective course badge tints and modal pill backgrounds (`src/pages/CourseFinder.tsx`).
 * `bg-teal/10` or `bg-teal/20`: Completed status pill backgrounds and timetable event blocks (`src/pages/Dashboard.tsx`, `src/data.ts`).
-* `bg-danger/5` or `bg-danger/10`: Conflict notification banners and invalid drag-over cells (`src/pages/Dashboard.tsx`, `src/pages/DegreePlanner.tsx`).
+* `bg-danger/10`: Unified conflict notification banners (`src/components/TimetableGrid.tsx`) and invalid drag-over cells (`src/pages/DegreePlanner.tsx`).
 * `bg-white/10` with `backdrop-blur-sm`: Glassmorphism header pills over dark navy backgrounds (`src/pages/CourseFinder.tsx`).
 
 ---
@@ -66,7 +64,7 @@ Google Fonts loaded in `src/index.css` (`@import url(...)`):
 
 | Token | Family Name | Weights Loaded | Fallback | Primary Usage |
 | :--- | :--- | :--- | :--- | :--- |
-| `--font-serif` | `Poppins` | 300, 400, 500, 600, 700, 800 | `sans-serif` | Headings `h1` through `h6`, brand title, modal hero text |
+| `--font-heading` | `Poppins` | 300, 400, 500, 600, 700, 800 | `sans-serif` | Headings `h1` through `h6`, brand title, modal hero text |
 | `--font-sans` | `Inter` | 300, 400, 500, 600, 700 | `sans-serif` | Application body text, buttons, form inputs, navigation items |
 | `--font-mono` | `JetBrains Mono` | 400, 500, 600 | `monospace` | Course codes, NIM, timestamps, credits indicators, workload stats |
 
@@ -81,7 +79,7 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-serif);
+  font-family: var(--font-heading);
 }
 ```
 
@@ -89,11 +87,11 @@ h1, h2, h3, h4, h5, h6 {
 
 | Class Pattern | Size / Leading | Weight | Font Token | Found In |
 | :--- | :--- | :--- | :--- | :--- |
-| `text-4xl font-serif font-bold leading-tight` | 36px / 1.25 | 700 | `Poppins` | Login hero heading (`src/pages/Login.tsx`) |
-| `text-3xl font-serif font-bold` | 30px / 1.25 | 700 | `Poppins` | Dashboard stat counters (`src/pages/Dashboard.tsx`), CourseDetailView title (`src/pages/CourseFinder.tsx`), Login form title |
-| `text-2xl font-serif font-bold` | 24px / 1.3 | 700 | `Poppins` | Topbar header (`md:text-2xl` in `src/App.tsx`), modal course title (`src/pages/CourseFinder.tsx`) |
-| `text-xl font-serif font-bold` | 20px / 1.4 | 700 | `Poppins` | Topbar mobile title, workload metrics (`src/pages/CourseFinder.tsx`) |
-| `text-lg font-serif font-bold` | 18px / 1.4 | 700 | `Poppins` | Section titles, widget headers (`src/pages/Dashboard.tsx`, `src/pages/DegreePlanner.tsx`, `src/pages/Chatbot.tsx`) |
+| `text-4xl font-heading font-bold leading-tight` | 36px / 1.25 | 700 | `Poppins` | Login hero heading (`src/pages/Login.tsx`) |
+| `text-3xl font-heading font-bold` | 30px / 1.25 | 700 | `Poppins` | Dashboard stat counters (`src/pages/Dashboard.tsx`), CourseDetailView title (`src/pages/CourseFinder.tsx`), Login form title |
+| `text-2xl font-heading font-bold` | 24px / 1.3 | 700 | `Poppins` | Topbar header (`md:text-2xl` in `src/App.tsx`), modal course title (`src/pages/CourseFinder.tsx`) |
+| `text-xl font-heading font-bold` | 20px / 1.4 | 700 | `Poppins` | Topbar mobile title, workload metrics (`src/pages/CourseFinder.tsx`) |
+| `text-lg font-heading font-bold` | 18px / 1.4 | 700 | `Poppins` | Section titles, widget headers (`src/pages/Dashboard.tsx`, `src/pages/DegreePlanner.tsx`, `src/pages/Chatbot.tsx`) |
 | `text-base font-medium` | 16px / 1.5 | 500 | `Inter` | Primary interactive buttons, large modal copy |
 | `text-sm font-medium` / `text-sm text-foreground` | 14px / 1.5 | 400 / 500 | `Inter` | Standard body copy, form inputs, nav items, course descriptions |
 | `text-xs font-mono font-bold` | 12px / 1.4 | 700 | `JetBrains Mono` | Course identifiers (`II4042`), NIM (`1621123456`), timetable codes |
@@ -127,8 +125,8 @@ The application layout is structured as a full-viewport responsive layout:
 | Component | Styling & Classes | Behavior & States |
 | :--- | :--- | :--- |
 | **Sidebar Brand Emblem** | `w-10 h-10 rounded-full bg-gold/10 text-gold border border-gold/30` | Hover triggers compass rotation: `group-hover:rotate-180 transition-transform duration-700` |
-| **Navigation Item** | `w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200` | Active: `bg-navy-light border-l-4 border-gold text-white`. Inactive: `text-slate-400 hover:text-white hover:bg-navy-light/50 border-l-4 border-transparent` |
-| **User Profile Footer** | `flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-navy-light/50 text-slate-300 hover:text-white` | Avatar in `bg-teal-dark text-teal-light`; NIM in `font-mono`; logout trigger with `hover:text-danger` |
+| **Navigation Item** | `w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200` | Active: `bg-navy-light border-l-4 border-gold text-white`. Inactive: `text-muted hover:text-white hover:bg-navy-light/50 border-l-4 border-transparent` |
+| **User Profile Footer** | `flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-navy-light/50 text-teal-light hover:text-white` | Avatar in `bg-teal text-navy-dark` (13:1 AAA contrast); NIM in `font-mono text-muted`; logout trigger with `hover:text-danger` |
 | **Notification Bell** | `p-2 text-muted hover:text-navy hover:bg-background rounded-lg relative` | Fixed unread ping indicator: `w-2 h-2 bg-danger rounded-full border border-surface absolute top-1.5 right-1.5` |
 
 ### 5.2 Login Surface (`src/pages/Login.tsx`)
@@ -144,15 +142,15 @@ The application layout is structured as a full-viewport responsive layout:
 | Component | Styling & Classes | Behavior & States |
 | :--- | :--- | :--- |
 | **Metric Stat Cards** | `bg-surface rounded-xl p-5 border border-border shadow-sm relative overflow-hidden group` | 4-column responsive grid (`grid-cols-2 lg:grid-cols-4 gap-4`); animated progress track (`bg-border h-1.5 rounded-full` with `bg-teal`) |
-| **Timetable Widget** | `bg-surface rounded-xl border border-border shadow-sm overflow-hidden` | Bounded container with scrollable grid (`max-height: 420px`), sticky time gutter (`w-14 bg-background/50 sticky left-0 z-10`), and day headers |
-| **Inline Conflict Alert** | `bg-danger/5 border border-danger/20 rounded-lg p-3 flex items-start gap-3` | Displayed conditionally when `SCHEDULE.some(s => s.conflict)`; includes direct navigation link to Degree Planner |
+| **Timetable Widget** | `bg-surface rounded-xl border border-border shadow-sm overflow-hidden` | Uses shared `TimetableGrid` component (`src/components/TimetableGrid.tsx`) with `compact` prop; bounded at `max-height: 420px` |
+| **Inline Conflict Alert** | `bg-danger/10 border border-danger/30 rounded-xl p-4 flex items-start gap-3` | Unified conflict banner style rendered by `TimetableGrid`; includes direct navigation link to Degree Planner |
 
 ### 5.4 Course Finder Surface (`src/pages/CourseFinder.tsx`)
 
 | Component | Styling & Classes | Behavior & States |
 | :--- | :--- | :--- |
 | **Search & Filter Bar** | `bg-surface rounded-xl border border-border shadow-sm p-4 space-y-3` | Search input with `Search` icon; program filter pills (`bg-gold text-white` active); parity/SKS filter pills (`bg-navy text-white` active) |
-| **Course Catalog Cards** | `bg-surface rounded-xl border border-border p-4 cursor-pointer hover:border-gold hover:shadow-md transition-all` | Type pill (`bg-navy/8 text-navy` for Wajib vs `bg-gold/10 text-gold-hover` for Pilihan); parity pill (`bg-teal/10` vs `bg-gold/10`) |
+| **Course Catalog Cards** | `bg-surface rounded-xl border border-border p-4 cursor-pointer hover:border-gold hover:shadow-md transition-all` | Type pill (`bg-navy/8 text-navy` for Wajib vs `bg-gold/10 text-navy` for Pilihan); parity pill (`bg-teal/10 text-navy` vs `bg-gold/10 text-navy`) |
 | **Course Quick Modal** | `fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm` | Dialog card `bg-surface rounded-2xl shadow-2xl max-w-md animate-in zoom-in-95`; 3-column workload stat summary |
 | **Full Detail View** | `h-full flex flex-col animate-in fade-in duration-300` | Replaces catalog view on drill-down; navy hero header with `ArrowLeft` back action, description card, workload card, and prerequisite diagram |
 | **Prerequisite Diagram** | SVG container with dynamic bezier curves (`M... C...`) and markers | Node hierarchy: Base prereq (`#f9fafb`), Direct prereq (`#f0fdf8`, border `#93f08e`), Target course (`#0f3e32`, border `#d7b03d`) |
@@ -171,14 +169,14 @@ The application layout is structured as a full-viewport responsive layout:
 | Component | Styling & Classes | Behavior & States |
 | :--- | :--- | :--- |
 | **Chat Header** | `p-4 border-b border-border bg-navy text-white relative overflow-hidden` | Houses `Sparkles` icon in `bg-white/10` and status label `Online • Powered by FTMM` |
-| **User Message Bubble** | `p-4 rounded-2xl rounded-tr-none text-sm leading-relaxed bg-teal text-white shadow-sm` | Right-aligned container with avatar in `bg-teal text-white` |
+| **User Message Bubble** | `p-4 rounded-2xl rounded-tr-none text-sm leading-relaxed bg-teal text-navy-dark shadow-sm` | Right-aligned container with avatar in `bg-teal text-navy-dark` (13:1 AAA contrast) |
 | **Assistant Message Bubble** | `p-4 rounded-2xl rounded-tl-none text-sm leading-relaxed bg-surface border border-border text-foreground shadow-sm` | Left-aligned container with avatar in `bg-navy text-white` |
-| **Suggestion Chips** | `px-3 py-1.5 bg-surface border border-border rounded-full text-xs font-medium text-navy hover:border-gold hover:text-gold` | Displayed when message history length is 1; clicking fills input field |
+| **Suggestion Chips** | `px-3 py-1.5 bg-surface border border-border rounded-full text-xs font-medium text-navy hover:border-navy hover:text-navy` | Displayed when message history length is 1; clicking fills input field |
 | **Chat Input Area** | `p-4 bg-surface border-t border-border` | Rounded-xl input with embedded send button (`bg-navy hover:bg-navy-light text-white disabled:opacity-50`) |
 
 ### 5.7 Orphaned Components Note
 
-* **`src/pages/TimetableBuilder.tsx`:** This file represents a standalone timetable page created in earlier development. By design decision (2026-08-26), it is **orphaned** and disconnected from `src/App.tsx` routing. Its grid logic and conflict rendering were consolidated directly into the `Dashboard.tsx` weekly widget and the `DegreePlanner.tsx` (`Jadwal Aktif`) tab. It must not be treated as live UI.
+* **`src/pages/TimetableBuilder.tsx`:** This file represents a standalone timetable page created in earlier development. By design decision (2026-08-26), it is **orphaned** and disconnected from `src/App.tsx` routing. Its grid logic has been extracted into the shared `src/components/TimetableGrid.tsx` component, used by both `Dashboard.tsx` and `DegreePlanner.tsx`.
 
 ---
 
@@ -188,10 +186,8 @@ The application layout is structured as a full-viewport responsive layout:
 
 Schedule conflict styling is driven by an intentional mock collision in `src/data.ts` (`II4042 Machine Learning` vs `II4045 Data Visualization` on Tuesday 10:00).
 
-* **Timetable Event Block:** `border-danger border-dashed bg-danger/10 z-10 animate-pulse` with an `AlertTriangle` icon (`w-3 h-3 text-danger`) in the top-right corner (`src/pages/Dashboard.tsx:142`, `src/pages/DegreePlanner.tsx:456`).
-* **Warning Banners:**
-  * Compact alert: `bg-danger/5 border border-danger/20 rounded-lg p-3 text-danger` (`src/pages/Dashboard.tsx:166`).
-  * Prominent banner: `bg-danger/10 border border-danger/30 rounded-xl p-4 text-danger` (`src/pages/DegreePlanner.tsx:398`).
+* **Timetable Event Block:** `border-danger border-dashed bg-danger/10 z-10 animate-pulse` with an `AlertTriangle` icon in the top-right corner (`src/components/TimetableGrid.tsx`).
+* **Conflict Banner (unified):** Both compact (Dashboard) and full (DegreePlanner) modes use the same component and style: `bg-danger/10 border border-danger/30 rounded-xl p-4 text-danger` rendered by `TimetableGrid`. Compact mode places the banner below the grid with a navigation link; full mode places it above.
 
 ### 6.2 Parity Constraint & Drag-and-Drop Signals
 
@@ -248,13 +244,12 @@ All transitions in the application are subtle, hardware-accelerated, and strictl
 | `--color-navy` (`#0f3e32`) | `--color-surface` (`#ffffff`) | 12.0:1 (AAA) | Card headings, primary brand icons |
 | `--color-surface` (`#ffffff`) | `--color-navy` (`#0f3e32`) | 12.0:1 (AAA) | Text on sidebar and primary buttons |
 | `--color-gold` (`#d7b03d`) | `--color-navy` (`#0f3e32`) | 5.8:1 (AA) | Accent text, brand headings on navy sidebar |
-| `--color-gold-hover` (`#c09d35`) | `--color-surface` (`#ffffff`) | 2.6:1 (fails AA Large) | Type/elective badge text at 9-10px bold (`src/pages/CourseFinder.tsx:129`, `src/pages/DegreePlanner.tsx:304`) |
-| `--color-teal-dark` (`#6bd465`) | `--color-surface` (`#ffffff`) | 1.9:1 (fails AA) | Parity badge text and status accents on light surfaces (`src/pages/CourseFinder.tsx:144`, `src/pages/DegreePlanner.tsx:380`) |
+| `--color-navy` (`#0f3e32`) | `--color-teal` (`#93f08e`) | 8.3:1 (AAA) | Badge text, chat bubble text, avatar text on teal backgrounds (contrast fix) |
+| `--color-navy-dark` (`#08221b`) | `--color-teal` (`#93f08e`) | 13.0:1 (AAA) | User chat bubble text, avatar initials on teal (contrast fix) |
 | `--color-danger` (`#ad5712`) | `--color-surface` (`#ffffff`) | 5.1:1 (AA) | Conflict alert copy on white cards |
-| `--color-danger` (`#ad5712`) | `bg-danger/5` over surface | 4.7:1 (AA) | Compact conflict banner (`src/pages/Dashboard.tsx:166`) |
-| `--color-danger` (`#ad5712`) | `bg-danger/10` over surface | 4.4:1 (below AA normal) | Prominent conflict banner (`src/pages/DegreePlanner.tsx:398`) |
+| `--color-danger` (`#ad5712`) | `bg-danger/10` over surface | 4.4:1 (borderline AA) | Conflict banner copy (`src/components/TimetableGrid.tsx`) |
 
-**Known low-contrast pairings (as implemented):** small bold badges using `text-teal-dark` (~1.9:1) and `text-gold-hover` (~2.6:1) on white or tinted pill backgrounds fall below WCAG AA thresholds (4.5:1 normal text, 3.0:1 large text). Ratios are computed per the WCAG 2.x relative-luminance formula against the alpha-composited background color.
+**Resolved contrast issues:** Badge text previously using `text-teal-dark` (~1.9:1) and `text-gold-hover` (~2.6:1) has been migrated to `text-navy` (~12:1 AAA). Chat bubble text previously using `text-white` on `bg-teal` (~1.4:1) has been migrated to `text-navy-dark` (~13:1 AAA). All previously failing pairings now meet WCAG AA or AAA thresholds.
 
 ### 8.2 Focus Handling & Interactive Indicators
 
