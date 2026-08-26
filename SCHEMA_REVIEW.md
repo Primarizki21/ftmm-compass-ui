@@ -1,6 +1,6 @@
 # Schema Review — `RANCANGAN DIAGRAM AWAL.sql`
 
-Scope: 21 tables, 33 foreign keys, 14 indexes. Static review — DDL was not executed against a live PostgreSQL instance.
+Scope: 22 tables, 42 foreign keys, 17 explicitly created indexes. Static review; the v2 baseline has been validated against PostgreSQL 16, but no production database migration was executed.
 Version: v2 — owner decisions captured; retake IPS treatment and IPS rounding remain open.
 
 ## Verdict
@@ -57,11 +57,11 @@ V2 decisions:
 - Both curricula remain available at the same time because older cohorts cannot be moved to the new curriculum.
 - `student_profiles.curriculum_id` is required and is assigned from the admission year. An admin may override it; the override must record who changed it, when, the old and new curriculum, and the reason.
 - An active degree plan must use the same curriculum as the student profile. Cross-curriculum course selection is forbidden.
+- Historical `student_course_records` keep their original `curriculum_course` relationship when an admin changes the student's current curriculum.
 
 For now, the existing unique key `(study_program_id, curriculum_year)` remains valid because the two active curricula have different years. Revisit it if same-year revisions become possible.
 
-Fix: enforce the profile/plan/course relationship with composite FKs, a trigger, or mandatory backend validation; add an audit record for curriculum overrides.
-
+Fix: enforce the profile/plan/course relationship with composite FKs, a trigger, or mandatory backend validation; add an audit record for curriculum overrides without rewriting historical records.
 ### H5 — No RLS / grants / policies (conditional)
 Decision: local Docker PostgreSQL first, hosted provider later. With backend-only DB access, RLS is not required today.
 
@@ -243,7 +243,7 @@ The IPS rule is dynamic and depends on student records, so it should not be repr
 - **Requirement groups:** FTMM does not use minimum/maximum course counts for this rule. Remove `requirement_groups` and `requirement_group_courses` from the FTMM schema.
 - **Retakes:** keep one record per attempt across periods; an attempt requires `academic_period_id`; a retake consumes semester SKS; keep `taking` as a temporary snapshot created at final KRS. The exact effect of a retake on the new semester's IPS remains open.
 - **Grades:** accepted labels are `A`, `AB`, `B`, `BC`, `C`, `D`, `E`, with points 4, 3.5, 3, 2.5, 2, 1, 0. D is passing. Transfer credits count toward study completion but not IPS/IPK.
-- **Curricula:** admission year 2024 and earlier uses curriculum 2021; 2025 and later uses curriculum 2025. Both remain available; older cohorts cannot be moved automatically. `curriculum_id` is required, admin overrides are audited, and active degree plans must use the profile's curriculum.
+- **Curricula:** admission year 2024 and earlier uses curriculum 2021; 2025 and later uses curriculum 2025. Both remain available; older cohorts cannot be moved automatically. `curriculum_id` is required, admin overrides are audited, active degree plans must use the profile's curriculum, and historical course records keep their original curriculum relationship.
 - **Timetables:** planner only for v2. Several alternatives may exist for one period, with at most one active; every item must match the timetable's academic period. Official section enrollment is deferred.
 - **Prerequisites:** insert only verified same-curriculum links. Unresolved source text is held for manual review; no guessed foreign keys.
 - **Catalog lifecycle:** catalog rows are not hard-deleted. Student accounts are deactivated and anonymized while academic records remain. Conflicting imports wait for manual review; non-conflicting shared course codes keep the global unique identity.
