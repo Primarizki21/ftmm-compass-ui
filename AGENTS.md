@@ -1,41 +1,63 @@
-# figma-make-app
+# FTMM Compass — Agent Guide
 
-React + Vite + Tailwind CSS project running inside Figma Make.
+Academic-advisor **mockup** for FTMM (Fakultas Teknologi Maju dan Multidisiplin), Universitas Airlangga. React 19 + Vite 8 + Tailwind CSS v4 SPA, frontend-only: **no backend, no persistence, all data mocked**. Born in Figma Make; standalone-cloneable.
 
-## Development Server
+## Commands
 
-A Vite development server is **already running** on `$PORT` (default 8443). You don't need to start it manually.
+```bash
+pnpm install        # deps (pnpm-lock.yaml is source of truth; .mise.toml pins node 22 + pnpm)
+pnpm dev            # Vite on 0.0.0.0:$PORT (default 8443, strictPort)
+pnpm build          # production build to dist/
+pnpm preview        # serve dist/
+pnpm format         # oxfmt
+```
 
-- Preview URL: The user can access the running app through the preview panel
-- Hot reload: Changes to source files are reflected immediately
+Inside Figma Make a dev server is already running on `$PORT`; in a normal clone you start it yourself. `vite.config.ts` requires `.figma/make/site.json` at import time — it is committed; do not delete it until the planned Figma-Make decoupling lands.
 
-## Project Structure
+## Architecture
 
-This is the canonical project structure. Start with task-relevant files below. Only follow imports or inspect other files when required, when a documented path is missing, or when the repository contradicts this guide.
+No router. `src/App.tsx` owns all top state and swaps pages via `useState<Page>`:
 
-- `src/main.tsx` - React entrypoint; imports `src/index.css` and mounts `src/App.tsx` into the `#root` element
-- `src/App.tsx` - Primary application component and the usual starting point for UI work
-- `src/index.css` - Global CSS entrypoint and Tailwind CSS v4 import
-- `index.html` - Vite HTML shell containing the `#root` element and loading `src/main.tsx`
-- `package.json` - Project dependencies and the Vite build, development, preview, and formatting scripts
-- `vite.config.ts` - Vite configuration with React, Tailwind CSS v4, and Figma Make plugins plus the `@` alias for `src`
-- `.mise.toml` - Toolchain versions for Node.js and pnpm
+```
+main.tsx → App.tsx ─┬─ isLoggedIn=false → pages/Login.tsx (fake auth: any input, 1s delay)
+                    └─ sidebar nav (useState) ─┬─ Dashboard       (stats + timetable widget)
+                                               ├─ CourseFinder    (search/filter/modal/CourseDetailView/PrerequisiteDiagram)
+                                               ├─ DegreePlanner   (drag-drop roadmap + timetable tab)
+                                               └─ Chatbot         (keyword-matched canned replies)
+```
 
-## Dependencies
+State contract (App.tsx):
+- `pendingCourses: Course[]` — courses added in CourseFinder, consumed by DegreePlanner.
+- DegreePlanner auto-files `Wajib` (compulsory) courses into their fixed semester via `useEffect`, keeps `Pilihan` (elective) in a drag bank; drops are parity-constrained (`odd`→semesters 1/3/5/7, `even`→2/4/6/8).
+- Nothing survives reload.
 
-- Runtime: React 19 and React DOM 19
-- Styling: Tailwind CSS v4 with the `@tailwindcss/vite` plugin
-- Build tooling: Vite 8, TypeScript 5.7, and `@vitejs/plugin-react`
-- Formatting: oxfmt
+Data lives in two places (known fragmentation): catalog + schedule in `src/data.ts` (`MOCK_COURSES`: 6 courses, `SCHEDULE`: 4 items with one **intentional** conflict II4042×II4045 Selasa 10:00 that drives conflict UI); semester-plan seed inline in `DegreePlanner.tsx` `INITIAL_PLAN` (courses MA1101/FI1101/MA1201/IF1210 exist only there).
 
-## Styling
+## Design system
 
-This project uses **Tailwind CSS v4** through the `@tailwindcss/vite` plugin configured in `vite.config.ts`. `src/index.css` imports Tailwind with `@import 'tailwindcss';`. Use Tailwind utility classes directly in JSX and put global CSS or Tailwind v4 theme customization in `src/index.css`. This scaffold does not need a Tailwind config file or PostCSS config.
+Tailwind v4 `@theme` in `src/index.css` — no tailwind.config. Palette: navy `#0f3e32`, gold `#d7b03d`, teal `#93f08e`, orange/danger `#ad5712`, warm off-white bg `#faf9f7`. Fonts: headings Poppins (`--font-serif`), body Inter, mono JetBrains Mono (Google Fonts @import). Use tokens as utilities (`bg-navy`, `text-gold`, …) — never hardcode hex in JSX. Class merging helper: `cn()` in `src/utils.ts`.
 
-`src/main.tsx` imports `src/index.css`, so global font wiring belongs in `src/index.css`. Keep CSS `@import` statements first, then add any `@font-face` rules and font-family defaults there.
+## Code conventions
 
-## Code quality
+- Default exports for components.
+- Double-quote strings containing apostrophes (or escape them) — unescaped `'` in single quotes breaks the build.
+- Closed tags, balanced braces; UI text is Indonesian, code identifiers English.
+- Format with `pnpm format` before handing off; no linter/test suite exists.
 
-- Use double quotes for strings containing apostrophes (`"We're here to help"`), or escape them in single-quoted strings. An unescaped apostrophe in a single-quoted string breaks the build.
-- Ensure JSX tags are closed and braces are balanced.
-- Export components as default exports.
+## Known mock boundaries (intentional — do not "fix" silently)
+
+| Symptom | Reality |
+|---|---|
+| Login accepts anything | Auth is simulated (`Login.tsx`) |
+| Chatbot answers 2 topics only | Keyword rules in `Chatbot.tsx` (`data science|rekomendasi`, `krs|planning`) |
+| Dashboard numbers never move | Hardcoded (84/144 SKS, IPK 3.75, sem 5) |
+| `TimetableBuilder.tsx` unreachable | Orphaned by design decision 2026-08-26; its grid is duplicated in Dashboard widget + DegreePlanner tab |
+| Schedule shows a clash | Seeded deliberately to demo conflict styling |
+
+Planned future work (user-stated): remove the Figma Make integration (`.figma/`, plugins in `vite.config.ts`) entirely.
+
+## Tools for agents
+- **codegraph** (indexed; `.codegraph/` gitignored): query architecture/symbols/call-paths first via the `codegraph_explore` MCP tool with `projectPath` = this repo root. Refresh after substantial changes: `~/.codegraph/versions/v1.5.0/bin/codegraph init .`
+- **LSP**: TypeScript server available — use for definitions/references/rename instead of text search.
+- **Browser**: verify UI changes against the real surface. Flow: open `http://localhost:8443` → submit login form (any values) → nav buttons are `nav button:nth-of-type(1..4)` in order Dashboard/Course Finder/Degree Planner/Compass AI.
+- **grep/read**: fallback for everything else; `src/` is small (~1.9k lines across 11 TS/TSX files).

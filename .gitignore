@@ -11,4 +11,8 @@ logs/
 *.log
 .claude-replay.*
 .tmp-*
-.figma/
+.figma/*
+!.figma/make
+.figma/make/*
+!.figma/make/site.json
+.codegraph/
