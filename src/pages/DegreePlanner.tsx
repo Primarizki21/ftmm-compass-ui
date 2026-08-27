@@ -8,8 +8,9 @@ import {
   Lock,
   X,
   Calendar,
+  Sparkles,
+  RotateCcw,
 } from "lucide-react"
-import { cn } from "../utils"
 import { Course, SCHEDULE } from "../data"
 import TimetableGrid from "../components/TimetableGrid"
 
@@ -108,6 +109,15 @@ const isLocked = (c: PlacedCourse) =>
 interface DegreePlannerProps {
   pendingCourses: Course[]
   setPendingCourses: React.Dispatch<React.SetStateAction<Course[]>>
+  customPlan?: Record<number, PlacedCourse[]> | null
+  appliedSummary?: {
+    program_studi: string
+    total_credits: number
+    target_semester: number
+    focus_tracks: string[]
+    note?: string
+  } | null
+  onResetPlan?: () => void
 }
 
 type SemesterState = "idle" | "valid-hover" | "invalid" | "invalid-hover"
@@ -116,9 +126,20 @@ type Tab = "roadmap" | "timetable"
 export default function DegreePlanner({
   pendingCourses,
   setPendingCourses,
+  customPlan,
+  appliedSummary,
+  onResetPlan,
 }: DegreePlannerProps) {
   const [activeTab, setActiveTab] = useState<Tab>("roadmap")
-  const [plan, setPlan] = useState<Record<number, PlacedCourse[]>>(INITIAL_PLAN)
+  const [plan, setPlan] = useState<Record<number, PlacedCourse[]>>(
+    customPlan || INITIAL_PLAN,
+  )
+
+  useEffect(() => {
+    if (customPlan) {
+      setPlan(customPlan)
+    }
+  }, [customPlan])
   const [dragging, setDragging] = useState<{
     course: PlacedCourse
     fromSem: number | "bank"
@@ -252,6 +273,41 @@ export default function DegreePlanner({
       {/* ─── TAB: Roadmap Studi ─── */}
       {activeTab === "roadmap" && (
         <>
+          {/* AI Generated Plan Banner */}
+          {appliedSummary && (
+            <div className="mb-4 p-4 bg-teal/15 border border-teal/40 rounded-xl flex items-center justify-between gap-4 animate-in fade-in duration-300">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-navy text-gold rounded-lg shadow-sm">
+                  <Sparkles className="w-5 h-5 text-gold" />
+                </div>
+                <div>
+                  <h4 className="font-heading font-bold text-sm text-navy flex items-center gap-2">
+                    Rencana Studi Personalisasi Compass AI
+                    <span className="text-[10px] font-mono px-2 py-0.5 bg-navy text-white rounded-full">
+                      {appliedSummary.program_studi}
+                    </span>
+                  </h4>
+                  <p className="text-xs text-muted">
+                    Target Lulus:{" "}
+                    <strong>Semester {appliedSummary.target_semester}</strong> •
+                    Total Beban:{" "}
+                    <strong>{appliedSummary.total_credits} SKS</strong> • Fokus:{" "}
+                    <strong>{appliedSummary.focus_tracks.join(", ")}</strong>
+                  </p>
+                </div>
+              </div>
+              {onResetPlan && (
+                <button
+                  onClick={onResetPlan}
+                  className="px-3 py-1.5 text-xs font-medium text-navy hover:bg-navy/10 rounded-lg transition-colors flex items-center gap-1.5 border border-navy/20"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Reset Default
+                </button>
+              )}
+            </div>
+          )}
+
           <div className="mb-4 flex justify-between items-end flex-shrink-0">
             <div>
               <h3 className="font-heading font-bold text-lg text-navy mb-1">

@@ -18,8 +18,7 @@ import { Course } from "./data"
 import Dashboard from "./pages/Dashboard"
 import CourseFinder from "./pages/CourseFinder"
 import DegreePlanner from "./pages/DegreePlanner"
-import Chatbot from "./pages/Chatbot"
-import Login from "./pages/Login"
+import Chatbot, { DegreePlanPayload } from "./pages/Chatbot"
 
 import mainLogo from "./imports/image-6.png"
 
@@ -30,6 +29,21 @@ export default function App() {
   const [activePage, setActivePage] = useState<Page>("dashboard")
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [pendingCourses, setPendingCourses] = useState<Course[]>([])
+  const [customPlan, setCustomPlan] = useState<Record<number, Course[]> | null>(
+    null,
+  )
+  const [appliedPlanSummary, setAppliedPlanSummary] =
+    useState<DegreePlanPayload["summary"] | null>(null)
+
+  const handleApplyPlanFromChatbot = (payload: DegreePlanPayload) => {
+    setCustomPlan(payload.plan)
+    setAppliedPlanSummary(payload.summary)
+    setActivePage("degree-planner")
+  }
+  const handleResetPlan = () => {
+    setCustomPlan(null)
+    setAppliedPlanSummary(null)
+  }
 
   const addCourseToPlanner = (course: Course) => {
     setPendingCourses((prev) =>
@@ -200,9 +214,14 @@ export default function App() {
               <DegreePlanner
                 pendingCourses={pendingCourses}
                 setPendingCourses={setPendingCourses}
+                customPlan={customPlan}
+                appliedSummary={appliedPlanSummary}
+                onResetPlan={handleResetPlan}
               />
             )}
-            {activePage === "chatbot" && <Chatbot />}
+            {activePage === "chatbot" && (
+              <Chatbot onApplyPlan={handleApplyPlanFromChatbot} />
+            )}
           </div>
         </div>
       </main>
