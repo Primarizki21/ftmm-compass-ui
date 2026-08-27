@@ -19,6 +19,37 @@ pnpm build          # production build to dist/
 pnpm preview        # serve dist/
 pnpm format         # oxfmt
 ```
+## Git & PR Workflow Guidelines (Feature Branching & Upstream Sync)
+
+To maintain a clean git history and prevent branch divergence when contributing to upstream:
+
+1. **Never develop directly on `main`**:
+   - Keep the `main` branch of your fork strictly synchronized with `upstream/main`.
+2. **Feature Branch Workflow**:
+   - Always branch off from the latest `upstream/main` before starting a new task:
+     ```bash
+     git checkout main
+     git fetch upstream
+     git reset --hard upstream/main
+     git checkout -b feat/<nama-fitur>   # or fix/<nama-bug>
+     ```
+3. **Atomic Commits**:
+   - Commit incrementally on your feature branch with clear, descriptive commit messages.
+4. **Push & Open Pull Request**:
+   - Push the feature branch to your fork (`origin`) and create a PR to `upstream:main`:
+     ```bash
+     git push -u origin feat/<nama-fitur>
+     ```
+5. **Syncing Fork After Merge**:
+   - After the PR is merged upstream, update your fork's `main` branch:
+     ```bash
+     git checkout main
+     git fetch upstream
+     git reset --hard upstream/main
+     git push origin main
+     git branch -d feat/<nama-fitur>
+     ```
+
 
 Inside Figma Make a dev server is already running on `$PORT`; in a normal clone you start it yourself. `vite.config.ts` requires `.figma/make/site.json` at import time — it is committed; do not delete it until the planned Figma-Make decoupling lands.
 
