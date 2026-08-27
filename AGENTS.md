@@ -34,19 +34,17 @@ To maintain a clean git history and prevent branch divergence when contributing 
      git checkout -b feat/<nama-fitur>   # or fix/<nama-bug>
      ```
 3. **Atomic Commits**:
-   - Commit incrementally on your feature branch with clear, descriptive commit messages.
-4. **Push & Open Pull Request**:
-   - Push the feature branch to your fork (`origin`) and create a PR to `upstream:main`:
-     ```bash
-     git push -u origin feat/<nama-fitur>
-     ```
+   - Commit incrementally on your feature branch with clear, descriptive conventional commit messages (`feat:`, `fix:`, `docs:`, `test:`, `chore:`).
+4. **Git Push Security Boundary (Strict User Authority)**:
+   - **AI Agents MUST NEVER execute `git push` or ask for SSH/GPG passphrases or tokens.**
+   - All `git push` commands are strictly manual operations executed by the user in their own terminal.
 5. **Syncing Fork After Merge**:
    - After the PR is merged upstream, update your fork's `main` branch:
      ```bash
      git checkout main
      git fetch upstream
      git reset --hard upstream/main
-     git push origin main
+     # User manually syncs fork remote: git push origin main
      git branch -d feat/<nama-fitur>
      ```
 
