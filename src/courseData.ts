@@ -98,7 +98,6 @@ for (const [path, mod] of Object.entries(modules)) {
   const seen = new Set<string>()
   const usedIds = new Set<string>()
   const bucket = (coursesByProgram[program] ??= [])
-
   ;(cur.mata_kuliah ?? []).forEach((m, i) => {
     const code = (m.kode_mk ?? "").trim()
     const name = (m.nama_mk ?? "").trim()

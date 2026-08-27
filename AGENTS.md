@@ -2,6 +2,14 @@
 
 Academic-advisor **mockup** for FTMM (Fakultas Teknologi Maju dan Multidisiplin), Universitas Airlangga. React 19 + Vite 8 + Tailwind CSS v4 SPA, frontend-only: **no backend, no persistence, all data mocked**. Born in Figma Make; standalone-cloneable.
 
+## Classified data — `Ekstrak/`
+
+`Ekstrak/*.json` holds the real FTMM course catalogs extracted from official faculty documents. Treat as classified:
+
+- NEVER modify, rename, move, or delete anything inside `Ekstrak/`. Read-only analysis allowed.
+- NEVER stage or commit it (it is gitignored — treat any appearance in `git status` as an accident to revert, not a change to add).
+- NEVER copy its contents into `src/`, docs, commit messages, prompts, logs, or any external surface. Derived/cleaned copies live outside the folder.
+
 ## Commands
 
 ```bash
@@ -13,6 +21,28 @@ pnpm format         # oxfmt
 ```
 
 Inside Figma Make a dev server is already running on `$PORT`; in a normal clone you start it yourself. `vite.config.ts` requires `.figma/make/site.json` at import time — it is committed; do not delete it until the planned Figma-Make decoupling lands.
+
+## Database baseline — v2
+
+`RANCANGAN DIAGRAM AWAL.sql` is a PostgreSQL 16 baseline, not a runtime migration. The React app does not connect to it: there is no backend, migration runner, or database persistence yet. `SCHEMA_REVIEW.md` is the decision record behind the baseline.
+
+Current database contract:
+- `users.role` is exactly one of `student`, `lecturer`, `faculty_staff`, or `admin`.
+- FTMM class schedules are Monday–Friday, 07:00–17:00; `end_time` must be later than `start_time`.
+- `current_semester`, `recommended_semester`, and `planned_semester` are 1–8; course credits are 1–24.
+- Grades are `A`, `AB`, `B`, `BC`, `C`, `D`, `E`, mapped to 4, 3.5, 3, 2.5, 2, 1, 0; D is passing. Transfer credits do not affect IPS/IPK.
+- Curriculum 2021 applies to admission year 2024 and earlier; curriculum 2025 applies from 2025 onward. Both remain available, and admin overrides are audited. Historical course records keep their original curriculum.
+- `degree_plan_items` is the long-term plan. `timetable_items` is a personal planner with alternative timetables and at most one active timetable per period. `student_course_records` stores attempts/grades; `taking` is a temporary snapshot at final KRS. Official section enrollment is not modeled yet.
+- Each curriculum course has one fixed term (`ganjil` or `genap`); planned-semester parity and timetable period/term consistency are strict.
+- `requirement_groups` is not part of the FTMM v2 model. Semester SKS limits are a separate database rule table based on the previous IPS; semester one defaults to 24 SKS.
+- Catalog rows are retained rather than hard-deleted. Unresolved prerequisites and conflicting source imports wait for manual review. Capacity/status fields are future enrollment metadata; instructor rows are document references only.
+
+Implementation notes:
+- Retake IPS behavior and IPS rounding are intentionally unresolved. Keep all attempts and do not hard-code either calculation until academic policy is confirmed.
+- Rules spanning tables require composite foreign keys, triggers, or mandatory backend validation; a column `CHECK` cannot enforce them alone.
+- Validate the baseline against PostgreSQL 16 before changing it. Test invalid role/day/time/grade, cross-period timetable items, cross-curriculum plan items, term/parity mismatches, and duplicate active plans/timetables.
+- Do not modify or expose `Ekstrak/`; it is classified source data.
+
 
 ## Architecture
 
