@@ -1,0 +1,20 @@
+[project]
+name = "ftmm-compass-backend"
+version = "1.0.0"
+description = "FastAPI backend service with LangChain agent and deterministic prerequisite validator for FTMM Compass"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.115.0",
+    "httpx>=0.27.0",
+    "pydantic>=2.7.0",
+    "python-dotenv>=1.0.0",
+    "uvicorn>=0.30.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+package = false
