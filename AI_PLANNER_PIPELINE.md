@@ -191,3 +191,21 @@ Sebelum memicu tools perencanaan, agen harus melengkapi slot data berikut melalu
 - [x] Verifikasi penegakan graf prasyarat (Prerequisite DAG validation).
 - [x] Verifikasi penegakan semester ganjil/genap (Parity constraint).
 - [x] Verifikasi transfer payload ke state React UI tanpa runtime error.
+
+---
+
+## 8. Manajemen Dependensi Backend dengan Astral UV
+
+Backend service dikelola menggunakan **[Astral UV](https://docs.astral.sh/uv/)** dengan deklarasi standar `backend/pyproject.toml` dan lockfile deterministik `backend/uv.lock`.
+
+```bash
+# Sinkronisasi environment
+cd backend && uv sync
+
+# Menjalankan server
+cd backend && uv run python app.py
+
+# Menjalankan tes
+cd backend && uv run python test_backend.py
+cd backend && uv run python test_api_endpoints.py
+```

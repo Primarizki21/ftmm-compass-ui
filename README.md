@@ -87,34 +87,32 @@ FTMM Compass helps students plan their degree journey across 8 semesters, explor
 - **Lucide React** untuk icon UI
 
 ### Backend
-- **Python 3.10+** (tested on Python 3.14)
+- **Python 3.10+** (managed via **[Astral UV](https://docs.astral.sh/uv/)**)
 - **FastAPI** + **Uvicorn** (RESTful API & CORS)
 - **Pydantic v2** (Strict data validation schemas)
 - **HTTPX** (Asynchronous HTTP client for Ollama LLM)
 - **Ollama / llama.cpp** (Local LLM inference: `qwen2.5:7b-instruct` / `qwen2.5:3b-instruct`)
-
 ---
 
 ## Cara Menjalankan Project
 
 ### 1. Prasyarat
 - **Node.js 22** & **pnpm** (versi terkelola via `.mise.toml` atau manual).
-- **Python 3.10+** dengan `venv`.
+- **Python 3.10+** & **uv** (Astral package manager).
 - *(Opsional untuk LLM lokal)*: **Ollama** terpasang di sistem.
 
 ---
 
-### 2. Menjalankan Backend API
+### 2. Menjalankan Backend API (dengan Astral UV)
 
 ```bash
-# Buat virtual environment jika belum ada
-python3 -m venv backend/.venv
+cd backend
 
-# Install dependencies backend
-./backend/.venv/bin/pip install -r backend/requirements.txt
+# Install & sync virtual environment secara otomatis
+uv sync
 
 # Jalankan server FastAPI
-./backend/.venv/bin/python backend/app.py
+uv run python app.py
 ```
 Backend akan aktif di **`http://localhost:8000`** (Swagger docs di `http://localhost:8000/docs`).
 
@@ -148,10 +146,10 @@ Proyek ini dilengkapi rangkaian pengujian otomatis untuk memvalidasi fungsi back
 
 ```bash
 # 1. Jalankan unit test logic planner, validator, dan slot-filling agent
-./backend/.venv/bin/python backend/test_backend.py
+cd backend && uv run python test_backend.py
 
 # 2. Jalankan integration test endpoint FastAPI
-./backend/.venv/bin/python backend/test_api_endpoints.py
+cd backend && uv run python test_api_endpoints.py
 
 # 3. Jalankan build test & type check frontend
 pnpm build
