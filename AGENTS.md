@@ -124,7 +124,9 @@ Planned future work (user-stated): remove the Figma Make integration (`.figma/`,
   - Lists structured by sprint: `Sprint 1` through `Sprint 10`, plus `Post-Sprint Backlog`.
   - Tools: `mcp__trello_*` (`get_lists`, `get_cards_by_list_id`, `get_card`, `update_card_details`, `add_comment`) to check active sprint items, read specs, mark completion (`dueComplete: true`), or log deliverables.
   - Card description standard: keep technical terms intact, but append plain-language explanations and official documentation links so non-technical team members understand them.
-- **Google Drive MCP**: Project knowledge assets and evaluation benchmarks reside in Google Drive folder `Project FTMM COMPASS`.
-  - Tools: `mcp__google_drive_*` (`search`, `listFolder`, `getSpreadsheetInfo`, `getGoogleSheetContent`).
-  - Reference: See `DRIVE_KNOWLEDGE.md` (local reference) for folder hierarchy, dataset taxonomy, and benchmark ground truth mappings.
+- **Google Drive MCP & Local Knowledge Base**: Project knowledge assets and evaluation benchmarks reside in Google Drive folder `Project FTMM COMPASS`.
+  - **Offline/Cache First:** Read `KNOWLEDGE_BASE.md` locally first before making Google Drive MCP calls. It caches all 82 TSD course syllabi, 8 administrative SOPs, FTMM academic rules, and benchmark ground truth taxonomy to minimize tool calls and token usage.
+  - **Append-Only Rule:** `KNOWLEDGE_BASE.md` is strictly APPEND-ONLY. Agents MUST NOT overwrite or delete existing entries; new data or notes must be appended to the bottom section (`## Log Pembaruan & Data Tambahan`), unless the user explicitly asks to edit specific lines.
+  - Tools: `mcp__google_drive_*` (`search`, `listFolder`, `getSpreadsheetInfo`, `getGoogleSheetContent`, `readGoogleDoc`).
+  - Reference: See `DRIVE_KNOWLEDGE.md` and `KNOWLEDGE_BASE.md` (local gitignored files).
   - Classified boundary: Raw syllabus PDFs, extracted JSON, and ground truth Q&A are strictly faculty-confidential. Read-only inspection allowed; NEVER commit or paste raw syllabus text into Git.
