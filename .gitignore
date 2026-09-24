@@ -24,3 +24,11 @@ backend/.venv/
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Windows metadata & Zone.Identifier
+*:Zone.Identifier
+*.Identifier
+
+# Local planning & task docs (contain internal PII / workspace IDs)
+ftmm_compass_clickup_setup.md
+ftmm_compass_plan.xlsx

@@ -120,3 +120,7 @@ Planned future work (user-stated): remove the Figma Make integration (`.figma/`,
 - **LSP**: TypeScript server available — use for definitions/references/rename instead of text search.
 - **Browser**: verify UI changes against the real surface. Flow: open `http://localhost:8443` → submit login form (any values) → nav buttons are `nav button:nth-of-type(1..4)` in order Dashboard/Course Finder/Degree Planner/Compass AI.
 - **grep/read**: fallback for everything else; `src/` is small (~1.9k lines across 11 TS/TSX files).
+- **Trello MCP**: Task management source of truth is Trello board `FTMM COMPASS` (Board ID: `6a8aea1f837c95237b48a123`, URL: `https://trello.com/b/qLcTla6x/ftmm-compass`).
+  - Lists structured by sprint: `Sprint 1` through `Sprint 10`, plus `Post-Sprint Backlog`.
+  - Tools: `mcp__trello_*` (`get_lists`, `get_cards_by_list_id`, `get_card`, `update_card_details`, `add_comment`) to check active sprint items, read specs, mark completion (`dueComplete: true`), or log deliverables.
+  - Card description standard: keep technical terms intact, but append plain-language explanations and official documentation links so non-technical team members understand them.
