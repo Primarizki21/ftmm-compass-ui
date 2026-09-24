@@ -32,3 +32,4 @@ __pycache__/
 # Local planning & task docs (contain internal PII / workspace IDs)
 ftmm_compass_clickup_setup.md
 ftmm_compass_plan.xlsx
+DRIVE_KNOWLEDGE.md
