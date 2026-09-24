@@ -102,19 +102,42 @@ FTMM Compass helps students plan their degree journey across 8 semesters, explor
 - *(Opsional untuk LLM lokal)*: **Ollama** terpasang di sistem.
 
 ---
+### 2. Menjalankan Sekaligus (Frontend + Backend — Rekomendasi)
 
-### 2. Menjalankan Backend API (dengan Astral UV)
+Jalankan satu perintah untuk mengaktifkan frontend dan backend secara bersamaan lintas OS (Linux, macOS, Windows):
 
 ```bash
-cd backend
+# Install dependencies (cukup sekali di awal)
+pnpm install
+cd backend && uv sync && cd ..
 
-# Install & sync virtual environment secara otomatis
-uv sync
-
-# Jalankan server FastAPI
-uv run python app.py
+# Jalankan frontend + backend bersamaan
+pnpm dev:all
 ```
-Backend akan aktif di **`http://localhost:8000`** (Swagger docs di `http://localhost:8000/docs`).
+
+- **Cross-Platform**: Menggunakan `concurrently` yang mendukung signal terminate (Ctrl+C) bersih di Linux maupun Windows.
+- **Dynamic Port Auto-Discovery**: Backend otomatis memindai port kosong (mulai dari 8000 $\rightarrow$ 8001, dst. jika port 8000 sedang dipakai proses lain). Vite dev proxy secara dinamis membaca port aktif dan meneruskan request `/api`.
+- Buka **`http://localhost:8443`** di browser. Login dengan NIM dan password apa saja (simulasi autentikasi).
+
+---
+
+### 3. Menjalankan Terpisah (2 Tab Terminal)
+
+Jika Anda lebih menyukai tab terminal terpisah untuk memantau log masing-masing service:
+
+- **Terminal 1 — Backend FastAPI**:
+  ```bash
+  pnpm dev:backend
+  # atau manual:
+  cd backend && uv sync && uv run python app.py
+  ```
+  Backend aktif di `http://localhost:<PORT>` (Swagger docs di `/docs`).
+
+- **Terminal 2 — Frontend Vite**:
+  ```bash
+  pnpm dev
+  ```
+  Vite aktif di `http://localhost:8443`.
 
 *(Opsional)* Jalankan model LLM lokal di terminal terpisah:
 ```bash
@@ -123,22 +146,6 @@ ollama run qwen2.5:7b-instruct
 ollama run qwen2.5:3b-instruct
 ```
 > *Catatan: Jika Ollama sedang offline, backend secara otomatis menggunakan fallback slot-filling deterministik sehingga aplikasi tetap berjalan lancar.*
-
----
-
-### 3. Menjalankan Frontend Web UI
-
-```bash
-# Install dependencies frontend
-pnpm install
-
-# Jalankan server development Vite
-pnpm dev
-```
-Buka **`http://localhost:8443`** di browser.
-Login dengan NIM dan password apa saja (simulasi autentikasi).
-
----
 
 ## Testing & QA Audit
 

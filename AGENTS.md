@@ -15,6 +15,8 @@ Academic-advisor **mockup** for FTMM (Fakultas Teknologi Maju dan Multidisiplin)
 ```bash
 pnpm install        # deps (pnpm-lock.yaml is source of truth; .mise.toml pins node 22 + pnpm)
 pnpm dev            # Vite on 0.0.0.0:$PORT (default 8443, strictPort)
+pnpm dev:backend    # FastAPI backend via uv (auto-detect free port 8000-8050)
+pnpm dev:all        # run backend + frontend concurrently (cross-platform)
 pnpm build          # production build to dist/
 pnpm preview        # serve dist/
 pnpm format         # oxfmt
