@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
+    "dev:backend": "uv run --directory backend python app.py",
+    "dev:all": "concurrently -n backend,frontend -c magenta,cyan \"pnpm dev:backend\" \"pnpm dev\"",
     "build": "vite build",
     "preview": "vite preview",
     "format": "oxfmt"
@@ -22,6 +24,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^6.0.0",
+    "concurrently": "^10.0.5",
     "get-image-colors": "^4.0.1",
     "oxfmt": "^0.2.0",
     "tailwindcss": "^4.0.0",
