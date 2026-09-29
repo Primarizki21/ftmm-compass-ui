@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react"
 import tailwindcss from "@tailwindcss/vite"
 import path from "node:path"
 import fs from "node:fs"
-import siteConfiguration from "./.figma/make/site.json"
+import siteConfiguration from "./.figma/make/site.json" with { type: "json" }
 
 // Vite config — https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -29,7 +29,7 @@ export default defineConfig(({ mode }) => {
     ],
     resolve: {
       alias: {
-        "@": path.resolve(__dirname, "./src"),
+        "@": path.resolve(import.meta.dirname, "./src"),
       },
     },
     server: {
@@ -55,7 +55,7 @@ function backendApiProxyPlugin(): Plugin {
 
         let port = "8000"
         try {
-          const portFile = path.resolve(__dirname, ".backend-port")
+          const portFile = path.resolve(import.meta.dirname, ".backend-port")
           if (fs.existsSync(portFile)) {
             const savedPort = fs.readFileSync(portFile, "utf-8").trim()
             if (savedPort) port = savedPort

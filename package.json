@@ -1,5 +1,5 @@
 {
-  "name": "figma-make-app",
+  "name": "ftmm-compass-ui",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -9,7 +9,8 @@
     "dev:all": "concurrently -n backend,frontend -c magenta,cyan \"pnpm dev:backend\" \"pnpm dev\"",
     "build": "vite build",
     "preview": "vite preview",
-    "format": "oxfmt"
+    "format": "oxfmt",
+    "format:check": "oxfmt --check"
   },
   "dependencies": {
     "clsx": "^2.1.1",

@@ -96,22 +96,63 @@ FTMM Compass helps students plan their degree journey across 8 semesters, explor
 
 ## Cara Menjalankan Project
 
-### 1. Prasyarat
-- **Node.js 22** & **pnpm** (versi terkelola via `.mise.toml` atau manual).
-- **Python 3.10+** & **uv** (Astral package manager).
-- *(Opsional untuk LLM lokal)*: **Ollama** terpasang di sistem.
+### 1. Prasyarat & Instalasi Tools
+
+Sebelum memulai, pastikan perangkat Anda telah terpasang:
+
+1. **Node.js (v22 LTS)**:
+   - Unduh dari situs resmi [nodejs.org](https://nodejs.org/) (pilih versi 22 LTS), atau pasang lewat version manager seperti `nvm` / `fnm`.
+   - Verifikasi: `node -v` (harus `v22.x.x`).
+
+2. **pnpm (Package Manager Frontend)**:
+   - Melalui Corepack (bawaan Node.js):
+     ```bash
+     corepack enable pnpm
+     ```
+   - Atau via npm global:
+     ```bash
+     npm install -g pnpm
+     ```
+   - Verifikasi: `pnpm -v`.
+
+3. **Python (v3.10+) & Astral UV (Package Manager Backend)**:
+   - **Python:** Unduh dari [python.org](https://www.python.org/) atau via package manager bawaan OS.
+   - **Astral UV** (pengelola virtual environment & paket Python super cepat):
+     - *Linux & macOS:*
+       ```bash
+       curl -LsSf https://astral.sh/uv/install.sh | sh
+       ```
+     - *Windows (PowerShell):*
+       ```powershell
+       powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+       ```
+     - *Atau via pip / winget:*
+       ```bash
+       pip install uv
+       # atau di Windows:
+       winget install astral-sh.uv
+       ```
+     - Verifikasi: `uv --version`.
+
+4. **Ollama (Opsional — untuk LLM Lokal)**:
+   - Unduh installer dari [ollama.com](https://ollama.com).
+   - Model rekomendasi: `ollama run qwen2.5:3b-instruct` (ringan, ~2 GB) atau `ollama run qwen2.5:7b-instruct`.
+   - *(Jika Ollama tidak aktif, backend otomatis menggunakan fallback slot-filling deterministik sehingga aplikasi tetap berjalan lancar).*
 
 ---
+
 ### 2. Menjalankan Sekaligus (Frontend + Backend — Rekomendasi)
 
-Jalankan satu perintah untuk mengaktifkan frontend dan backend secara bersamaan lintas OS (Linux, macOS, Windows):
+Jalankan perintah berikut untuk mengaktifkan frontend dan backend secara bersamaan lintas OS (Linux, macOS, Windows):
 
 ```bash
-# Install dependencies (cukup sekali di awal)
+# 1. Install dependencies frontend
 pnpm install
-cd backend && uv sync && cd ..
 
-# Jalankan frontend + backend bersamaan
+# 2. Sinkronisasi dependencies backend (otomatis membuat venv via uv)
+uv sync --directory backend
+
+# 3. Jalankan frontend + backend bersamaan
 pnpm dev:all
 ```
 
@@ -129,9 +170,9 @@ Jika Anda lebih menyukai tab terminal terpisah untuk memantau log masing-masing 
   ```bash
   pnpm dev:backend
   # atau manual:
-  cd backend && uv sync && uv run python app.py
+  uv run --directory backend python app.py
   ```
-  Backend aktif di `http://localhost:<PORT>` (Swagger docs di `/docs`).
+  Backend aktif di `http://localhost:<PORT>` (Swagger interactive docs di `/docs`).
 
 - **Terminal 2 — Frontend Vite**:
   ```bash
@@ -141,11 +182,12 @@ Jika Anda lebih menyukai tab terminal terpisah untuk memantau log masing-masing 
 
 *(Opsional)* Jalankan model LLM lokal di terminal terpisah:
 ```bash
-ollama run qwen2.5:7b-instruct
-# atau versi hemat RAM:
 ollama run qwen2.5:3b-instruct
+# atau model lebih besar:
+ollama run qwen2.5:7b-instruct
 ```
-> *Catatan: Jika Ollama sedang offline, backend secara otomatis menggunakan fallback slot-filling deterministik sehingga aplikasi tetap berjalan lancar.*
+
+---
 
 ## Testing & QA Audit
 
@@ -153,15 +195,17 @@ Proyek ini dilengkapi rangkaian pengujian otomatis untuk memvalidasi fungsi back
 
 ```bash
 # 1. Jalankan unit test logic planner, validator, dan slot-filling agent
-cd backend && uv run python test_backend.py
+uv run --directory backend python test_backend.py
 
 # 2. Jalankan integration test endpoint FastAPI
-cd backend && uv run python test_api_endpoints.py
+uv run --directory backend python test_api_endpoints.py
 
 # 3. Jalankan build test & type check frontend
 pnpm build
 
-# 4. Format code
+# 4. Verifikasi format code (oxfmt)
+pnpm format:check
+# atau auto-format in-place:
 pnpm format
 ```
 
@@ -171,18 +215,23 @@ pnpm format
 
 ```
 ftmm-compass-ui/
+├── .github/workflows/ci.yml       # Automated CI pipeline (Node 22 + Python 3.11)
 ├── AI_PLANNER_PIPELINE.md         # Dokumentasi detail arsitektur Study Planner Agent
 ├── backend/                       # Python FastAPI Backend
+│   ├── README.md                  # Dokumentasi API, setup uv, & arsitektur backend
 │   ├── app.py                     # API server & endpoint routes (/api/chat, /api/courses, etc.)
 │   ├── agent.py                   # Slot-filling conversational agent & Ollama controller
 │   ├── schemas.py                 # Pydantic data models & payload contracts
 │   ├── data_loader.py             # Loader kurikulum resmi FTMM & pemetaan prasyarat
+│   ├── pyproject.toml             # Konfigurasi dependensi uv (Astral)
+│   ├── uv.lock                    # Deterministic lockfile backend
+│   ├── requirements.txt           # Export dependensi pip standar
+│   ├── .env.example               # Template konfigurasi environment backend
 │   ├── tools/
 │   │   ├── prerequisite_validator.py  # Deterministic DAG, parity, & SKS validator
 │   │   └── planner.py             # Study plan synthesis & elective scoring engine
 │   ├── test_backend.py            # Unit tests for tools & agent dialog
-│   ├── test_api_endpoints.py      # Integration tests for FastAPI endpoints
-│   └── requirements.txt           # Python dependencies
+│   └── test_api_endpoints.py      # Integration tests for FastAPI endpoints
 ├── src/                           # React Frontend
 │   ├── App.tsx                    # Top-level state & planner payload wiring
 │   ├── main.tsx                   # React DOM entrypoint
