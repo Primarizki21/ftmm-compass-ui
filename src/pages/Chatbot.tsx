@@ -13,6 +13,7 @@ import {
   RotateCcw,
 } from "lucide-react"
 import { cn } from "../utils"
+import MarkdownRenderer from "../components/MarkdownRenderer"
 
 export interface StudentProfileState {
   program_studi?: string | null
@@ -239,13 +240,13 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
             <div className="flex flex-col gap-2 flex-1">
               <div
                 className={cn(
-                  "p-4 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap shadow-sm",
+                  "p-4 rounded-2xl text-sm leading-relaxed shadow-sm",
                   msg.role === "user"
                     ? "bg-teal text-navy-dark rounded-tr-none font-medium"
                     : "bg-surface border border-border text-foreground rounded-tl-none",
                 )}
               >
-                {msg.content}
+                <MarkdownRenderer content={msg.content} role={msg.role} />
               </div>
               {msg.role === "assistant" &&
                 (msg.routing_mode || msg.latency_ms !== undefined) && (
