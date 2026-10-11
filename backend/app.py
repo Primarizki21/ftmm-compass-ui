@@ -211,7 +211,7 @@ async def validate_plan_endpoint(request: PlanValidationRequest):
         raise HTTPException(status_code=500, detail=f"Error validating plan: {str(e)}")
 
 
-def find_free_port(start_port: int = 8000, max_port: int = 8050) -> int:
+def find_free_port(start_port: int = 8001, max_port: int = 8050) -> int:
     import socket
     import os
     env_port = os.getenv("BACKEND_PORT", os.getenv("PORT"))

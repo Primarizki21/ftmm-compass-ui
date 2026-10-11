@@ -53,7 +53,7 @@ function backendApiProxyPlugin(): Plugin {
       server.middlewares.use(async (req, res, next) => {
         if (!req.url?.startsWith("/api")) return next()
 
-        let port = "8000"
+        let port = "8001"
         try {
           const portFile = path.resolve(import.meta.dirname, ".backend-port")
           if (fs.existsSync(portFile)) {

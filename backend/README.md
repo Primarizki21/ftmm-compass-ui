@@ -52,7 +52,7 @@ cp .env.example .env
 
 | Variable | Default | Description |
 |---|---|---|
-| `BACKEND_PORT` | `8000` (auto-detect 8000–8050) | Listening port for FastAPI server |
+| `BACKEND_PORT` | `8001` (auto-detect 8001–8050) | Listening port for FastAPI server |
 | `HOST` | `0.0.0.0` | Bind host address |
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama API endpoint |
 | `LLM_MODEL` | `qwen2.5:3b-instruct` | LLM model tag for fallback inference |
@@ -72,7 +72,7 @@ pnpm dev:backend   # runs backend only
 pnpm dev:all       # runs backend and Vite frontend concurrently
 ```
 
-When started via `app.py`, the backend automatically finds an open port between 8000 and 8050, records it to `.backend-port`, and the Vite frontend proxy automatically routes `/api/*` calls.
+When started via `app.py`, the backend automatically finds an open port between 8001 and 8050, records it to `.backend-port`, and the Vite frontend proxy automatically routes `/api/*` calls.
 
 ---
 
