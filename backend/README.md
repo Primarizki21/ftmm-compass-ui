@@ -55,9 +55,10 @@ cp .env.example .env
 | `BACKEND_PORT` | `8000` (auto-detect 8000–8050) | Listening port for FastAPI server |
 | `HOST` | `0.0.0.0` | Bind host address |
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama API endpoint |
-| `LLM_MODEL` | `qwen2.5:3b-instruct` | LLM model tag for chat inference |
+| `LLM_MODEL` | `qwen2.5:3b-instruct` | LLM model tag for fallback inference |
+| `CHATBOT_SERVICE_URL` | `http://127.0.0.1:8000` | Endpoint for Docker Hybrid RAG-CAG Chatbot microservice |
+| `CHATBOT_TIMEOUT_SECONDS` | `45.0` | Timeout before triggering graceful fallback to local agent |
 | `CORS_ORIGINS` | `*` | Allowed CORS origins for frontend requests |
-
 ### 3. Run Development Server
 
 From within `backend/`:
@@ -77,12 +78,12 @@ When started via `app.py`, the backend automatically finds an open port between 
 
 ## 📡 API Endpoints
 
-- `GET /api/health` — Health check & Ollama local server status.
-- `GET /api/courses?program={prodi}` — Retrieve course catalog with semester recommendations.
-- `POST /api/chat` — Conversational slot-filling endpoint for study plan consultation.
-- `POST /api/validate-plan` — Validate student study plans against prerequisite graph and semester parity constraints.
+- `GET /api/health` — Health check, Ollama local server status, and Docker Chatbot microservice connectivity (`chatbot_service_online`).
+- `GET /api/courses?prodi={nama}` — Retrieve course catalog with semester recommendations.
+- `POST /api/chat` — Conversational study planner gateway: forwards queries to Hybrid RAG-CAG microservice, returns routing mode and latency, with automatic fallback to local slot-filling agent if microservice is offline.
+- `POST /api/plan/generate` — Generate deterministic, DAG-validated degree plan from complete student profile.
+- `POST /api/plan/validate` — Validate student study plans against prerequisite graph and semester parity constraints.
 - `GET /docs` — Interactive OpenAPI / Swagger UI documentation.
-
 ---
 
 ## 🧪 Testing

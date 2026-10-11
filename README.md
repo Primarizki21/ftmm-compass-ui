@@ -10,11 +10,11 @@ FTMM Compass helps students plan their degree journey across 8 semesters, explor
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────┐
-│                           FTMM COMPASS ARCHITECTURE                            │
+│                   FTMM COMPASS 3-TIER GATEWAY ARCHITECTURE                     │
 └────────────────────────────────────────────────────────────────────────────────┘
 
  ┌──────────────────────────────────────────────────────────────────────────────┐
- │                              Frontend (React 19)                             │
+ │                         Tier 1: Frontend (React 19)                          │
  │                                                                              │
  │   ┌───────────────┐   ┌────────────────┐   ┌─────────────────────────────┐   │
  │   │   Dashboard   │   │  CourseFinder  │   │        DegreePlanner        │   │
@@ -25,28 +25,30 @@ FTMM Compass helps students plan their degree journey across 8 semesters, explor
  │                                                           │                  │
  │                                            ┌──────────────┴──────────────┐   │
  │                                            │      Compass AI Chatbot     │   │
- │                                            │   (Interactive Action Card) │   │
+ │                                            │  (Engine Badges & Latency)  │   │
  │                                            └──────────────▲──────────────┘   │
  └───────────────────────────────────────────────────────────┼──────────────────┘
                                                              │
-                                                     REST API (Port 8000)
+                                       Vite Dynamic Proxy (/api/* via .backend-port)
                                                              │
  ┌───────────────────────────────────────────────────────────▼──────────────────┐
- │                          Backend Service (FastAPI)                           │
+ │                     Tier 2: Backend Gateway Service (FastAPI)                │
  │                                                                              │
  │   ┌──────────────────────────────────────────────────────────────────────┐   │
- │   │               Agent Controller & Slot-Filling Engine                 │   │
- │   │        (Anti-Assumption Guardrails + Multi-turn Intent Parsing)      │   │
- │   └───────────────────┬───────────────────────────────┬──────────────────┘   │
- │                       │                               │                      │
- │                       ▼                               ▼                      │
- │        ┌─────────────────────────────┐ ┌───────────────────────────────┐     │
- │        │  Deterministic Tools Layer  │ │     Local LLM Integration     │     │
- │        │ • Prerequisite DAG Validator│ │ • Ollama / llama.cpp          │     │
- │        │ • Semester Parity Validator │ │ • Model: qwen2.5:7b-instruct  │     │
- │        │ • Curriculum Course Loader  │ │   (or qwen2.5:3b-instruct)    │     │
- │        │ • Study Plan Synthesizer    │ └───────────────────────────────┘     │
- │        └─────────────────────────────┘                                       │
+ │   │         Gateway Proxy Controller & Resilient Fallback Engine         │   │
+ │   │       (Probes Microservice; Falls Back to Local Agent if Offline)     │   │
+ │   └───────────────────────┬──────────────────────────────┬───────────────┘   │
+ │                           │                              │                   │
+ │             [HTTP Forward /api/chat]        [Local Fallback Agent]           │
+ │                           │                              │                   │
+ │                           ▼                              ▼                   │
+ │ ┌──────────────────────────────────┐   ┌───────────────────────────────────┐ │
+ │ │ Tier 3: AI Microservice (Docker) │   │     Deterministic Tools Layer     │ │
+ │ │ • Repo: ftmm-compass-chatbot     │   │ • Prerequisite DAG Validator      │ │
+ │ │ • Port: 8000 (Hybrid RAG-CAG)    │   │ • Semester Parity Validator       │ │
+ │ │ • Ollama: qwen2.5:3b (Port 11434)│   │ • Curriculum Course Loader        │ │
+ │ │ • FAISS Cosine Vector Retriever  │   │ • 8-Semester Plan Synthesizer     │ │
+ │ └──────────────────────────────────┘   └───────────────────────────────────┘ │
  └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -86,13 +88,13 @@ FTMM Compass helps students plan their degree journey across 8 semesters, explor
 - **Tailwind CSS v4** via `@tailwindcss/vite` (desain sistem dengan palet Navy, Gold, Teal)
 - **Lucide React** untuk icon UI
 
-### Backend
+### Backend & AI Services
 - **Python 3.10+** (managed via **[Astral UV](https://docs.astral.sh/uv/)**)
-- **FastAPI** + **Uvicorn** (RESTful API & CORS)
-- **Pydantic v2** (Strict data validation schemas)
-- **HTTPX** (Asynchronous HTTP client for Ollama LLM)
-- **Ollama / llama.cpp** (Local LLM inference: `qwen2.5:7b-instruct` / `qwen2.5:3b-instruct`)
----
+- **FastAPI Gateway** + **Uvicorn** (RESTful API, dynamic port auto-discovery 8000–8050, & CORS)
+- **HTTPX** (Asynchronous client with timeout & resilient local fallback)
+- **Pydantic v2** (Strict data validation schemas & DegreePlanPayload contracts)
+- **AI Microservice (Docker)**: Hybrid RAG-CAG engine (`ftmm-compass-chatbot` on Port 8000)
+- **Local LLM & Embeddings**: Ollama (`qwen2.5:3b`, `nomic-embed-text` on Port 11434)
 
 ## Cara Menjalankan Project
 
@@ -139,6 +141,17 @@ Sebelum memulai, pastikan perangkat Anda telah terpasang:
    - Model rekomendasi: `ollama run qwen2.5:3b-instruct` (ringan, ~2 GB) atau `ollama run qwen2.5:7b-instruct`.
    - *(Jika Ollama tidak aktif, backend otomatis menggunakan fallback slot-filling deterministik sehingga aplikasi tetap berjalan lancar).*
 
+5. **AI Chatbot Microservice (Opsional — untuk Inferensi Hybrid RAG-CAG Penuh)**:
+   - Microservice AI berjalan di repositori sibling `ftmm-compass-chatbot`:
+     ```bash
+     cd ../ftmm-compass-chatbot
+     # Ingest index kurikulum FAISS (hanya sekali di awal)
+     uv run python scripts/ingest_faiss.py
+     # Jalankan kontainer Docker
+     docker compose up -d
+     ```
+   - Microservice akan aktif di `http://localhost:8000` dan terhubung langsung ke Ollama host.
+   - *(Jika kontainer Docker tidak diaktifkan, Backend Gateway otomatis beralih ke agen slot-filling lokal sehingga seluruh fitur aplikasi tetap 100% berfungsi tanpa kendala).*
 ---
 
 ### 2. Menjalankan Sekaligus (Frontend + Backend — Rekomendasi)
