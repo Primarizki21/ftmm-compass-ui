@@ -44,6 +44,8 @@ export interface ChatMessage {
   plan_payload?: DegreePlanPayload | null
   action_type?: string
   applied?: boolean
+  routing_mode?: string
+  latency_ms?: number
 }
 
 interface ChatbotProps {
@@ -73,6 +75,20 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
     is_confirmed_by_user: false,
   })
   const [appliedPlanId, setAppliedPlanId] = useState<string | null>(null)
+  const [backendStatus, setBackendStatus] = useState<{
+    ollama_online?: boolean
+    chatbot_service_online?: boolean
+    chatbot_model?: string
+  } | null>(null)
+
+  useEffect(() => {
+    fetch("/api/health")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) setBackendStatus(data)
+      })
+      .catch(() => {})
+  }, [])
 
   const endOfMessagesRef = useRef<HTMLDivElement>(null)
 
@@ -311,6 +327,8 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
           content: data.reply,
           plan_payload: data.plan_payload,
           action_type: data.action_type,
+          routing_mode: data.routing_mode,
+          latency_ms: data.latency_ms,
         }
         setMessages((prev) => [...prev, botMessage])
       } else {
@@ -359,8 +377,18 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
                 Agentic Planner
               </span>
             </h3>
-            <p className="text-xs text-teal-light font-mono">
-              Online • FTMM Study Planner Harness
+            <p className="text-xs text-teal-light font-mono flex items-center gap-1.5">
+              <span
+                className={cn(
+                  "w-2 h-2 rounded-full",
+                  backendStatus?.chatbot_service_online
+                    ? "bg-teal animate-pulse"
+                    : "bg-gold",
+                )}
+              />
+              {backendStatus?.chatbot_service_online
+                ? `Online • Hybrid RAG-CAG (${backendStatus.chatbot_model || "Qwen2.5"})`
+                : "Online • FTMM Study Planner Gateway"}
             </p>
           </div>
         </div>
@@ -405,6 +433,21 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
               >
                 {msg.content}
               </div>
+              {msg.role === "assistant" &&
+                (msg.routing_mode || msg.latency_ms !== undefined) && (
+                  <div className="flex items-center gap-2 px-1 text-[11px] text-muted font-mono">
+                    {msg.routing_mode && (
+                      <span className="px-1.5 py-0.5 rounded bg-navy/10 text-navy font-semibold text-[10px]">
+                        Engine: {msg.routing_mode}
+                      </span>
+                    )}
+                    {msg.latency_ms !== undefined && (
+                      <span>
+                        Inferensi: {(msg.latency_ms / 1000).toFixed(2)}s
+                      </span>
+                    )}
+                  </div>
+                )}
 
               {/* Interactive Degree Plan Action Card */}
               {msg.plan_payload && (

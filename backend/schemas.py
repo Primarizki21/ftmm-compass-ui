@@ -27,13 +27,13 @@ class StudentProfile(BaseModel):
 
 
 class CourseModel(BaseModel):
-    id: str
+    id: str = ""
     code: Optional[str] = None
     name: str
-    credits: int
-    semester: int
-    type: Literal["Wajib", "Pilihan"]
-    parity: Literal["odd", "even"]
+    credits: int = 3
+    semester: int = 1
+    type: Literal["Wajib", "Pilihan"] = "Pilihan"
+    parity: Literal["odd", "even"] = "odd"
     desc: str = ""
     program: Optional[str] = None
     prerequisites: List[str] = Field(default_factory=list)
@@ -64,14 +64,14 @@ class PlanPayloadSummary(BaseModel):
     current_semester: int
     target_semester: int
     total_credits: int
-    focus_tracks: List[str]
-    note: str = ""
+    focus_tracks: List[str] = Field(default_factory=list)
+    note: Optional[str] = ""
 
 
 class DegreePlanPayload(BaseModel):
     action: Literal["APPLY_DEGREE_PLAN"] = "APPLY_DEGREE_PLAN"
     summary: PlanPayloadSummary
-    plan: Dict[int, List[PlacedCourseModel]]
+    plan: Dict[int, List[PlacedCourseModel]] = Field(default_factory=dict)
 
 
 class ChatMessage(BaseModel):
@@ -90,5 +90,7 @@ class ChatResponse(BaseModel):
     reply: str
     updated_profile: StudentProfile
     plan_payload: Optional[DegreePlanPayload] = None
-    action_type: Optional[Literal["NEED_INFO", "CONFIRM_PROFILE", "PLAN_GENERATED", "GENERAL_CHAT"]] = None
+    action_type: Optional[str] = None
     missing_slots: List[str] = Field(default_factory=list)
+    routing_mode: Optional[str] = None
+    latency_ms: Optional[float] = None

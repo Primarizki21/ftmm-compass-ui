@@ -19,6 +19,7 @@ import Dashboard from "./pages/Dashboard"
 import CourseFinder from "./pages/CourseFinder"
 import DegreePlanner from "./pages/DegreePlanner"
 import Chatbot, { DegreePlanPayload } from "./pages/Chatbot"
+import Login from "./pages/Login"
 
 import mainLogo from "./imports/image-6.png"
 
