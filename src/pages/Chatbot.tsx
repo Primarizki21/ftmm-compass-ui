@@ -96,199 +96,6 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
     endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages, isLoading])
 
-  // Client-side fallback if backend API is not responding
-  const clientFallbackProcess = (
-    text: string,
-    currentProf: StudentProfileState,
-  ) => {
-    const lower = text.toLowerCase()
-    const p = { ...currentProf }
-
-    if (
-      lower.includes("sains data") ||
-      lower.includes("data science") ||
-      lower.includes("tsd")
-    ) {
-      p.program_studi = "Teknologi Sains Data"
-    } else if (
-      lower.includes("rpl") ||
-      lower.includes("rekayasa perangkat lunak")
-    ) {
-      p.program_studi = "Rekayasa Perangkat Lunak"
-    }
-
-    const semMatch = lower.match(/semester\s*([1-8])|sem\s*([1-8])/)
-    if (semMatch) {
-      p.semester_saat_ini = parseInt(semMatch[1] || semMatch[2])
-    }
-
-    if (
-      lower.includes("machine learning") &&
-      !p.minat_fokus?.includes("Machine Learning")
-    ) {
-      p.minat_fokus = [...(p.minat_fokus || []), "Machine Learning"]
-    }
-    if (
-      lower.includes("vision") &&
-      !p.minat_fokus?.includes("Computer Vision")
-    ) {
-      p.minat_fokus = [...(p.minat_fokus || []), "Computer Vision"]
-    }
-
-    const isConfirming = /ya|benar|sesuai|oke|buatkan|setuju/i.test(lower)
-
-    if (!p.program_studi || !p.semester_saat_ini) {
-      return {
-        reply:
-          "Agar rencana studi tepat dan tidak ada salah asumsi, mohon sebutkan:\n1. Program Studi Anda di FTMM?\n2. Semester berapa yang sedang ditempuh saat ini?",
-        updatedProfile: p,
-        actionType: "NEED_INFO",
-        planPayload: null,
-      }
-    }
-
-    if (!p.minat_fokus || p.minat_fokus.length === 0) {
-      return {
-        reply: `Baik, mahasiswa ${p.program_studi} Semester ${p.semester_saat_ini}! Apa fokus topik/karir yang ingin Anda tuju? (Contoh: Machine Learning, Data Visualization, Cloud/DevOps)`,
-        updatedProfile: p,
-        actionType: "NEED_INFO",
-        planPayload: null,
-      }
-    }
-
-    if (!p.is_confirmed_by_user && !isConfirming) {
-      return {
-        reply: `Berikut rangkuman data rencana studimu:\n• **Prodi**: ${p.program_studi}\n• **Semester**: ${p.semester_saat_ini}\n• **Fokus**: ${p.minat_fokus.join(", ")}\n• **Target**: ${p.target_kelulusan_semester || 8} Semester\n\nApakah data di atas sudah benar? Balas **"Ya, buatkan"** untuk memproses.`,
-        updatedProfile: p,
-        actionType: "CONFIRM_PROFILE",
-        planPayload: null,
-      }
-    }
-
-    // Generate fallback plan payload
-    p.is_confirmed_by_user = true
-    const fallbackPayload: DegreePlanPayload = {
-      action: "APPLY_DEGREE_PLAN",
-      summary: {
-        program_studi: p.program_studi || "Teknologi Sains Data",
-        current_semester: p.semester_saat_ini || 3,
-        target_semester: p.target_kelulusan_semester || 7,
-        total_credits: 105,
-        focus_tracks: p.minat_fokus || ["Machine Learning"],
-        note: "Rencana studi tervalidasi memenuhi prasyarat FTMM.",
-      },
-      plan: {
-        1: [
-          {
-            id: "MA1101",
-            name: "Matematika I",
-            credits: 4,
-            semester: 1,
-            type: "Wajib",
-            parity: "odd",
-            status: "completed",
-          },
-          {
-            id: "FI1101",
-            name: "Fisika Dasar I",
-            credits: 4,
-            semester: 1,
-            type: "Wajib",
-            parity: "odd",
-            status: "completed",
-          },
-        ],
-        2: [
-          {
-            id: "MA1201",
-            name: "Matematika II",
-            credits: 4,
-            semester: 2,
-            type: "Wajib",
-            parity: "even",
-            status: "completed",
-          },
-          {
-            id: "IF1210",
-            name: "Dasar Pemrograman",
-            credits: 3,
-            semester: 2,
-            type: "Wajib",
-            parity: "even",
-            status: "completed",
-          },
-          {
-            id: "II2011",
-            name: "Aljabar Linear",
-            credits: 3,
-            semester: 2,
-            type: "Wajib",
-            parity: "even",
-            status: "completed",
-          },
-        ],
-        3: [
-          {
-            id: "II2012",
-            name: "Probabilitas & Statistik",
-            credits: 3,
-            semester: 3,
-            type: "Wajib",
-            parity: "odd",
-            status: "planned",
-          },
-          {
-            id: "II3011",
-            name: "Database Systems",
-            credits: 4,
-            semester: 3,
-            type: "Wajib",
-            parity: "odd",
-            status: "planned",
-          },
-        ],
-        5: [
-          {
-            id: "II4042",
-            name: "Machine Learning",
-            credits: 3,
-            semester: 5,
-            type: "Wajib",
-            parity: "odd",
-            status: "planned",
-          },
-          {
-            id: "II4045",
-            name: "Data Visualization",
-            credits: 3,
-            semester: 5,
-            type: "Pilihan",
-            parity: "odd",
-            status: "planned",
-          },
-        ],
-        6: [
-          {
-            id: "II4050",
-            name: "Deep Learning",
-            credits: 3,
-            semester: 6,
-            type: "Pilihan",
-            parity: "even",
-            status: "planned",
-          },
-        ],
-      },
-    }
-
-    return {
-      reply: `🎉 **Rencana studi telah berhasil disusun dan divalidasi!**\n\n• **Prodi**: ${fallbackPayload.summary.program_studi}\n• **Total SKS**: ${fallbackPayload.summary.total_credits} SKS\n• **Target Selesai**: Semester ${fallbackPayload.summary.target_semester}\n• **Fokus**: ${fallbackPayload.summary.focus_tracks.join(", ")}\n\nSemua rantai prasyarat (DAG) dan paritas semester Ganjil/Genap telah dipastikan valid. Klik tombol di bawah untuk menerapkannya langsung.`,
-      updatedProfile: p,
-      actionType: "PLAN_GENERATED",
-      planPayload: fallbackPayload,
-    }
-  }
-
   const handleSend = async (messageText?: string) => {
     const textToSend = messageText || input
     if (!textToSend.trim() || isLoading) return
@@ -332,18 +139,25 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
         }
         setMessages((prev) => [...prev, botMessage])
       } else {
-        throw new Error("Backend non-200 response")
+        const errorData = await response.json().catch(() => null)
+        const detail =
+          errorData?.detail ||
+          "Gagal memproses pesan. Pastikan layanan backend dan microservice aktif."
+        const botMessage: ChatMessage = {
+          id: `assistant-${Date.now()}`,
+          role: "assistant",
+          content: `⚠️ **Layanan Tidak Tersedia**\n\n${detail}`,
+          action_type: "GENERAL",
+        }
+        setMessages((prev) => [...prev, botMessage])
       }
     } catch (err) {
-      // Fallback to client-side deterministic slot-filling
-      const fallbackResult = clientFallbackProcess(textToSend, profile)
-      setProfile(fallbackResult.updatedProfile)
       const botMessage: ChatMessage = {
         id: `assistant-${Date.now()}`,
         role: "assistant",
-        content: fallbackResult.reply,
-        plan_payload: fallbackResult.planPayload,
-        action_type: fallbackResult.actionType,
+        content:
+          "⚠️ **Koneksi Terputus**\n\nTidak dapat terhubung ke server FTMM Compass AI. Pastikan backend Gateway (`pnpm dev:backend`) dan kontainer Docker Chatbot (`ftmm-compass-chatbot`) telah aktif.",
+        action_type: "GENERAL",
       }
       setMessages((prev) => [...prev, botMessage])
     } finally {
@@ -383,12 +197,12 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
                   "w-2 h-2 rounded-full",
                   backendStatus?.chatbot_service_online
                     ? "bg-teal animate-pulse"
-                    : "bg-gold",
+                    : "bg-orange",
                 )}
               />
               {backendStatus?.chatbot_service_online
                 ? `Online • Hybrid RAG-CAG (${backendStatus.chatbot_model || "Qwen2.5"})`
-                : "Online • FTMM Study Planner Gateway"}
+                : "Chatbot Offline • Start Docker Service"}
             </p>
           </div>
         </div>

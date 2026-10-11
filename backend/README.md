@@ -1,6 +1,6 @@
 # FTMM Compass — Backend API
 
-FastAPI backend service for FTMM Compass, powering academic study plan synthesis, conversational slot-filling agent (`Compass AI`), and deterministic prerequisite graph validation.
+FastAPI backend gateway for FTMM Compass, powering academic study plan synthesis, Docker microservice proxying, and deterministic prerequisite graph validation.
 
 ---
 
@@ -9,7 +9,6 @@ FastAPI backend service for FTMM Compass, powering academic study plan synthesis
 ```
 backend/
 ├── app.py                     # FastAPI application, route endpoints, dynamic port discovery
-├── agent.py                   # Conversational slot-filling AI agent (Ollama / Qwen2.5)
 ├── schemas.py                 # Pydantic data schemas and validation contracts
 ├── data_loader.py             # Course catalog loader from frontend sources
 ├── tools/
@@ -54,10 +53,8 @@ cp .env.example .env
 |---|---|---|
 | `BACKEND_PORT` | `8001` (auto-detect 8001–8050) | Listening port for FastAPI server |
 | `HOST` | `0.0.0.0` | Bind host address |
-| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama API endpoint |
-| `LLM_MODEL` | `qwen2.5:3b-instruct` | LLM model tag for fallback inference |
 | `CHATBOT_SERVICE_URL` | `http://127.0.0.1:8000` | Endpoint for Docker Hybrid RAG-CAG Chatbot microservice |
-| `CHATBOT_TIMEOUT_SECONDS` | `45.0` | Timeout before triggering graceful fallback to local agent |
+| `CHATBOT_TIMEOUT_SECONDS` | `45.0` | Timeout for Chatbot microservice calls |
 | `CORS_ORIGINS` | `*` | Allowed CORS origins for frontend requests |
 ### 3. Run Development Server
 
@@ -80,7 +77,7 @@ When started via `app.py`, the backend automatically finds an open port between 
 
 - `GET /api/health` — Health check, Ollama local server status, and Docker Chatbot microservice connectivity (`chatbot_service_online`).
 - `GET /api/courses?prodi={nama}` — Retrieve course catalog with semester recommendations.
-- `POST /api/chat` — Conversational study planner gateway: forwards queries to Hybrid RAG-CAG microservice, returns routing mode and latency, with automatic fallback to local slot-filling agent if microservice is offline.
+- `POST /api/chat` — Conversational study planner gateway: forwards queries to Hybrid RAG-CAG microservice and returns structured response or HTTP 503 if microservice is offline.
 - `POST /api/plan/generate` — Generate deterministic, DAG-validated degree plan from complete student profile.
 - `POST /api/plan/validate` — Validate student study plans against prerequisite graph and semester parity constraints.
 - `GET /docs` — Interactive OpenAPI / Swagger UI documentation.

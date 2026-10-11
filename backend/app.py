@@ -12,7 +12,6 @@ from schemas import (
     PlanValidationRequest,
     PlanValidationResponse,
 )
-from agent import process_chat_message, OLLAMA_BASE_URL, DEFAULT_MODEL
 from data_loader import get_courses_for_program, normalize_prodi
 from tools.planner import generate_study_plan
 from tools.prerequisite_validator import validate_plan_constraints
@@ -22,8 +21,8 @@ CHATBOT_TIMEOUT_SECONDS = float(os.getenv("CHATBOT_TIMEOUT_SECONDS", "45.0"))
 
 
 app = FastAPI(
-    title="FTMM Compass AI Study Planner API",
-    description="Backend API with LangChain / LLM slot-filling agent and deterministic prerequisite validator for FTMM study planning.",
+    title="FTMM Compass AI Study Planner Gateway",
+    description="Backend Gateway API connecting FTMM Compass UI with the Hybrid RAG-CAG Chatbot microservice and prerequisite validator.",
     version="1.0.0",
 )
 
@@ -40,19 +39,11 @@ app.add_middleware(
 @app.get("/api/health")
 async def health_check():
     """
-    Checks backend health, Ollama local server connectivity, and Docker Chatbot microservice.
+    Checks gateway health and Docker Chatbot microservice connectivity.
     """
-    ollama_online = False
-    try:
-        async with httpx.AsyncClient(timeout=2.0) as client:
-            resp = await client.get(f"{OLLAMA_BASE_URL}/api/tags")
-            if resp.status_code == 200:
-                ollama_online = True
-    except Exception:
-        ollama_online = False
-
     chatbot_online = False
     chatbot_model = None
+    ollama_online = False
     try:
         async with httpx.AsyncClient(timeout=2.0) as client:
             resp = await client.get(f"{CHATBOT_SERVICE_URL}/api/health")
@@ -60,16 +51,17 @@ async def health_check():
                 data = resp.json()
                 chatbot_online = True
                 chatbot_model = data.get("default_model")
+                ollama_online = data.get("ollama_online", False)
     except Exception:
         chatbot_online = False
 
     return {
         "status": "healthy",
         "service": "FTMM Compass AI Planner Gateway",
-        "ollama_online": ollama_online,
         "chatbot_service_online": chatbot_online,
         "chatbot_model": chatbot_model,
-        "default_model": DEFAULT_MODEL,
+        "ollama_online": ollama_online,
+        "default_model": chatbot_model,
     }
 
 
@@ -140,10 +132,15 @@ def normalize_plan_payload(raw_payload: dict, profile: StudentProfile) -> Degree
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
     """
-    Conversational endpoint: forwards to Docker Hybrid RAG-CAG Chatbot microservice
-    with automatic fallback to local slot-filling agent if microservice is offline.
+    Conversational endpoint: forwards queries to Docker Hybrid RAG-CAG Chatbot microservice.
     """
-    # 1. Attempt call to Docker Hybrid RAG-CAG Chatbot microservice
+    current_port = int(os.getenv("BACKEND_PORT", "8001"))
+    if f":{current_port}" in CHATBOT_SERVICE_URL:
+        raise HTTPException(
+            status_code=500,
+            detail="Circular forwarding detected: CHATBOT_SERVICE_URL matches gateway port.",
+        )
+
     try:
         async with httpx.AsyncClient(timeout=CHATBOT_TIMEOUT_SECONDS) as client:
             payload = {
@@ -162,7 +159,6 @@ async def chat_endpoint(request: ChatRequest):
                 if raw_plan and isinstance(raw_plan, dict) and raw_plan.get("plan"):
                     plan_payload = normalize_plan_payload(raw_plan, updated_profile)
                 elif action_type == "PLAN_GENERATED" and updated_profile.program_studi:
-                    # Generate complete deterministic 8-semester plan
                     plan_payload = generate_study_plan(updated_profile)
 
                 return ChatResponse(
@@ -174,15 +170,22 @@ async def chat_endpoint(request: ChatRequest):
                     routing_mode=data.get("routing_mode"),
                     latency_ms=data.get("latency_ms"),
                 )
-    except Exception as ex:
-        print(f"[Gateway Warning] Chatbot microservice call failed ({ex}), falling back to local agent.")
-
-    # 2. Resilient fallback to local deterministic slot-filling agent
-    try:
-        response = await process_chat_message(request)
-        return response
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing chat: {str(e)}")
+            raise HTTPException(
+                status_code=resp.status_code,
+                detail=f"Chatbot microservice error: {resp.text}",
+            )
+    except HTTPException:
+        raise
+    except httpx.RequestError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Layanan Chatbot AI offline ({exc.__class__.__name__}). Pastikan kontainer ftmm-compass-chatbot aktif di port 8000.",
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error gateway chat: {str(exc)}",
+        )
 
 
 @app.post("/api/plan/generate", response_model=DegreePlanPayload)
