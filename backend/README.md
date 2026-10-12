@@ -76,7 +76,7 @@ When started via `app.py`, the backend automatically finds an open port between 
 ## 📡 API Endpoints
 
 - `GET /api/health` — Health check, Ollama local server status, and Docker Chatbot microservice connectivity (`chatbot_service_online`).
-- `GET /api/courses?prodi={nama}` — Retrieve course catalog with semester recommendations.
+- `GET /api/courses?prodi={nama}` — Retrieve course catalog with semester recommendations (proxies to Chatbot microservice SSOT with local dataset fallback).
 - `POST /api/chat` — Conversational study planner gateway: forwards queries to Hybrid RAG-CAG microservice and returns structured response or HTTP 503 if microservice is offline.
 - `POST /api/plan/generate` — Generate deterministic, DAG-validated degree plan from complete student profile.
 - `POST /api/plan/validate` — Validate student study plans against prerequisite graph and semester parity constraints.
