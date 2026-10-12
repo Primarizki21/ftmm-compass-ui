@@ -200,6 +200,39 @@ ollama run qwen2.5:3b-instruct
 ollama run qwen2.5:7b-instruct
 ```
 
+
+---
+
+### 4. Menjalankan via Docker Compose (Multi-Container `ftmm-network`)
+
+Untuk deployment terisolasi berbasis kontainer atau setup di server/VPS baru:
+
+#### A. Inisialisasi Jaringan Host (Hanya 1x di Server/Host Baru)
+```bash
+# 1. Buat bridge network bersama untuk komunikasi inter-kontainer
+docker network create ftmm-network 2>/dev/null || true
+
+# 2. Jika Ollama berjalan di host dengan firewall UFW aktif (misal Ubuntu/WSL2):
+sudo ufw allow 11434/tcp
+```
+
+#### B. Menjalankan Layanan Kontainer
+```bash
+# 1. Jalankan Chatbot Microservice (port 8000)
+cd ../ftmm-compass-chatbot && docker compose up -d
+
+# 2. Jalankan Gateway (port 8001) dan Frontend UI (port 8443)
+cd ../ftmm-compass-ui && docker compose up -d
+```
+
+#### C. Verifikasi Konektivitas
+- **Frontend Web UI**: `http://localhost:8443`
+- **Gateway Health**: `curl -s http://localhost:8001/api/v1/health | jq .` (memverifikasi status `chatbot_service_online: true` dan `ollama_online: true`).
+- **Chatbot Direct Health**: `curl -s http://localhost:8000/api/v1/health | jq .`
+- **Hentikan Seluruh Layanan**:
+  ```bash
+  docker compose down && docker compose -f ../ftmm-compass-chatbot/docker-compose.yml down
+  ```
 ---
 
 ## Testing & QA Audit
