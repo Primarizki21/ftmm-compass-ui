@@ -12,8 +12,11 @@ services:
     environment:
       - BACKEND_PORT=8001
       - HOST=0.0.0.0
-      - CHATBOT_SERVICE_URL=${CHATBOT_SERVICE_URL:-http://host.docker.internal:8000}
+      - CHATBOT_SERVICE_URL=${CHATBOT_SERVICE_URL:-http://ftmm-compass-chatbot:8000}
       - CHATBOT_TIMEOUT_SECONDS=${CHATBOT_TIMEOUT_SECONDS:-45.0}
+    networks:
+      - default
+      - ftmm-network
     security_opt:
       - no-new-privileges:true
     deploy:
@@ -43,3 +46,10 @@ services:
         limits:
           cpus: "1.0"
           memory: 512M
+    networks:
+      - default
+
+networks:
+  default:
+  ftmm-network:
+    external: true
