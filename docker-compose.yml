@@ -2,7 +2,7 @@ services:
   gateway:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.backend
     container_name: ftmm-compass-gateway
     restart: unless-stopped
     ports:
@@ -14,6 +14,28 @@ services:
       - HOST=0.0.0.0
       - CHATBOT_SERVICE_URL=${CHATBOT_SERVICE_URL:-http://host.docker.internal:8000}
       - CHATBOT_TIMEOUT_SECONDS=${CHATBOT_TIMEOUT_SECONDS:-45.0}
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: ftmm-compass-frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8443:8443"
+    environment:
+      - PORT=8443
+      - BACKEND_HOST=gateway
+      - BACKEND_PORT=8001
+    depends_on:
+      - gateway
     security_opt:
       - no-new-privileges:true
     deploy:

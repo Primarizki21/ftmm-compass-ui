@@ -53,16 +53,17 @@ function backendApiProxyPlugin(): Plugin {
       server.middlewares.use(async (req, res, next) => {
         if (!req.url?.startsWith("/api")) return next()
 
-        let port = "8001"
+        let port = process.env.BACKEND_PORT || "8001"
         try {
           const portFile = path.resolve(import.meta.dirname, ".backend-port")
-          if (fs.existsSync(portFile)) {
+          if (!process.env.BACKEND_PORT && fs.existsSync(portFile)) {
             const savedPort = fs.readFileSync(portFile, "utf-8").trim()
             if (savedPort) port = savedPort
           }
         } catch {}
 
-        const targetUrl = `http://127.0.0.1:${port}${req.url}`
+        const backendHost = process.env.BACKEND_HOST || "127.0.0.1"
+        const targetUrl = `http://${backendHost}:${port}${req.url}`
         try {
           const headers = new Headers()
           for (const [k, v] of Object.entries(req.headers)) {
