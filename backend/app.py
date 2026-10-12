@@ -66,15 +66,40 @@ async def health_check():
 
 
 @app.get("/api/courses")
-async def list_courses(prodi: str = "Teknologi Sains Data"):
+async def list_courses(prodi: str | None = None):
     """
-    Returns the official course catalog for the specified study program.
+    Returns official course catalog. Proxies to Chatbot microservice SSOT
+    with resilient fallback to local data loader when microservice is offline.
     """
-    norm_prodi = normalize_prodi(prodi) or "Teknologi Sains Data"
-    courses = get_courses_for_program(norm_prodi)
+    norm_prodi = normalize_prodi(prodi) if prodi else None
+
+    # 1. Forward to Chatbot SSOT microservice if reachable
+    try:
+        async with httpx.AsyncClient(timeout=2.0) as client:
+            params = {}
+            if norm_prodi:
+                params["program_studi"] = norm_prodi
+            resp = await client.get(f"{CHATBOT_SERVICE_URL}/api/courses", params=params)
+            if resp.status_code == 200:
+                data = resp.json()
+                return {
+                    "source": "chatbot_ssot",
+                    "program_studi": data.get("program_studi") or norm_prodi or "Semua Program Studi",
+                    "total_courses": data.get("total_courses", len(data.get("courses", []))),
+                    "programs": data.get("programs", []),
+                    "courses": data.get("courses", []),
+                }
+    except Exception:
+        pass
+
+    # 2. Resilient fallback to local dataset
+    target_prodi = norm_prodi or "Teknologi Sains Data"
+    courses = get_courses_for_program(target_prodi)
     return {
-        "program_studi": norm_prodi,
+        "source": "local_fallback",
+        "program_studi": target_prodi,
         "total_courses": len(courses),
+        "programs": ["Teknologi Sains Data", "Rekayasa Perangkat Lunak"],
         "courses": [c.model_dump() for c in courses],
     }
 

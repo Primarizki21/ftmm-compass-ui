@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import {
   Search,
   Filter,
@@ -12,7 +12,7 @@ import {
 } from "lucide-react"
 import { cn } from "../utils"
 import { Course } from "../data"
-import { ALL_COURSES, PROGRAMS } from "../courseData"
+import { ALL_COURSES, PROGRAMS, fetchCatalog } from "../courseData"
 
 interface CourseFinderProps {
   onAddToPlanner: (course: Course) => void
@@ -29,11 +29,39 @@ export default function CourseFinder({
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
   const [detailCourse, setDetailCourse] = useState<Course | null>(null)
   const [activeProgram, setActiveProgram] = useState<string>("all")
+  const [courses, setCourses] = useState<Course[]>(ALL_COURSES)
+  const [availablePrograms, setAvailablePrograms] = useState<string[]>(PROGRAMS)
+  const [isLoading, setIsLoading] = useState<boolean>(false)
 
-  const pool =
-    activeProgram === "all"
-      ? ALL_COURSES
-      : ALL_COURSES.filter((c) => c.program === activeProgram)
+  useEffect(() => {
+    let active = true
+    setIsLoading(true)
+    fetchCatalog(activeProgram)
+      .then((res) => {
+        if (!active) return
+        if (res) {
+          setCourses(res.courses)
+          if (res.programs && res.programs.length > 0) {
+            setAvailablePrograms(res.programs)
+          }
+        } else {
+          setCourses(
+            activeProgram === "all"
+              ? ALL_COURSES
+              : ALL_COURSES.filter((c) => c.program === activeProgram),
+          )
+        }
+      })
+      .finally(() => {
+        if (active) setIsLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [activeProgram])
+
+  const pool = courses
   const filtered = pool.filter((c) => {
     const q = searchQuery.toLowerCase()
     const matchesSearch =
@@ -82,7 +110,7 @@ export default function CourseFinder({
         <div className="flex gap-2 overflow-x-auto pb-1">
           {[
             { key: "all", label: "Semua Program" },
-            ...PROGRAMS.map((p) => ({ key: p, label: p })),
+            ...availablePrograms.map((p) => ({ key: p, label: p })),
           ].map((f) => (
             <button
               key={f.key}

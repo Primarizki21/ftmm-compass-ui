@@ -21,6 +21,45 @@ def test_courses_endpoint():
     print(f"✓ Courses endpoint OK ({data['total_courses']} courses)")
 
 
+def test_courses_proxy_chatbot_ssot():
+    import httpx
+    from unittest.mock import patch, AsyncMock
+
+    mock_response = httpx.Response(
+        200,
+        json={
+            "program_studi": "Teknologi Sains Data",
+            "total_courses": 68,
+            "programs": ["Teknologi Sains Data", "Teknik Elektro"],
+            "courses": [
+                {
+                    "id": "MK-001",
+                    "code": "AGI101",
+                    "name": "Agama Islam I",
+                    "credits": 2,
+                    "semester": 1,
+                    "type": "Wajib",
+                    "parity": "odd",
+                    "desc": "Silabus agama.",
+                    "program": "Teknologi Sains Data",
+                    "prerequisites": [],
+                }
+            ],
+        },
+        request=httpx.Request("GET", "http://127.0.0.1:8000/api/courses"),
+    )
+
+    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
+        mock_get.return_value = mock_response
+        res = client.get("/api/courses?prodi=Teknologi%20Sains%20Data")
+        assert res.status_code == 200
+        data = res.json()
+        assert data["source"] == "chatbot_ssot"
+        assert data["total_courses"] == 68
+        assert data["courses"][0]["code"] == "AGI101"
+        print("✓ Courses gateway forward to Chatbot SSOT OK (mocked 200)")
+
+
 def test_chat_gateway_circular_guard():
     import app as app_module
     original_url = app_module.CHATBOT_SERVICE_URL
@@ -111,4 +150,5 @@ if __name__ == "__main__":
     test_chat_gateway_offline_503()
     test_chat_gateway_mock_forward()
     test_plan_generate_endpoint()
+    test_courses_proxy_chatbot_ssot()
     print("\nAll API endpoint integration tests passed! 🚀")

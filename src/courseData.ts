@@ -140,3 +140,61 @@ export const COURSES_BY_PROGRAM: Record<string, Course[]> = coursesByProgram
 export const ALL_COURSES: Course[] = PROGRAMS.flatMap(
   (p) => coursesByProgram[p] ?? [],
 )
+
+export interface ApiCourseItem {
+  id: string
+  code?: string | null
+  name: string
+  credits: number
+  semester: number
+  type: "Wajib" | "Pilihan"
+  parity: "odd" | "even"
+  desc?: string
+  program: string
+  prerequisites?: string[]
+}
+
+export interface ApiCoursesResponse {
+  source?: string
+  program_studi?: string | null
+  total_courses: number
+  programs?: string[]
+  courses: ApiCourseItem[]
+}
+
+/** Fetches the official course catalog from the backend API with fallback to local cache. */
+export async function fetchCatalog(
+  program?: string,
+): Promise<{ courses: Course[] programs?: string[] } | null> {
+  try {
+    const url =
+      program && program !== "all"
+        ? `/api/courses?prodi=${encodeURIComponent(program)}`
+        : "/api/courses"
+    const res = await fetch(url)
+    if (!res.ok) return null
+    const data: ApiCoursesResponse = await res.json()
+    if (!Array.isArray(data.courses) || data.courses.length === 0) return null
+
+    const courses: Course[] = data.courses.map((c) => ({
+      id: c.id || `${slugify(c.program)}:${c.code || slugify(c.name)}`,
+      code: c.code || undefined,
+      name: c.name,
+      credits: Number(c.credits) || 0,
+      semester: Number(c.semester) || 1,
+      type: c.type === "Pilihan" ? "Pilihan" : "Wajib",
+      parity: c.parity === "even" ? "even" : "odd",
+      desc: c.desc || "",
+      program: c.program,
+      prerequisites: (c.prerequisites || []).map((p) => ({ id: p, name: p })),
+    }))
+
+    return {
+      courses,
+      programs:
+        data.programs && data.programs.length > 0 ? data.programs : undefined,
+    }
+  } catch {
+    return null
+  }
+}
