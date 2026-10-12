@@ -53,8 +53,8 @@ cp .env.example .env
 |---|---|---|
 | `BACKEND_PORT` | `8001` (auto-detect 8001–8050) | Listening port for FastAPI server |
 | `HOST` | `0.0.0.0` | Bind host address |
-| `CHATBOT_SERVICE_URL` | `http://127.0.0.1:8000` | Endpoint for Docker Hybrid RAG-CAG Chatbot microservice |
-| `CHATBOT_TIMEOUT_SECONDS` | `45.0` | Timeout for Chatbot microservice calls |
+| `CHATBOT_SERVICE_URL` | `http://127.0.0.1:8000` (host) / `http://ftmm-compass-chatbot:8000` (Docker) | Upstream URL for Chatbot AI microservice |
+| `CHATBOT_TIMEOUT_SECONDS` | `45.0` | Timeout in seconds for Chatbot microservice calls |
 | `CORS_ORIGINS` | `*` | Allowed CORS origins for frontend requests |
 ### 3. Run Development Server
 
@@ -71,6 +71,18 @@ pnpm dev:all       # runs backend and Vite frontend concurrently
 
 When started via `app.py`, the backend automatically finds an open port between 8001 and 8050, records it to `.backend-port`, and the Vite frontend proxy automatically routes `/api/*` calls.
 
+
+### 4. Run via Docker Compose (Multi-Container ftmm-network)
+
+Dalam lingkungan kontainer Docker terisolasi (Opsi B):
+```bash
+# 1. Pastikan bridge network bersama telah aktif
+docker network create ftmm-network 2>/dev/null || true
+
+# 2. Jalankan gateway & frontend
+docker compose up -d
+```
+Kontainer `ftmm-compass-gateway` secara otomatis terhubung ke `ftmm-network` dan berkomunikasi langsung dengan `http://ftmm-compass-chatbot:8000` via DNS internal Docker.
 ---
 
 ## 📡 API Endpoints (Dual-Tier REST Architecture)
