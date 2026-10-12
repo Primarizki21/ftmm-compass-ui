@@ -25,6 +25,17 @@ export interface StudentProfileState {
   is_confirmed_by_user?: boolean
 }
 
+export interface DegreePlanCourseItem {
+  id?: string
+  code?: string
+  name: string
+  credits?: number
+  semester?: number
+  type?: string
+  parity?: string
+  status?: string
+}
+
 export interface DegreePlanPayload {
   action: "APPLY_DEGREE_PLAN"
   summary: {
@@ -35,7 +46,7 @@ export interface DegreePlanPayload {
     focus_tracks: string[]
     note?: string
   }
-  plan: Record<number, any[]>
+  plan: Record<number, DegreePlanCourseItem[]>
 }
 
 export interface ChatMessage {
@@ -52,8 +63,29 @@ export interface ChatMessage {
 interface ChatbotProps {
   onApplyPlan?: (payload: DegreePlanPayload) => void
 }
+const BACKEND_API_URL = import.meta.env.VITE_BACKEND_API_URL || "/api/v1/chat"
+const BACKEND_STREAM_URL =
+  import.meta.env.VITE_BACKEND_STREAM_URL || "/api/v1/chat/stream"
 
-const BACKEND_API_URL = import.meta.env.VITE_BACKEND_API_URL || "/api/chat"
+function sanitizeErrorMessage(raw?: string | null): string {
+  if (!raw) return ""
+  if (raw.includes("{") && raw.includes("}")) {
+    try {
+      const jsonMatch = raw.match(/\{[\s\S]*\}/)
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]) as {
+          error?: { message?: string }
+          detail?: string
+          message?: string
+        }
+        if (parsed.error?.message) return parsed.error.message
+        if (parsed.message) return parsed.message
+        if (parsed.detail) return parsed.detail
+      }
+    } catch {}
+  }
+  return raw
+}
 
 export default function Chatbot({ onApplyPlan }: ChatbotProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -77,14 +109,23 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
   })
   const [appliedPlanId, setAppliedPlanId] = useState<string | null>(null)
   const [backendStatus, setBackendStatus] = useState<{
+    status?: string
+    service?: string
     ollama_online?: boolean
     chatbot_service_online?: boolean
     chatbot_model?: string
+    ollama?: {
+      online?: boolean
+      host?: string
+      default_model?: string
+    }
   } | null>(null)
 
   useEffect(() => {
-    fetch("/api/health")
-      .then((res) => (res.ok ? res.json() : null))
+    fetch("/api/v1/health")
+      .then((res) =>
+        res.ok ? res.json() : fetch("/api/health").then((r) => r.json()),
+      )
       .then((data) => {
         if (data) setBackendStatus(data)
       })
@@ -107,13 +148,19 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
       content: textToSend,
     }
 
-    setMessages((prev) => [...prev, userMessage])
+    const assistantMsgId = `assistant-${Date.now()}`
+    const initialAssistantMessage: ChatMessage = {
+      id: assistantMsgId,
+      role: "assistant",
+      content: "",
+    }
+
+    setMessages((prev) => [...prev, userMessage, initialAssistantMessage])
     if (!messageText) setInput("")
     setIsLoading(true)
 
     try {
-      // Try calling FastAPI backend server
-      const response = await fetch(BACKEND_API_URL, {
+      const streamRes = await fetch(BACKEND_STREAM_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -126,41 +173,166 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
         }),
       })
 
-      if (response.ok) {
-        const data = await response.json()
-        setProfile(data.updated_profile)
-        const botMessage: ChatMessage = {
-          id: `assistant-${Date.now()}`,
-          role: "assistant",
-          content: data.reply,
-          plan_payload: data.plan_payload,
-          action_type: data.action_type,
-          routing_mode: data.routing_mode,
-          latency_ms: data.latency_ms,
+      if (streamRes.ok && streamRes.body) {
+        const reader = streamRes.body.getReader()
+        const decoder = new TextDecoder()
+        let accumulatedContent = ""
+        let buffer = ""
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split("\n")
+          buffer = lines.pop() || ""
+
+          for (const line of lines) {
+            const trimmed = line.trim()
+            if (!trimmed || !trimmed.startsWith("data:")) continue
+            const jsonStr = trimmed.replace(/^data:\s*/, "")
+            try {
+              const data = JSON.parse(jsonStr) as {
+                token?: string
+                done?: boolean
+                reply?: string
+                error?: { code?: string message?: string }
+                updated_profile?: StudentProfileState
+                plan_payload?: DegreePlanPayload
+                action_type?: string
+                routing_mode?: string
+                latency_ms?: number
+              }
+
+              if (data.error) {
+                accumulatedContent = `⚠️ **Layanan Tidak Tersedia**\n\n${data.error.message || "Gagal memproses permintaan."}`
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantMsgId
+                      ? {
+                          ...m,
+                          content: accumulatedContent,
+                          action_type: "GENERAL",
+                        }
+                      : m,
+                  ),
+                )
+                return
+              }
+
+              if (data.token) {
+                accumulatedContent += data.token
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantMsgId
+                      ? { ...m, content: accumulatedContent }
+                      : m,
+                  ),
+                )
+              }
+
+              if (data.done) {
+                if (
+                  data.reply &&
+                  (!accumulatedContent ||
+                    accumulatedContent.length < data.reply.length)
+                ) {
+                  accumulatedContent = data.reply
+                }
+                if (data.updated_profile) {
+                  setProfile(data.updated_profile)
+                }
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantMsgId
+                      ? {
+                          ...m,
+                          content: accumulatedContent,
+                          plan_payload: data.plan_payload,
+                          action_type: data.action_type || "GENERAL",
+                          routing_mode: data.routing_mode,
+                          latency_ms: data.latency_ms,
+                        }
+                      : m,
+                  ),
+                )
+              }
+            } catch {}
+          }
         }
-        setMessages((prev) => [...prev, botMessage])
+        return
+      }
+
+      // Standard non-streaming fallback
+      const fallbackRes = await fetch(BACKEND_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: textToSend,
+          history: messages.slice(-6).map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+          student_profile: profile,
+        }),
+      })
+
+      if (fallbackRes.ok) {
+        const data = await fallbackRes.json()
+        if (data.updated_profile) setProfile(data.updated_profile)
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantMsgId
+              ? {
+                  ...m,
+                  content: data.reply,
+                  plan_payload: data.plan_payload,
+                  action_type: data.action_type,
+                  routing_mode: data.routing_mode,
+                  latency_ms: data.latency_ms,
+                }
+              : m,
+          ),
+        )
       } else {
-        const errorData = await response.json().catch(() => null)
+        const errorData = (await fallbackRes.json().catch(() => null)) as {
+          error?: { code?: string message?: string }
+          detail?: string
+        } | null
         const detail =
-          errorData?.detail ||
+          errorData?.error?.message ||
+          sanitizeErrorMessage(errorData?.detail) ||
           "Gagal memproses pesan. Pastikan layanan backend dan microservice aktif."
-        const botMessage: ChatMessage = {
-          id: `assistant-${Date.now()}`,
-          role: "assistant",
-          content: `⚠️ **Layanan Tidak Tersedia**\n\n${detail}`,
-          action_type: "GENERAL",
-        }
-        setMessages((prev) => [...prev, botMessage])
+        const isRetry =
+          fallbackRes.status === 503 ||
+          errorData?.error?.code === "upstream_service_unavailable"
+        const retryNote = isRetry
+          ? "\n\n*Layanan AI sedang inisialisasi. Silakan ulangi dalam beberapa saat.*"
+          : ""
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantMsgId
+              ? {
+                  ...m,
+                  content: `⚠️ **Layanan Tidak Tersedia (${fallbackRes.status})**\n\n${detail}${retryNote}`,
+                  action_type: "GENERAL",
+                }
+              : m,
+          ),
+        )
       }
     } catch (err) {
-      const botMessage: ChatMessage = {
-        id: `assistant-${Date.now()}`,
-        role: "assistant",
-        content:
-          "⚠️ **Koneksi Terputus**\n\nTidak dapat terhubung ke server FTMM Compass AI. Pastikan backend Gateway (`pnpm dev:backend`) dan kontainer Docker Chatbot (`ftmm-compass-chatbot`) telah aktif.",
-        action_type: "GENERAL",
-      }
-      setMessages((prev) => [...prev, botMessage])
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantMsgId
+            ? {
+                ...m,
+                content:
+                  "⚠️ **Koneksi Terputus**\n\nTidak dapat terhubung ke server FTMM Compass AI. Pastikan backend Gateway (`pnpm dev:backend`) dan kontainer Docker Chatbot (`ftmm-compass-chatbot`) telah aktif.",
+                action_type: "GENERAL",
+              }
+            : m,
+        ),
+      )
     } finally {
       setIsLoading(false)
     }

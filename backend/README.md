@@ -73,16 +73,39 @@ When started via `app.py`, the backend automatically finds an open port between 
 
 ---
 
-## 📡 API Endpoints
+## 📡 API Endpoints (Dual-Tier REST Architecture)
 
-- `GET /api/health` — Health check, Ollama local server status, and Docker Chatbot microservice connectivity (`chatbot_service_online`).
-- `GET /api/courses?prodi={nama}` — Retrieve course catalog with semester recommendations (proxies to Chatbot microservice SSOT with local dataset fallback).
-- `POST /api/chat` — Conversational study planner gateway: forwards queries to Hybrid RAG-CAG microservice and returns structured response or HTTP 503 if microservice is offline.
-- `POST /api/plan/generate` — Generate deterministic, DAG-validated degree plan from complete student profile.
-- `POST /api/plan/validate` — Validate student study plans against prerequisite graph and semester parity constraints.
+### Canonical REST Endpoints (`/api/v1`)
+- `GET /api/v1/health` — Gateway health check, Ollama server status, and Docker Chatbot microservice connectivity.
+- `GET /api/v1/courses` — Official course catalog with adaptive pagination (`page`, `per_page`), semester filtering, and search (`q`). Proxies to Chatbot microservice SSOT with local dataset fallback.
+- `GET /api/v1/courses/search` — Keyword and semantic search for curriculum courses (`q`, `prodi`, `top_k`).
+- `POST /api/v1/chat` — Conversational study planner gateway to Hybrid RAG-CAG microservice.
+- `POST /api/v1/chat/stream` — Real-time Server-Sent Events (SSE) streaming endpoint for live token generation.
+- `POST /api/v1/plans/validations` — Validate student study plans against prerequisite graph DAG and semester parity constraints.
+- `POST /api/v1/plans` — Generate deterministic, DAG-validated degree plan from complete student profile.
+
+### Legacy Compatibility Endpoints (`/api`)
+- `GET /api/health` — Legacy health check alias.
+- `GET /api/courses` — Legacy courses catalog alias.
+- `GET /api/courses/search` — Legacy courses search alias.
+- `POST /api/chat` — Legacy chat alias.
+- `POST /api/chat/stream` — Legacy chat streaming alias.
+- `POST /api/plan/validate` — Legacy plan validation alias.
+- `POST /api/plan/generate` — Legacy plan generation alias.
 - `GET /docs` — Interactive OpenAPI / Swagger UI documentation.
----
 
+### Standard Error Envelope
+All 4xx and 5xx responses follow the standardized error payload:
+```json
+{
+  "detail": "Descriptive message",
+  "error": {
+    "code": "upstream_service_unavailable | upstream_timeout | validation_error | http_error",
+    "message": "Descriptive message",
+    "details": []
+  }
+}
+```
 ## 🧪 Testing
 
 Run automated unit and integration tests:

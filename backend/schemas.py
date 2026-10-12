@@ -1,6 +1,52 @@
-from typing import List, Optional, Dict, Literal
+from typing import List, Optional, Dict, Literal, Any
 from pydantic import BaseModel, Field
 
+
+class ErrorDetail(BaseModel):
+    field: Optional[str] = None
+    message: str
+    code: str = "invalid_input"
+
+
+class ErrorPayload(BaseModel):
+    code: str
+    message: str
+    details: List[ErrorDetail] = Field(default_factory=list)
+
+
+class ApiErrorResponse(BaseModel):
+    error: ErrorPayload
+
+
+class PaginationMeta(BaseModel):
+    total: int
+    page: int
+    per_page: int
+    total_pages: int
+
+
+class PaginationLinks(BaseModel):
+    self: str
+    next: Optional[str] = None
+    prev: Optional[str] = None
+    first: Optional[str] = None
+    last: Optional[str] = None
+
+
+class OllamaHealthDetail(BaseModel):
+    online: bool
+    host: str
+    default_model: str
+
+
+class HealthResponse(BaseModel):
+    status: str = "healthy"
+    service: str = "FTMM Compass AI Planner Gateway"
+    chatbot_service_online: bool = False
+    chatbot_model: Optional[str] = None
+    ollama_online: bool = False
+    default_model: Optional[str] = None
+    ollama: Optional[OllamaHealthDetail] = None
 
 class StudentProfile(BaseModel):
     program_studi: Optional[str] = Field(
@@ -55,9 +101,38 @@ class PlanValidationResponse(BaseModel):
     is_valid: bool
     errors: List[str] = Field(default_factory=list)
     warnings: List[str] = Field(default_factory=list)
-    total_credits: int
+    total_credits: int = 0
+    total_sks_planned: int = 0
     semester_credits: Dict[int, int] = Field(default_factory=dict)
+    details_per_semester: Dict[int, Dict[str, Any]] = Field(default_factory=dict)
 
+
+class CourseCatalogResponse(BaseModel):
+    source: str = "chatbot_ssot"
+    program_studi: Optional[str] = None
+    total_courses: int = 0
+    programs: List[str] = Field(default_factory=list)
+    courses: List[CourseModel] = Field(default_factory=list)
+
+
+class PaginatedCourseResponse(BaseModel):
+    source: str = "chatbot_ssot"
+    data: List[CourseModel] = Field(default_factory=list)
+    meta: PaginationMeta
+    links: PaginationLinks
+    program_studi: Optional[str] = None
+
+
+class CourseSearchItem(CourseModel):
+    score: float = 0.0
+
+
+class CourseSearchResponse(BaseModel):
+    source: str = "chatbot_ssot"
+    query: str
+    program_studi: Optional[str] = None
+    total_hits: int = 0
+    results: List[CourseSearchItem] = Field(default_factory=list)
 
 class PlanPayloadSummary(BaseModel):
     program_studi: str
