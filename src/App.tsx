@@ -43,8 +43,8 @@ export default function App() {
     page: string,
     options?: { tab?: "roadmap" | "timetable"; course?: Course },
   ) => {
-    if (options?.tab) setPlannerInitialTab(options.tab)
-    if (options?.course) setFinderInitialCourse(options.course)
+    setPlannerInitialTab(options?.tab || "roadmap")
+    setFinderInitialCourse(options?.course || null)
     setActivePage(page as Page)
   }
   const handleApplyPlanFromChatbot = (payload: DegreePlanPayload) => {
@@ -66,7 +66,7 @@ export default function App() {
     }
     setCustomPlan(mappedPlan)
     setAppliedPlanSummary(payload.summary)
-    setActivePage("degree-planner")
+    handleNavigate("degree-planner")
   }
   const handleResetPlan = () => {
     setCustomPlan(null)
@@ -146,8 +146,8 @@ export default function App() {
                 <button
                   key={item.id}
                   onClick={() => {
-                    setActivePage(item.id)
-                    if (window.innerWidth < 768) setIsSidebarOpen(false) // Close on mobile click
+                    handleNavigate(item.id)
+                    if (window.innerWidth < 768) setIsSidebarOpen(false)
                   }}
                   className={cn(
                     "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group text-left",

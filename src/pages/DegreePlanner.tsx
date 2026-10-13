@@ -43,9 +43,7 @@ export default function DegreePlanner({
   const [activeTab, setActiveTab] = useState<Tab>(initialTab || "roadmap")
 
   useEffect(() => {
-    if (initialTab) {
-      setActiveTab(initialTab)
-    }
+    setActiveTab(initialTab || "roadmap")
   }, [initialTab])
   const [plan, setPlan] = useState<Record<number, PlacedCourse[]>>(
     customPlan || INITIAL_PLAN,
