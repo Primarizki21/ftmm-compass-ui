@@ -113,6 +113,38 @@ export const canDrop = (
   if (course.parity === "even" && isOdd(targetSem)) return false
   return true
 }
+export function getCourseReligion(course: {
+  name: string
+  code?: string
+}): string | null {
+  const text = `${course.code || ""} ${course.name}`.toLowerCase()
+  const isAgama =
+    text.includes("agama") || /ag[ikphbc]/i.test(course.code || "")
+  if (!isAgama) return null
+  if (text.includes("islam") || /agi/i.test(course.code || "")) return "Islam"
+  if (text.includes("katolik") || /agk/i.test(course.code || "")) return "Katolik"
+  if (
+    text.includes("protestan") ||
+    text.includes("kristen") ||
+    /agp/i.test(course.code || "")
+  )
+    return "Protestan"
+  if (text.includes("hindu") || /agh/i.test(course.code || "")) return "Hindu"
+  if (
+    text.includes("buddha") ||
+    text.includes("budha") ||
+    /agb/i.test(course.code || "")
+  )
+    return "Buddha"
+  if (
+    text.includes("khonghucu") ||
+    text.includes("konghucu") ||
+    /agc/i.test(course.code || "")
+  )
+    return "Khonghucu"
+  return "Umum"
+}
+
 
 export type SemesterState = "idle" | "valid-hover" | "invalid" | "invalid-hover"
 
@@ -130,7 +162,11 @@ export interface DegreePlannerProps {
     note?: string
   } | null
   onResetPlan?: () => void
-  onNavigate?: (page: string) => void
+  onNavigate?: (
+    page: string,
+    options?: { tab?: Tab; course?: Course },
+  ) => void
   activeSchedule?: ScheduleItem[]
   onUpdateSchedule?: (schedule: ScheduleItem[]) => void
+  initialTab?: Tab
 }

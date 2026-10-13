@@ -21,11 +21,15 @@ import CourseQuickModal from "../components/course-finder/CourseQuickModal"
 export interface CourseFinderProps {
   onAddToPlanner: (course: Course) => void
   addedCourseIds: Set<string>
+  initialCourse?: Course | null
+  onClearInitialCourse?: () => void
 }
 
 export default function CourseFinder({
   onAddToPlanner,
   addedCourseIds,
+  initialCourse,
+  onClearInitialCourse,
 }: CourseFinderProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedParity, setSelectedParity] = useState<"all" | "odd" | "even">(
@@ -35,6 +39,11 @@ export default function CourseFinder({
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
   const [detailCourse, setDetailCourse] = useState<Course | null>(null)
+  useEffect(() => {
+    if (initialCourse) {
+      setDetailCourse(initialCourse)
+    }
+  }, [initialCourse])
   const [activeProgram, setActiveProgram] = useState<string>("all")
   const [courses, setCourses] = useState<Course[]>(ALL_COURSES)
   const [availablePrograms, setAvailablePrograms] = useState<string[]>(PROGRAMS)
@@ -126,7 +135,10 @@ export default function CourseFinder({
       <CourseDetailView
         course={detailCourse}
         catalog={courses}
-        onBack={() => setDetailCourse(null)}
+        onBack={() => {
+          setDetailCourse(null)
+          onClearInitialCourse?.()
+        }}
         onAdd={handleAddToPlanner}
         addedCourseIds={addedCourseIds}
       />

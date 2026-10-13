@@ -8,7 +8,10 @@ interface TimetableGridProps {
   schedule: ScheduleItem[]
   days: readonly string[]
   compact?: boolean
-  onNavigate?: (page: string) => void
+  onNavigate?: (
+    page: string,
+    options?: { tab?: "roadmap" | "timetable"; course?: any },
+  ) => void
   onItemClick?: (item: ScheduleItem) => void
 }
 
@@ -207,7 +210,9 @@ export default function TimetableGrid({
               </p>
             </div>
             <button
-              onClick={() => onNavigate?.("degree-planner")}
+              onClick={() =>
+                onNavigate?.("degree-planner", { tab: "timetable" })
+              }
               className="text-xs font-medium text-danger hover:underline flex-shrink-0 whitespace-nowrap"
             >
               Perbaiki &rarr;

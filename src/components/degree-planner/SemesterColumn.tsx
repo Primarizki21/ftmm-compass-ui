@@ -57,7 +57,6 @@ export function PlannerCourseCard({
       role="button"
       tabIndex={0}
       aria-label={`${course.name} (${course.code || course.id}), ${course.credits} SKS. Klik untuk melihat detail silabus dan prasyarat.`}
-      draggable={!completed}
       onClick={() => onSelect(course)}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -65,12 +64,8 @@ export function PlannerCourseCard({
           onSelect(course)
         }
       }}
-      onDragStart={
-        !completed ? (e) => onDragStart(e, course, sem, idx) : undefined
-      }
       onDragOver={(e) => onDragOver(e, sem, idx)}
       onDrop={(e) => onDrop(e, sem, idx)}
-      onDragEnd={onDragEnd}
       className={cn(
         "p-3 rounded-lg border bg-surface flex flex-col group transition-all select-none relative focus:outline-hidden focus-visible:ring-2 focus-visible:ring-gold/60",
         completed
@@ -86,11 +81,37 @@ export function PlannerCourseCard({
       {/* Header: Grip/Status + Kode MK di KIRI, Badges Tipe & Status di KANAN — SEMUA HORIZONTAL */}
       <div className="flex items-center justify-between gap-2 mb-1.5 pb-1 border-b border-border/40">
         <div className="flex items-center gap-1.5 min-w-0">
-          <div className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
+          <div
+            draggable={!completed}
+            onDragStart={
+              !completed
+                ? (e) => {
+                    e.stopPropagation()
+                    onDragStart(e, course, sem, idx)
+                  }
+                : undefined
+            }
+            onDragEnd={(e) => {
+              e.stopPropagation()
+              onDragEnd()
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className={cn(
+              "flex-shrink-0 w-6 h-6 -ml-1 rounded flex items-center justify-center transition-all",
+              completed
+                ? "cursor-default text-teal"
+                : "cursor-grab active:cursor-grabbing hover:bg-navy/10 text-muted/60 hover:text-navy",
+            )}
+            title={
+              completed
+                ? "Mata kuliah sudah lulus (terkunci)"
+                : "Tarik titik-titik ini untuk memindahkan mata kuliah"
+            }
+          >
             {completed ? (
               <CheckCircle2 className="w-3.5 h-3.5 text-teal" />
             ) : (
-              <GripVertical className="w-3.5 h-3.5 text-muted/50 opacity-60 group-hover:opacity-100 group-hover:text-navy transition-all" />
+              <GripVertical className="w-4 h-4" />
             )}
           </div>
           <span className="font-mono text-[11px] font-bold text-navy leading-none tracking-tight">
@@ -354,20 +375,12 @@ export function ElectiveCourseBank({
         <span className="text-xs font-mono text-muted bg-background border border-border px-2 py-0.5 rounded">
           {pilihanPending.length} matkul
         </span>
-        <p className="text-xs text-muted">— Tarik ke semester yang sesuai</p>
+        <p className="text-xs text-muted">(Tarik ke semester yang sesuai)</p>
       </div>
       <div className="flex gap-3 overflow-x-auto pb-2">
         {pilihanPending.map((course) => (
           <div
             key={course.id}
-            draggable
-            onDragStart={(e) =>
-              onDragStartBank(e, {
-                ...course,
-                status: "planned",
-              } as PlacedCourse)
-            }
-            onDragEnd={onDragEnd}
             onClick={() =>
               onSelectCourse?.({
                 ...course,
@@ -380,7 +393,25 @@ export function ElectiveCourseBank({
               <span className="font-mono text-[10px] font-bold text-teal">
                 {course.code || course.id}
               </span>
-              <GripVertical className="w-3.5 h-3.5 text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div
+                draggable
+                onDragStart={(e) => {
+                  e.stopPropagation()
+                  onDragStartBank(e, {
+                    ...course,
+                    status: "planned",
+                  } as PlacedCourse)
+                }}
+                onDragEnd={(e) => {
+                  e.stopPropagation()
+                  onDragEnd()
+                }}
+                onClick={(e) => e.stopPropagation()}
+                className="cursor-grab active:cursor-grabbing p-1 -m-1 rounded hover:bg-navy/10 text-muted hover:text-navy transition-all"
+                title="Tarik untuk memindahkan ke semester"
+              >
+                <GripVertical className="w-3.5 h-3.5" />
+              </div>
             </div>
             <h5 className="font-medium text-xs text-navy leading-tight">
               {course.name}

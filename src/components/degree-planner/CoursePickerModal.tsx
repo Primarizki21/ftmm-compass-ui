@@ -1,7 +1,7 @@
 import { Search, X, Clock, Bookmark, BookOpen, Check, Plus } from "lucide-react"
 import { cn } from "../../utils"
 import { Course } from "../../data"
-import { isOdd } from "./types"
+import { isOdd, getCourseReligion, PlacedCourse } from "./types"
 
 interface CoursePickerModalProps {
   pickerSem: number | null
@@ -18,6 +18,8 @@ interface CoursePickerModalProps {
   placedMap: Map<string, number>
   onClose: () => void
   onAddCourse: (course: Course) => void
+  currentSemesterCourses?: PlacedCourse[]
+  activeReligion?: string | null
 }
 
 export default function CoursePickerModal({
@@ -35,11 +37,20 @@ export default function CoursePickerModal({
   placedMap,
   onClose,
   onAddCourse,
+  currentSemesterCourses,
+  activeReligion,
 }: CoursePickerModalProps) {
   if (pickerSem === null) return null
 
   const targetParity = isOdd(pickerSem) ? "odd" : "even"
   const q = pickerSearch.toLowerCase().trim()
+  const plannedSKS = (currentSemesterCourses || [])
+    .filter((c) => c.status === "planned" || c.status === "completed")
+    .reduce((sum, c) => sum + c.credits, 0)
+  const wishlistSKS = (currentSemesterCourses || [])
+    .filter((c) => c.status === "wishlist")
+    .reduce((sum, c) => sum + c.credits, 0)
+
 
   // Base pool filtered by semester parity / exact semester, program, and search query
   const basePool = catalog.filter((c) => {
@@ -104,6 +115,33 @@ export default function CoursePickerModal({
               <strong>{isOdd(pickerSem) ? "ganjil" : "genap"}</strong> sesuai
               aturan kurikulum FTMM.
             </p>
+            <div className="flex flex-wrap items-center gap-2 mt-2 pt-1 border-t border-border/40">
+              <span className="text-xs text-muted font-medium">
+                Beban SKS Sem {pickerSem}:
+              </span>
+              <span
+                className={cn(
+                  "font-mono font-bold text-xs px-2 py-0.5 rounded-md",
+                  plannedSKS > 24
+                    ? "bg-danger/15 text-danger border border-danger/30"
+                    : plannedSKS >= 20
+                      ? "bg-gold/15 text-navy border border-gold/30"
+                      : "bg-teal/15 text-navy border border-teal/30",
+                )}
+              >
+                {plannedSKS} / 24 SKS Direncanakan
+              </span>
+              {wishlistSKS > 0 && (
+                <span className="text-xs font-mono text-muted bg-surface px-2 py-0.5 rounded-md border border-border">
+                  +{wishlistSKS} SKS Wishlist
+                </span>
+              )}
+              {activeReligion && (
+                <span className="text-[10px] font-medium text-navy/80 bg-navy/8 border border-navy/15 px-2 py-0.5 rounded-md">
+                  Agama Terpilih: <strong>{activeReligion}</strong>
+                </span>
+              )}
+            </div>
           </div>
           <button
             type="button"
@@ -276,7 +314,13 @@ export default function CoursePickerModal({
             filtered.map((course) => {
               const placedInSem = placedMap.get(course.id)
               const isAlreadyPlaced = placedInSem !== undefined
-
+              const courseReligion = getCourseReligion(course)
+              const isReligionBlocked = Boolean(
+                activeReligion &&
+                  courseReligion &&
+                  courseReligion !== "Umum" &&
+                  courseReligion !== activeReligion,
+              )
               return (
                 <div
                   key={course.id}
@@ -284,7 +328,9 @@ export default function CoursePickerModal({
                     "p-3 rounded-xl border flex items-center justify-between gap-3 transition-all",
                     isAlreadyPlaced
                       ? "bg-background/40 border-border/60 opacity-60"
-                      : "bg-surface border-border hover:border-gold/60 hover:shadow-2xs",
+                      : isReligionBlocked
+                        ? "bg-background/40 border-border/60 opacity-55"
+                        : "bg-surface border-border hover:border-gold/60 hover:shadow-2xs",
                   )}
                 >
                   <div className="min-w-0 flex-1">
@@ -323,6 +369,11 @@ export default function CoursePickerModal({
                       <span className="text-[10px] text-muted font-mono">
                         {course.credits} SKS • Sem {course.semester}
                       </span>
+                      {isReligionBlocked && (
+                        <span className="text-[9px] font-bold bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.5 rounded">
+                          Terkunci: Agama {activeReligion}
+                        </span>
+                      )}
                     </div>
                     <h4 className="font-medium text-sm text-foreground leading-tight truncate">
                       {course.name}
@@ -334,6 +385,13 @@ export default function CoursePickerModal({
                       <span className="px-2.5 py-1.5 rounded-lg text-xs font-mono font-medium text-muted bg-background border border-border flex items-center gap-1.5">
                         <Check className="w-3.5 h-3.5 text-teal" />
                         Di Sem {placedInSem}
+                      </span>
+                    ) : isReligionBlocked ? (
+                      <span
+                        className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-muted bg-background border border-border flex items-center gap-1"
+                        title={`Sudah mengambil mata kuliah Agama ${activeReligion}. Maksimal 1 jenis agama per mahasiswa.`}
+                      >
+                        Agama Lain
                       </span>
                     ) : (
                       <button

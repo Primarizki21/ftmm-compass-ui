@@ -13,6 +13,7 @@ import {
   Tab,
   DegreePlannerProps,
   canDrop,
+  getCourseReligion,
 } from "../components/degree-planner/types"
 import PlannerHeader from "../components/degree-planner/PlannerHeader"
 import {
@@ -37,8 +38,15 @@ export default function DegreePlanner({
   onNavigate,
   activeSchedule: _activeSchedule,
   onUpdateSchedule,
+  initialTab,
 }: DegreePlannerProps) {
-  const [activeTab, setActiveTab] = useState<Tab>("roadmap")
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab || "roadmap")
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab)
+    }
+  }, [initialTab])
   const [plan, setPlan] = useState<Record<number, PlacedCourse[]>>(
     customPlan || INITIAL_PLAN,
   )
@@ -96,6 +104,16 @@ export default function DegreePlanner({
       isMounted = false
     }
   }, [])
+  const activeReligion = useMemo(() => {
+    for (const courses of Object.values(plan)) {
+      for (const c of courses) {
+        const rel = getCourseReligion(c)
+        if (rel && rel !== "Umum") return rel
+      }
+    }
+    return null
+  }, [plan])
+
 
   // Map course ID to semester where it is currently placed
   const placedMap = useMemo(() => {
@@ -176,6 +194,9 @@ export default function DegreePlanner({
   ) => {
     setDragging({ course, fromSem: from, fromIndex })
     e.dataTransfer.effectAllowed = "move"
+    try {
+      e.dataTransfer.setData("text/plain", course.id)
+    } catch {}
   }
 
   const handleCardDragOver = (e: React.DragEvent, sem: number, idx: number) => {
@@ -522,6 +543,8 @@ export default function DegreePlanner({
             placedMap={placedMap}
             onClose={() => setPickerSem(null)}
             onAddCourse={handleAddCourseFromModal}
+            currentSemesterCourses={pickerSem !== null ? plan[pickerSem] || [] : []}
+            activeReligion={activeReligion}
           />
 
           {/* Modal Pop-up: Inspeksi Silabus & Prasyarat In-Situ */}
@@ -532,8 +555,8 @@ export default function DegreePlanner({
             onClose={() => setInspectCourse(null)}
             onToggleStatus={handleToggleStatus}
             onDeleteCourse={deleteCourse}
-            onOpenInCourseFinder={() => {
-              onNavigate?.("course-finder")
+            onOpenInCourseFinder={(c) => {
+              onNavigate?.("course-finder", { course: c })
             }}
           />
         </>

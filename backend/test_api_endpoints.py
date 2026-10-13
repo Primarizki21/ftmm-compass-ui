@@ -291,6 +291,43 @@ def test_v1_plan_validations_endpoint():
     assert data["is_valid"] is True
     print("✓ Canonical v1 Plan validations endpoint OK")
 
+def test_v1_plan_validations_religion_conflict():
+    res = client.post("/api/v1/plans/validations", json={
+        "program_studi": "Teknologi Sains Data",
+        "semester_saat_ini": 1,
+        "riwayat_matkul_lulus": [],
+        "maks_sks_per_semester": 24,
+        "plan": {
+            1: [
+                {
+                    "id": "AGI101",
+                    "code": "AGI101",
+                    "name": "Agama Islam I",
+                    "credits": 2,
+                    "semester": 1,
+                    "type": "Wajib",
+                    "parity": "odd",
+                    "prerequisites": [],
+                },
+                {
+                    "id": "AGK101",
+                    "code": "AGK101",
+                    "name": "Agama Katolik I",
+                    "credits": 2,
+                    "semester": 1,
+                    "type": "Wajib",
+                    "parity": "odd",
+                    "prerequisites": [],
+                }
+            ]
+        }
+    })
+    assert res.status_code == 200
+    data = res.json()
+    assert data["is_valid"] is False
+    assert any("Pelanggaran kurikulum agama" in e for e in data["errors"])
+    print("✓ Canonical v1 Plan validations religion conflict correctly caught")
+
 
 if __name__ == "__main__":
     test_health()
@@ -307,5 +344,6 @@ if __name__ == "__main__":
     test_chat_stream_endpoint()
     test_plan_generate_endpoint()
     test_v1_plan_validations_endpoint()
+    test_v1_plan_validations_religion_conflict()
     test_courses_proxy_chatbot_ssot()
     print("\nAll modernized API endpoint integration tests passed! 🚀")

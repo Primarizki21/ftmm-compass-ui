@@ -36,7 +36,15 @@ export default function App() {
   const [appliedPlanSummary, setAppliedPlanSummary] =
     useState<DegreePlanPayload["summary"] | null>(null)
   const [activeSchedule, setActiveSchedule] = useState<ScheduleItem[]>(SCHEDULE)
-  const handleNavigate = (page: string) => {
+  const [plannerInitialTab, setPlannerInitialTab] = useState<"roadmap" | "timetable">("roadmap")
+  const [finderInitialCourse, setFinderInitialCourse] = useState<Course | null>(null)
+
+  const handleNavigate = (
+    page: string,
+    options?: { tab?: "roadmap" | "timetable"; course?: Course },
+  ) => {
+    if (options?.tab) setPlannerInitialTab(options.tab)
+    if (options?.course) setFinderInitialCourse(options.course)
     setActivePage(page as Page)
   }
   const handleApplyPlanFromChatbot = (payload: DegreePlanPayload) => {
@@ -246,6 +254,8 @@ export default function App() {
                 <CourseFinder
                   onAddToPlanner={addCourseToPlanner}
                   addedCourseIds={addedCourseIds}
+                  initialCourse={finderInitialCourse}
+                  onClearInitialCourse={() => setFinderInitialCourse(null)}
                 />
               )}
               {activePage === "degree-planner" && (
@@ -256,7 +266,7 @@ export default function App() {
                   appliedSummary={appliedPlanSummary}
                   onResetPlan={handleResetPlan}
                   onNavigate={handleNavigate}
-                  activeSchedule={activeSchedule}
+                  initialTab={plannerInitialTab}
                   onUpdateSchedule={setActiveSchedule}
                 />
               )}
