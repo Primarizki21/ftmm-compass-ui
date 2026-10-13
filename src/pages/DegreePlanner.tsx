@@ -108,9 +108,10 @@ const INITIAL_PLAN: Record<number, PlacedCourse[]> = {
   ],
 }
 
-// Completed courses are locked; Wajib courses in planned state stay in their semester, while Pilihan and Wishlist can be dragged
-const isLocked = (c: PlacedCourse) =>
-  c.status === "completed" || (c.type === "Wajib" && c.status !== "wishlist")
+// Completed courses are locked; Wajib courses cannot change semester (intra-semester reordering only)
+const isCompleted = (c: PlacedCourse) => c.status === "completed"
+const isSemLocked = (c: PlacedCourse) =>
+  c.type === "Wajib" && c.status !== "wishlist"
 
 interface DegreePlannerProps {
   pendingCourses: Course[]
@@ -199,10 +200,11 @@ export default function DegreePlanner({
 
   const handleAddCourseFromModal = (course: Course) => {
     if (pickerSem === null) return
+    const finalStatus = course.type === "Wajib" ? "planned" : pickerStatus
     const newCourse: PlacedCourse = {
       ...course,
       semester: pickerSem,
-      status: pickerStatus,
+      status: finalStatus,
     }
     setPlan((prev) => ({
       ...prev,
@@ -213,8 +215,13 @@ export default function DegreePlanner({
   const [dragging, setDragging] = useState<{
     course: PlacedCourse
     fromSem: number | "bank"
+    fromIndex?: number
   } | null>(null)
   const [hoverSem, setHoverSem] = useState<number | null>(null)
+  const [dropTarget, setDropTarget] = useState<{
+    sem: number
+    index: number
+  } | null>(null)
 
   // Auto-place Wajib courses into their designated semester; Pilihan stays in bank
   useEffect(() => {
@@ -237,15 +244,25 @@ export default function DegreePlanner({
 
   const isOdd = (sem: number) => sem % 2 === 1
 
-  const canDrop = (course: Course, sem: number): boolean => {
-    if (course.parity === "odd" && !isOdd(sem)) return false
-    if (course.parity === "even" && isOdd(sem)) return false
+  const canDrop = (
+    course: PlacedCourse,
+    targetSem: number,
+    fromSem: number | "bank",
+  ): boolean => {
+    if (isCompleted(course)) return false
+    // Intra-semester reorder is always valid for both Wajib and Pilihan
+    if (fromSem === targetSem) return true
+    // Wajib courses cannot move to another semester
+    if (isSemLocked(course)) return false
+    // Pilihan courses must match semester parity
+    if (course.parity === "odd" && !isOdd(targetSem)) return false
+    if (course.parity === "even" && isOdd(targetSem)) return false
     return true
   }
 
   const semState = (sem: number): SemesterState => {
     if (!dragging) return "idle"
-    const valid = canDrop(dragging.course, sem)
+    const valid = canDrop(dragging.course, sem, dragging.fromSem)
     const hovering = hoverSem === sem
     if (!valid) return hovering ? "invalid-hover" : "invalid"
     return hovering ? "valid-hover" : "idle"
@@ -255,14 +272,27 @@ export default function DegreePlanner({
     e: React.DragEvent,
     course: PlacedCourse,
     from: number | "bank",
+    fromIndex?: number,
   ) => {
-    setDragging({ course, fromSem: from })
+    setDragging({ course, fromSem: from, fromIndex })
     e.dataTransfer.effectAllowed = "move"
+  }
+
+  const handleCardDragOver = (e: React.DragEvent, sem: number, idx: number) => {
+    if (!dragging) return
+    if (!canDrop(dragging.course, sem, dragging.fromSem)) return
+    e.preventDefault()
+    e.stopPropagation()
+    e.dataTransfer.dropEffect = "move"
+    const rect = e.currentTarget.getBoundingClientRect()
+    const insertAfter = e.clientY > rect.top + rect.height / 2
+    setHoverSem(sem)
+    setDropTarget({ sem, index: insertAfter ? idx + 1 : idx })
   }
 
   const handleDragOver = (e: React.DragEvent, sem: number) => {
     if (!dragging) return
-    if (canDrop(dragging.course, sem)) {
+    if (canDrop(dragging.course, sem, dragging.fromSem)) {
       e.preventDefault()
       e.dataTransfer.dropEffect = "move"
     }
@@ -272,36 +302,86 @@ export default function DegreePlanner({
   const handleDragLeave = (e: React.DragEvent) => {
     if (!e.currentTarget.contains(e.relatedTarget as Node)) {
       setHoverSem(null)
+      setDropTarget(null)
     }
   }
 
-  const handleDrop = (e: React.DragEvent, sem: number) => {
+  const handleDrop = (
+    e: React.DragEvent,
+    sem: number,
+    explicitTargetIndex?: number,
+  ) => {
     e.preventDefault()
-    if (!dragging || !canDrop(dragging.course, sem)) return
+    if (!dragging || !canDrop(dragging.course, sem, dragging.fromSem)) return
 
-    const { course, fromSem } = dragging
+    const { course, fromSem, fromIndex } = dragging
+    const targetIdx =
+      explicitTargetIndex !== undefined
+        ? explicitTargetIndex
+        : dropTarget?.sem === sem
+          ? dropTarget.index
+          : plan[sem]?.length || 0
 
-    if (fromSem === "bank") {
+    if (fromSem === sem) {
+      // Intra-semester reordering (atas-bawah)
+      if (fromIndex !== undefined) {
+        setPlan((prev) => {
+          const currentList = [...(prev[sem] || [])]
+          const itemIndex = currentList.findIndex((c) => c.id === course.id)
+          if (itemIndex === -1) return prev
+          const [removed] = currentList.splice(itemIndex, 1)
+          const insertAt = targetIdx > itemIndex ? targetIdx - 1 : targetIdx
+          currentList.splice(
+            Math.max(0, Math.min(insertAt, currentList.length)),
+            0,
+            removed,
+          )
+          return { ...prev, [sem]: currentList }
+        })
+      }
+    } else if (fromSem === "bank") {
+      // Drop from Bank Matkul Pilihan
       setPendingCourses((prev) => prev.filter((c) => c.id !== course.id))
+      setPlan((prev) => {
+        const currentList = [...(prev[sem] || [])]
+        const insertAt = Math.max(0, Math.min(targetIdx, currentList.length))
+        currentList.splice(insertAt, 0, {
+          ...course,
+          semester: sem,
+          status: course.status || "planned",
+        })
+        return { ...prev, [sem]: currentList }
+      })
     } else {
-      setPlan((prev) => ({
-        ...prev,
-        [fromSem]: (prev[fromSem] || []).filter((c) => c.id !== course.id),
-      }))
+      // Cross-semester move (Pilihan)
+      setPlan((prev) => {
+        const sourceList = (prev[fromSem] || []).filter(
+          (c) => c.id !== course.id,
+        )
+        const targetList = [...(prev[sem] || [])]
+        const insertAt = Math.max(0, Math.min(targetIdx, targetList.length))
+        targetList.splice(insertAt, 0, {
+          ...course,
+          semester: sem,
+          status: course.status || "planned",
+        })
+        return {
+          ...prev,
+          [fromSem]: sourceList,
+          [sem]: targetList,
+        }
+      })
     }
-
-    setPlan((prev) => ({
-      ...prev,
-      [sem]: [...(prev[sem] || []), { ...course, status: "planned" }],
-    }))
 
     setDragging(null)
     setHoverSem(null)
+    setDropTarget(null)
   }
 
   const handleDragEnd = () => {
     setDragging(null)
     setHoverSem(null)
+    setDropTarget(null)
   }
 
   const deleteCourse = (courseId: string, sem: number) => {
@@ -401,19 +481,19 @@ export default function DegreePlanner({
                 {
                   icon: <Lock className="w-3.5 h-3.5 text-muted/70" />,
                   label: "Wajib",
-                  badge: "Tetap di Semester",
+                  badge: "Urutan Atas/Bawah (Tetap di Sem)",
                   badgeStyle: "bg-navy/8 text-navy border-navy/20",
                 },
                 {
                   icon: <Clock className="w-3.5 h-3.5 text-gold" />,
                   label: "Direncanakan",
-                  badge: "Bisa Digeser ⋮⋮",
+                  badge: "Geser Sem & Atas/Bawah ⋮⋮",
                   badgeStyle: "bg-gold/15 text-navy border-gold/40",
                 },
                 {
                   icon: <Bookmark className="w-3.5 h-3.5 text-muted" />,
                   label: "Wishlist",
-                  badge: "Bisa Digeser/Hapus",
+                  badge: "Geser Sem, Atas/Bawah & Hapus",
                   badgeStyle:
                     "bg-surface text-muted border-dashed border-border",
                 },
@@ -442,12 +522,27 @@ export default function DegreePlanner({
             <div className="mb-3 p-3 bg-navy/5 border border-navy/15 rounded-lg flex items-center gap-3 text-sm flex-shrink-0 animate-in fade-in duration-150">
               <GripVertical className="w-4 h-4 text-navy/40" />
               <span className="text-navy">
-                <strong>{dragging.course.name}</strong> — hanya bisa di semester{" "}
-                <strong className="text-navy">
-                  {dragging.course.parity === "odd"
-                    ? "ganjil (1, 3, 5, 7)"
-                    : "genap (2, 4, 6, 8)"}
-                </strong>
+                <strong>{dragging.course.name}</strong>
+                {isSemLocked(dragging.course) ? (
+                  <>
+                    {" "}
+                    — matkul <strong>Wajib</strong>: hanya dapat diatur urutan
+                    (atas/bawah) di <strong>Semester {dragging.fromSem}</strong>
+                    .
+                  </>
+                ) : (
+                  <>
+                    {" "}
+                    — matkul <strong>Pilihan</strong>: dapat dipindah ke
+                    semester{" "}
+                    <strong>
+                      {dragging.course.parity === "odd"
+                        ? "ganjil (1, 3, 5, 7)"
+                        : "genap (2, 4, 6, 8)"}
+                    </strong>{" "}
+                    dan diatur urutan atas/bawah.
+                  </>
+                )}
               </span>
             </div>
           )}
@@ -519,47 +614,56 @@ export default function DegreePlanner({
                           )}
                         >
                           <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
-                          Hanya semester{" "}
-                          {dragging.course.parity === "odd"
-                            ? "ganjil"
-                            : "genap"}
+                          {isSemLocked(dragging.course)
+                            ? `Khusus Semester ${dragging.fromSem}`
+                            : `Hanya semester ${
+                                dragging.course.parity === "odd"
+                                  ? "ganjil"
+                                  : "genap"
+                              }`}
                         </div>
                       )}
 
                     {/* Course cards */}
                     <div className="flex-1 p-3 space-y-2 overflow-y-auto min-h-[200px]">
-                      {courses.map((course) => {
-                        const locked = isLocked(course)
+                      {courses.map((course, idx) => {
+                        const completed = isCompleted(course)
+                        const semLocked = isSemLocked(course)
+                        const isDropTargetTop =
+                          dropTarget?.sem === sem && dropTarget?.index === idx
                         return (
                           <div
                             key={course.id}
-                            draggable={!locked}
+                            draggable={!completed}
                             onDragStart={
-                              !locked
-                                ? (e) => handleDragStart(e, course, sem)
+                              !completed
+                                ? (e) => handleDragStart(e, course, sem, idx)
                                 : undefined
                             }
-                            onDragEnd={!locked ? handleDragEnd : undefined}
+                            onDragOver={(e) => handleCardDragOver(e, sem, idx)}
+                            onDragEnd={handleDragEnd}
                             className={cn(
-                              "p-3 rounded-lg border bg-surface flex gap-2 group transition-shadow hover:shadow-md select-none relative",
-                              locked
-                                ? "cursor-default"
-                                : "cursor-move hover:cursor-move",
+                              "p-3 rounded-lg border bg-surface flex gap-2 group transition-all select-none relative",
+                              completed
+                                ? "cursor-default opacity-85"
+                                : "cursor-move hover:cursor-move hover:shadow-md",
                               course.status === "completed" &&
                                 "border-teal-light/50",
                               course.status === "planned" &&
-                                !locked &&
+                                !semLocked &&
                                 "border-gold/50",
                               course.status === "planned" &&
-                                locked &&
+                                semLocked &&
                                 "border-navy/20",
                               course.status === "wishlist" &&
                                 "border-dashed border-border",
+                              isDropTargetTop &&
+                                "border-t-2 border-t-teal shadow-md",
                             )}
                           >
-                            {/* Left icon: grip for draggable, lock for locked */}
+                            {/* Left icon: grip for draggable, lock for completed */}
                             <div className="flex-shrink-0 mt-0.5 w-4">
-                              {locked ? (
+                              {completed ? (
                                 <Lock className="w-3.5 h-3.5 text-muted/50" />
                               ) : (
                                 <GripVertical className="w-4 h-4 text-muted opacity-60 group-hover:opacity-100 group-hover:text-navy transition-all" />
@@ -571,18 +675,28 @@ export default function DegreePlanner({
                                 <span className="font-mono text-[10px] font-bold text-navy leading-none">
                                   {course.code || course.id}
                                 </span>
-                                {course.status === "completed" && (
-                                  <CheckCircle2 className="w-3.5 h-3.5 text-teal flex-shrink-0" />
-                                )}
-                                {course.status === "planned" && locked && (
-                                  <Lock className="w-3.5 h-3.5 text-muted/60 flex-shrink-0" />
-                                )}
-                                {course.status === "planned" && !locked && (
-                                  <Clock className="w-3.5 h-3.5 text-gold flex-shrink-0" />
-                                )}
-                                {course.status === "wishlist" && (
-                                  <Bookmark className="w-3.5 h-3.5 text-muted/80 flex-shrink-0" />
-                                )}
+                                {/* Right status icon — fades out on hover so delete X button has zero overlap */}
+                                <div
+                                  className={cn(
+                                    "flex-shrink-0 transition-opacity duration-150",
+                                    !completed &&
+                                      "group-hover:opacity-0 pointer-events-none",
+                                  )}
+                                >
+                                  {course.status === "completed" && (
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-teal" />
+                                  )}
+                                  {semLocked && (
+                                    <Lock className="w-3.5 h-3.5 text-muted/60" />
+                                  )}
+                                  {!semLocked &&
+                                    course.status === "planned" && (
+                                      <Clock className="w-3.5 h-3.5 text-gold" />
+                                    )}
+                                  {course.status === "wishlist" && (
+                                    <Bookmark className="w-3.5 h-3.5 text-muted/80" />
+                                  )}
+                                </div>
                               </div>
                               <h5 className="font-medium text-xs leading-tight text-foreground">
                                 {course.name}
@@ -609,14 +723,16 @@ export default function DegreePlanner({
                               </div>
                             </div>
 
-                            {/* Delete button — available for all non-completed courses */}
-                            {course.status !== "completed" && (
+                            {/* Delete button — available for all non-completed courses, zero overlap with status icon */}
+                            {!completed && (
                               <button
+                                type="button"
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   deleteCourse(course.id, sem)
                                 }}
-                                className="absolute top-2 right-2 w-5 h-5 flex items-center justify-center rounded-full bg-background border border-border text-muted hover:bg-danger/10 hover:text-danger hover:border-danger/30 opacity-0 group-hover:opacity-100 transition-all"
+                                title="Hapus dari rencana semester"
+                                className="absolute top-2 right-2 w-5 h-5 flex items-center justify-center rounded-full bg-background border border-border text-muted hover:bg-danger/10 hover:text-danger hover:border-danger/30 opacity-0 group-hover:opacity-100 transition-all z-10"
                               >
                                 <X className="w-3 h-3" />
                               </button>
