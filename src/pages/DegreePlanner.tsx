@@ -72,20 +72,24 @@ export default function DegreePlanner({
     })
   useEffect(() => {
     let isMounted = true
-    fetchCatalog().then((res) => {
+    fetchCatalog("all").then((res) => {
       if (!isMounted || !res) return
       if (res.courses?.length) {
-        setCatalog(res.courses)
+        const prodisInRes = new Set(
+          res.courses.map((c) => c.program).filter(Boolean),
+        )
+        if (prodisInRes.size >= 5) {
+          setCatalog(res.courses)
+        } else {
+          const fetchedIds = new Set(res.courses.map((c) => c.id))
+          const missing = ALL_COURSES.filter((c) => !fetchedIds.has(c.id))
+          setCatalog([...res.courses, ...missing])
+        }
       }
       if (res.programs && res.programs.length > 0) {
         setAvailablePrograms(res.programs)
-      } else if (res.courses?.length) {
-        const derived = Array.from(
-          new Set(
-            res.courses.map((c) => c.program).filter(Boolean) as string[],
-          ),
-        ).sort((a, b) => a.localeCompare(b))
-        if (derived.length > 0) setAvailablePrograms(derived)
+      } else {
+        setAvailablePrograms(PROGRAMS)
       }
     })
     return () => {
@@ -596,8 +600,8 @@ export default function DegreePlanner({
 
           {/* Timetable Body: Left Class Selector & Right Grid */}
           <div className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-4 min-h-0 overflow-y-auto lg:overflow-hidden pb-1">
-            {/* Left Column: Class Selector Panel (5 cols on desktop) */}
-            <div className="lg:col-span-5 h-[400px] lg:h-full min-h-0 flex flex-col">
+            {/* Left Column: Class Selector Panel (4 cols on desktop) */}
+            <div className="lg:col-span-4 min-h-[380px] lg:h-full min-h-0 flex flex-col">
               <ClassSelectorPanel
                 activeSemester={activeTimetableSem}
                 semesterCourses={currentTimetableCourses}
@@ -608,8 +612,8 @@ export default function DegreePlanner({
               />
             </div>
 
-            {/* Right Column: Timetable Grid (7 cols on desktop) */}
-            <div className="lg:col-span-7 flex flex-col min-h-0 h-[520px] lg:h-full">
+            {/* Right Column: Timetable Grid (8 cols on desktop) */}
+            <div className="lg:col-span-8 flex flex-col min-h-0 h-full">
               <TimetableGrid schedule={dynamicSchedule} days={TIMETABLE_DAYS} />
             </div>
           </div>

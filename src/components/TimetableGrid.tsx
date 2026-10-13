@@ -21,7 +21,7 @@ export default function TimetableGrid({
 }: TimetableGridProps) {
   const conflictingItems = schedule.filter((s) => s.conflict)
   const hasConflict = conflictingItems.length > 0
-
+  const rowHeight = compact ? 38 : 44
   return (
     <>
       {/* Conflict banner — above grid in full mode */}
@@ -48,16 +48,13 @@ export default function TimetableGrid({
       <div
         className={cn(
           "overflow-auto",
-          !compact &&
-            "flex-1 bg-surface border border-border rounded-xl shadow-sm relative",
+          !compact
+            ? "flex-1 bg-surface border border-border rounded-xl shadow-xs relative"
+            : "bg-surface relative",
         )}
-        style={compact ? { maxHeight: "420px" } : undefined}
       >
         <div
-          className={cn(
-            "flex flex-col",
-            compact ? "min-w-[640px]" : "min-w-[800px] h-full",
-          )}
+          className={cn("flex flex-col w-full min-w-0", !compact && "h-full")}
         >
           {/* Header Row */}
           <div className="flex border-b border-border bg-background/50 sticky top-0 z-20">
@@ -90,7 +87,11 @@ export default function TimetableGrid({
               )}
             >
               {HOURS.map((hour) => (
-                <div key={hour} className="h-16 relative">
+                <div
+                  key={hour}
+                  style={{ height: `${rowHeight}px` }}
+                  className="relative"
+                >
                   <span
                     className={cn(
                       "absolute font-mono text-muted",
@@ -106,7 +107,12 @@ export default function TimetableGrid({
             </div>
 
             {/* Day Columns */}
-            <div className="flex-1 flex relative bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwJSIgaGVpZ2h0PSI2NCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMCA2NEgxMDAwMCIgc3Ryb2tlPSIjZTllY2VmIiBzdHJva2Utd2lkdGg9IjEiIGZpbGw9Im5vbmUiLz48L3N2Zz4=')]">
+            <div
+              className="flex-1 flex relative"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg width='100%25' height='${rowHeight}' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 ${rowHeight}H10000' stroke='%23e9ecef' stroke-width='1' fill='none'/%3E%3C/svg%3E")`,
+              }}
+            >
               {days.map((day) => (
                 <div
                   key={day}
@@ -115,8 +121,8 @@ export default function TimetableGrid({
                   {schedule
                     .filter((s) => s.day === day)
                     .map((item) => {
-                      const top = (item.start - 7) * 64
-                      const height = item.duration * 64
+                      const top = (item.start - 7) * rowHeight
+                      const height = item.duration * rowHeight
                       return (
                         <div
                           key={item.id}

@@ -33,6 +33,21 @@ def test_courses_endpoint():
     assert data["total_courses"] > 0
     print(f"✓ Courses endpoint OK ({data['total_courses']} courses)")
 
+def test_v1_courses_all_prodis():
+    res = client.get("/api/v1/courses")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["total_courses"] >= 300
+    prodis = set(c.get("program") for c in data.get("courses", []))
+    assert len(prodis) == 5
+
+    res_sem3 = client.get("/api/v1/courses?semester=3")
+    assert res_sem3.status_code == 200
+    data_sem3 = res_sem3.json()
+    prodis_sem3 = set(c.get("program") for c in data_sem3.get("courses", []))
+    assert len(prodis_sem3) == 5
+    print("✓ Canonical v1 Courses all prodis and semester 3 OK")
+
 
 def test_v1_courses_pagination():
     res = client.get("/api/v1/courses?prodi=Teknologi%20Sains%20Data&page=1&per_page=5")
@@ -281,6 +296,7 @@ if __name__ == "__main__":
     test_health()
     test_v1_health()
     test_courses_endpoint()
+    test_v1_courses_all_prodis()
     test_v1_courses_pagination()
     test_courses_search_endpoint()
     test_v1_courses_search_endpoint()

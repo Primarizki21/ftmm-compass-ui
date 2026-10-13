@@ -1,3 +1,7 @@
+import os
+import glob
+import json
+import re
 from typing import List, Dict, Optional
 from schemas import CourseModel
 
@@ -456,8 +460,119 @@ def normalize_prodi(prodi_input: Optional[str]) -> Optional[str]:
     return prodi_input.strip()
 
 
+def _slugify(text: str) -> str:
+    s = re.sub(r"[^a-zA-Z0-9]+", "-", text.lower()).strip("-")
+    return s or "course"
+
+
+def _normalize_type(raw: Optional[str]) -> str:
+    j = (raw or "").lower()
+    if any(k in j for k in ["pilihan", "pengayaan", "peminatan"]):
+        return "Pilihan"
+    return "Wajib"
+
+
+def _load_ekstrak_curriculum() -> Dict[str, List[CourseModel]]:
+    curricula: Dict[str, List[CourseModel]] = {}
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    search_dirs = [
+        os.path.join(os.path.dirname(current_dir), "Ekstrak"),
+        os.path.join(current_dir, "Ekstrak"),
+        os.path.join(current_dir, "..", "Ekstrak"),
+    ]
+    target_dir = None
+    for d in search_dirs:
+        if os.path.isdir(d):
+            target_dir = d
+            break
+
+    if not target_dir:
+        return curricula
+
+    json_files = sorted(glob.glob(os.path.join(target_dir, "*.json")))
+    for filepath in json_files:
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            meta = data.get("metadata", {})
+            raw_prog = meta.get("program_studi") or os.path.basename(filepath).replace("FIX ", "").replace(".json", "")
+            prog_name = normalize_prodi(re.sub(r"^S1\s+", "", raw_prog).strip())
+            if not prog_name:
+                continue
+
+            mk_list = data.get("mata_kuliah", [])
+            courses: List[CourseModel] = []
+            used_ids = set()
+
+            for i, m in enumerate(mk_list):
+                code = m.get("kode_mk") or m.get("id")
+                name = m.get("nama_mk") or f"Matkul {i+1}"
+                sem = int(m.get("semester") or 1)
+                cid = f"{_slugify(prog_name)}:{code or f'mk-{i+1}'}"
+                if cid in used_ids:
+                    cid += f"-{_slugify(name)}"
+                while cid in used_ids:
+                    cid += "-x"
+                used_ids.add(cid)
+
+                c_type = _normalize_type(m.get("jenis"))
+                parity = "odd" if (sem % 2 == 1) else "even"
+
+                raw_prereq = m.get("prasyarat") or []
+                prereqs: List[str] = []
+                if isinstance(raw_prereq, list):
+                    for p in raw_prereq:
+                        if isinstance(p, str) and p.strip():
+                            prereqs.append(p.strip())
+                        elif isinstance(p, dict) and p.get("nama_mk"):
+                            prereqs.append(p["nama_mk"].strip())
+
+                courses.append(
+                    CourseModel(
+                        id=cid,
+                        code=code,
+                        name=name,
+                        credits=int(m.get("sks") or 3),
+                        semester=sem,
+                        type=c_type,
+                        parity=parity,
+                        desc=m.get("deskripsi") or "",
+                        program=prog_name,
+                        prerequisites=prereqs,
+                    )
+                )
+
+            if courses:
+                curricula[prog_name] = courses
+        except Exception:
+            continue
+
+    return curricula
+
+
+OFFICIAL_CURRICULUM = _load_ekstrak_curriculum()
+
+
+def get_available_programs() -> List[str]:
+    if OFFICIAL_CURRICULUM:
+        return sorted(list(OFFICIAL_CURRICULUM.keys()))
+    return list(FTMM_CURRICULUM.keys())
+
+
 def get_courses_for_program(prodi: str) -> List[CourseModel]:
-    norm = normalize_prodi(prodi) or "Teknologi Sains Data"
-    if norm in FTMM_CURRICULUM:
+    norm = normalize_prodi(prodi)
+    if norm and norm in OFFICIAL_CURRICULUM:
+        return OFFICIAL_CURRICULUM[norm]
+    if norm and norm in FTMM_CURRICULUM:
         return FTMM_CURRICULUM[norm]
+    if "Teknologi Sains Data" in OFFICIAL_CURRICULUM:
+        return OFFICIAL_CURRICULUM["Teknologi Sains Data"]
     return FTMM_CURRICULUM["Teknologi Sains Data"]
+
+
+def get_all_courses() -> List[CourseModel]:
+    active_curriculum = OFFICIAL_CURRICULUM if OFFICIAL_CURRICULUM else FTMM_CURRICULUM
+    all_courses: List[CourseModel] = []
+    for courses in active_curriculum.values():
+        all_courses.extend(courses)
+    return all_courses

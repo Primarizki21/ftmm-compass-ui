@@ -25,7 +25,13 @@ from schemas import (
     CourseSearchResponse,
     CourseSearchItem,
 )
-from data_loader import get_courses_for_program, normalize_prodi, FTMM_CURRICULUM
+from data_loader import (
+    get_courses_for_program,
+    get_all_courses,
+    get_available_programs,
+    normalize_prodi,
+    FTMM_CURRICULUM,
+)
 from tools.planner import generate_study_plan
 from tools.prerequisite_validator import validate_plan_constraints
 
@@ -327,8 +333,12 @@ async def handle_list_courses(
         pass
 
     # 2. Resilient fallback to local dataset
-    active_prodi = norm_prodi or "Teknologi Sains Data"
-    courses = get_courses_for_program(active_prodi)
+    if not norm_prodi or norm_prodi.lower() in ("all", "semua"):
+        courses = get_all_courses()
+        active_prodi = "Semua Program Studi"
+    else:
+        active_prodi = norm_prodi
+        courses = get_courses_for_program(active_prodi)
 
     if semester is not None:
         courses = [c for c in courses if c.semester == semester]
@@ -379,7 +389,7 @@ async def handle_list_courses(
         "source": "local_fallback",
         "program_studi": active_prodi,
         "total_courses": len(courses),
-        "programs": list(FTMM_CURRICULUM.keys()),
+        "programs": get_available_programs(),
         "courses": [c.model_dump() for c in courses],
     }
 
@@ -413,7 +423,10 @@ async def handle_search_courses(
         pass
 
     # Local fallback
-    courses = get_courses_for_program(norm_prodi or "Teknologi Sains Data")
+    if norm_prodi and norm_prodi.lower() not in ("all", "semua"):
+        courses = get_courses_for_program(norm_prodi)
+    else:
+        courses = get_all_courses()
     q_lower = q.lower().strip()
     hits: list[CourseSearchItem] = []
     for c in courses:

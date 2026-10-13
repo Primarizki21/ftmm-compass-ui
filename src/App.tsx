@@ -219,8 +219,22 @@ export default function App() {
         </header>
 
         {/* Page Content */}
-        <div className="flex-1 overflow-auto p-4 md:p-8 relative">
-          <div className="max-w-7xl mx-auto h-full">
+        <div
+          className={cn(
+            "flex-1 overflow-auto relative",
+            activePage === "degree-planner"
+              ? "p-4 md:px-6 md:py-4"
+              : "p-4 md:p-8",
+          )}
+        >
+          <div
+            className={cn(
+              "mx-auto h-full",
+              activePage === "degree-planner"
+                ? "w-full max-w-none"
+                : "max-w-7xl",
+            )}
+          >
             <ErrorBoundary key={activePage}>
               {activePage === "dashboard" && (
                 <Dashboard
