@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import {
   GripVertical,
   CheckCircle2,
@@ -10,9 +10,14 @@ import {
   Calendar,
   Sparkles,
   RotateCcw,
+  Search,
+  Plus,
+  Bookmark,
+  Check,
 } from "lucide-react"
 import { cn } from "../utils"
 import { Course, SCHEDULE } from "../data"
+import { ALL_COURSES, PROGRAMS, fetchCatalog } from "../courseData"
 import TimetableGrid from "../components/TimetableGrid"
 
 const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8]
@@ -139,6 +144,60 @@ export default function DegreePlanner({
   useEffect(() => {
     setPlan(customPlan || INITIAL_PLAN)
   }, [customPlan])
+  const [pickerSem, setPickerSem] = useState<number | null>(null)
+  const [pickerSearch, setPickerSearch] = useState("")
+  const [pickerProgram, setPickerProgram] = useState<string>("all")
+  const [pickerType, setPickerType] = useState<"all" | "Pilihan" | "Wajib">(
+    "all",
+  )
+  const [pickerStatus, setPickerStatus] = useState<"planned" | "wishlist">(
+    "planned",
+  )
+  const [catalog, setCatalog] = useState<Course[]>(ALL_COURSES)
+
+  useEffect(() => {
+    let isMounted = true
+    fetchCatalog().then((res) => {
+      if (isMounted && res?.courses?.length) {
+        setCatalog(res.courses)
+      }
+    })
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  // Map course ID to semester where it is currently placed
+  const placedMap = useMemo(() => {
+    const map = new Map<string, number>()
+    Object.entries(plan).forEach(([semStr, list]) => {
+      list.forEach((c) => map.set(c.id, Number(semStr)))
+    })
+    return map
+  }, [plan])
+
+  // Close modal on Escape
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPickerSem(null)
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [])
+
+  const handleAddCourseFromModal = (course: Course) => {
+    if (pickerSem === null) return
+    const newCourse: PlacedCourse = {
+      ...course,
+      semester: pickerSem,
+      status: pickerStatus,
+    }
+    setPlan((prev) => ({
+      ...prev,
+      [pickerSem]: [...(prev[pickerSem] || []), newCourse],
+    }))
+    setPendingCourses((prev) => prev.filter((c) => c.id !== course.id))
+  }
   const [dragging, setDragging] = useState<{
     course: PlacedCourse
     fromSem: number | "bank"
@@ -319,33 +378,48 @@ export default function DegreePlanner({
                 dipindah-pindah.
               </p>
             </div>
-            <div className="flex gap-4">
+            <div className="flex flex-wrap gap-2.5 items-center">
               {[
                 {
-                  el: <div className="w-3 h-3 rounded-full bg-teal" />,
+                  icon: <CheckCircle2 className="w-3.5 h-3.5 text-teal" />,
                   label: "Selesai",
+                  badge: "Lulus (Terkunci)",
+                  badgeStyle: "bg-teal/10 text-navy border-teal/30",
                 },
                 {
-                  el: <div className="w-3 h-3 rounded-full bg-gold" />,
+                  icon: <Lock className="w-3.5 h-3.5 text-muted/70" />,
+                  label: "Wajib",
+                  badge: "Tetap di Semester",
+                  badgeStyle: "bg-navy/8 text-navy border-navy/20",
+                },
+                {
+                  icon: <Clock className="w-3.5 h-3.5 text-gold" />,
                   label: "Direncanakan",
+                  badge: "Bisa Digeser ⋮⋮",
+                  badgeStyle: "bg-gold/15 text-navy border-gold/40",
                 },
                 {
-                  el: (
-                    <div className="w-3 h-3 rounded-full border-2 border-dashed border-muted" />
-                  ),
+                  icon: <Bookmark className="w-3.5 h-3.5 text-muted" />,
                   label: "Wishlist",
+                  badge: "Bisa Digeser/Hapus",
+                  badgeStyle:
+                    "bg-surface text-muted border-dashed border-border",
                 },
-                {
-                  el: <Lock className="w-3 h-3 text-muted" />,
-                  label: "Terkunci",
-                },
-              ].map((l) => (
+              ].map((item) => (
                 <div
-                  key={l.label}
-                  className="flex items-center gap-1.5 text-xs"
+                  key={item.label}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface border border-border text-xs shadow-2xs"
                 >
-                  {l.el}
-                  <span className="text-muted">{l.label}</span>
+                  {item.icon}
+                  <span className="font-semibold text-navy">{item.label}</span>
+                  <span
+                    className={cn(
+                      "text-[9px] font-mono px-1.5 py-0.5 rounded border leading-none font-medium",
+                      item.badgeStyle,
+                    )}
+                  >
+                    {item.badge}
+                  </span>
                 </div>
               ))}
             </div>
@@ -476,7 +550,7 @@ export default function DegreePlanner({
                               {locked ? (
                                 <Lock className="w-3.5 h-3.5 text-muted/50" />
                               ) : (
-                                <GripVertical className="w-4 h-4 text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <GripVertical className="w-4 h-4 text-muted opacity-60 group-hover:opacity-100 group-hover:text-navy transition-all" />
                               )}
                             </div>
 
@@ -489,10 +563,13 @@ export default function DegreePlanner({
                                   <CheckCircle2 className="w-3.5 h-3.5 text-teal flex-shrink-0" />
                                 )}
                                 {course.status === "planned" && locked && (
-                                  <Lock className="w-3 h-3 text-muted/60 flex-shrink-0" />
+                                  <Lock className="w-3.5 h-3.5 text-muted/60 flex-shrink-0" />
                                 )}
                                 {course.status === "planned" && !locked && (
                                   <Clock className="w-3.5 h-3.5 text-gold flex-shrink-0" />
+                                )}
+                                {course.status === "wishlist" && (
+                                  <Bookmark className="w-3.5 h-3.5 text-muted/80 flex-shrink-0" />
                                 )}
                               </div>
                               <h5 className="font-medium text-xs leading-tight text-foreground">
@@ -512,6 +589,11 @@ export default function DegreePlanner({
                                 >
                                   {course.type}
                                 </span>
+                                {course.status === "wishlist" && (
+                                  <span className="text-[8px] font-bold uppercase tracking-wide px-1 py-0.5 rounded border border-dashed border-border text-muted">
+                                    Wishlist
+                                  </span>
+                                )}
                               </div>
                             </div>
 
@@ -550,8 +632,15 @@ export default function DegreePlanner({
                     </div>
 
                     <div className="p-3 border-t border-border bg-surface rounded-b-xl flex-shrink-0">
-                      <button className="w-full py-1.5 text-xs font-medium text-navy bg-navy/5 hover:bg-navy/10 rounded border border-dashed border-navy/20 transition-colors">
-                        + Tambah Manual
+                      <button
+                        onClick={() => {
+                          setPickerSem(sem)
+                          setPickerSearch("")
+                        }}
+                        className="w-full py-1.5 text-xs font-semibold text-navy bg-navy/5 hover:bg-navy/10 rounded-lg border border-dashed border-navy/20 transition-colors flex items-center justify-center gap-1.5"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Tambah Manual
                       </button>
                     </div>
                   </div>
@@ -634,6 +723,265 @@ export default function DegreePlanner({
             </div>
           </div>
           <TimetableGrid schedule={SCHEDULE} days={TIMETABLE_DAYS} />
+        </div>
+      )}
+      {/* ─── MODAL: Tambah Matkul Manual ─── */}
+      {pickerSem !== null && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-dark/60 backdrop-blur-xs animate-in fade-in duration-200"
+          onClick={() => setPickerSem(null)}
+        >
+          <div
+            className="bg-surface border border-border rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="p-5 border-b border-border flex items-start justify-between bg-background/50">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-heading font-bold text-lg text-navy">
+                    Tambah Matkul ke Semester {pickerSem}
+                  </h3>
+                  <span
+                    className={cn(
+                      "text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full",
+                      isOdd(pickerSem)
+                        ? "bg-teal/15 text-navy border border-teal/30"
+                        : "bg-gold/15 text-navy border border-gold/40",
+                    )}
+                  >
+                    {isOdd(pickerSem) ? "Semester Ganjil" : "Semester Genap"}
+                  </span>
+                </div>
+                <p className="text-xs text-muted mt-1">
+                  Menampilkan katalog matkul dengan periode{" "}
+                  <strong>{isOdd(pickerSem) ? "ganjil" : "genap"}</strong>{" "}
+                  sesuai aturan kurikulum FTMM.
+                </p>
+              </div>
+              <button
+                onClick={() => setPickerSem(null)}
+                className="p-1.5 rounded-lg text-muted hover:text-navy hover:bg-navy/5 transition-colors"
+                aria-label="Tutup modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Filter Bar */}
+            <div className="p-4 border-b border-border bg-surface space-y-3">
+              <div className="flex flex-col sm:flex-row gap-2">
+                {/* Search */}
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={pickerSearch}
+                    onChange={(e) => setPickerSearch(e.target.value)}
+                    placeholder="Cari nama matkul atau kode (misal: Data, II40, Fisika)..."
+                    className="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-border bg-background focus:outline-hidden focus:ring-2 focus:ring-teal/30 focus:border-teal text-foreground"
+                    autoFocus
+                  />
+                  {pickerSearch && (
+                    <button
+                      onClick={() => setPickerSearch("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-navy"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Program Selector */}
+                <select
+                  value={pickerProgram}
+                  onChange={(e) => setPickerProgram(e.target.value)}
+                  className="text-xs py-2 px-3 rounded-lg border border-border bg-background text-navy font-medium focus:outline-hidden focus:ring-2 focus:ring-teal/30 focus:border-teal max-w-[200px]"
+                >
+                  <option value="all">Semua Program Studi</option>
+                  {PROGRAMS.map((prog) => (
+                    <option key={prog} value={prog}>
+                      {prog}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Status & Type selector */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                {/* Type Filter */}
+                <div className="flex items-center gap-1 bg-background p-0.5 rounded-lg border border-border">
+                  {([
+                    { key: "all", label: "Semua Tipe" },
+                    { key: "Pilihan", label: "Pilihan" },
+                    { key: "Wajib", label: "Wajib" },
+                  ] as const).map((t) => (
+                    <button
+                      key={t.key}
+                      onClick={() => setPickerType(t.key)}
+                      className={cn(
+                        "px-2.5 py-1 rounded text-[11px] font-medium transition-all",
+                        pickerType === t.key
+                          ? "bg-navy text-white shadow-2xs"
+                          : "text-muted hover:text-navy",
+                      )}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Add Status Toggle */}
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-muted text-[11px]">
+                    Tambahkan sebagai:
+                  </span>
+                  <div className="flex items-center gap-1 bg-background p-0.5 rounded-lg border border-border">
+                    <button
+                      onClick={() => setPickerStatus("planned")}
+                      className={cn(
+                        "flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium transition-all",
+                        pickerStatus === "planned"
+                          ? "bg-gold text-navy shadow-2xs font-semibold"
+                          : "text-muted hover:text-navy",
+                      )}
+                    >
+                      <Clock className="w-3 h-3 text-gold" />
+                      Direncanakan
+                    </button>
+                    <button
+                      onClick={() => setPickerStatus("wishlist")}
+                      className={cn(
+                        "flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium transition-all",
+                        pickerStatus === "wishlist"
+                          ? "bg-navy text-white shadow-2xs font-semibold"
+                          : "text-muted hover:text-navy",
+                      )}
+                    >
+                      <Bookmark className="w-3 h-3 text-white" />
+                      Wishlist
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Course List */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-2.5 min-h-[220px]">
+              {(() => {
+                const targetParity = isOdd(pickerSem) ? "odd" : "even"
+                const q = pickerSearch.toLowerCase().trim()
+                const filtered = catalog.filter((c) => {
+                  if (c.parity !== targetParity) return false
+                  if (pickerProgram !== "all" && c.program !== pickerProgram)
+                    return false
+                  if (pickerType !== "all" && c.type !== pickerType)
+                    return false
+                  if (q) {
+                    const matchName = c.name.toLowerCase().includes(q)
+                    const matchId = c.id.toLowerCase().includes(q)
+                    const matchCode = c.code
+                      ? c.code.toLowerCase().includes(q)
+                      : false
+                    if (!matchName && !matchId && !matchCode) return false
+                  }
+                  return true
+                })
+
+                if (filtered.length === 0) {
+                  return (
+                    <div className="h-44 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-border rounded-xl">
+                      <BookOpen className="w-8 h-8 text-muted/40 mb-2" />
+                      <p className="text-sm font-medium text-navy">
+                        Tidak ada mata kuliah yang cocok
+                      </p>
+                      <p className="text-xs text-muted mt-1">
+                        Coba ubah kata kunci pencarian atau ganti filter prodi.
+                      </p>
+                    </div>
+                  )
+                }
+
+                return filtered.map((course) => {
+                  const placedInSem = placedMap.get(course.id)
+                  const isAlreadyPlaced = placedInSem !== undefined
+
+                  return (
+                    <div
+                      key={course.id}
+                      className={cn(
+                        "p-3 rounded-xl border flex items-center justify-between gap-3 transition-all",
+                        isAlreadyPlaced
+                          ? "bg-background/40 border-border/60 opacity-60"
+                          : "bg-surface border-border hover:border-gold/60 hover:shadow-2xs",
+                      )}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-mono text-[10px] font-bold text-navy bg-navy/8 px-1.5 py-0.5 rounded">
+                            {course.code || course.id}
+                          </span>
+                          <span
+                            className={cn(
+                              "text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded",
+                              course.type === "Wajib"
+                                ? "bg-navy/10 text-navy"
+                                : "bg-gold/15 text-navy",
+                            )}
+                          >
+                            {course.type}
+                          </span>
+                          <span className="text-[10px] text-muted font-mono">
+                            {course.credits} SKS
+                          </span>
+                          {course.program && (
+                            <span className="text-[10px] text-muted truncate max-w-[180px] hidden sm:inline">
+                              • {course.program}
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="font-medium text-sm text-foreground leading-tight truncate">
+                          {course.name}
+                        </h4>
+                      </div>
+
+                      <div className="flex-shrink-0">
+                        {isAlreadyPlaced ? (
+                          <span className="px-2.5 py-1.5 rounded-lg text-xs font-mono font-medium text-muted bg-background border border-border flex items-center gap-1.5">
+                            <Check className="w-3.5 h-3.5 text-teal" />
+                            Di Sem {placedInSem}
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => handleAddCourseFromModal(course)}
+                            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-navy text-white hover:bg-navy-light flex items-center gap-1.5 transition-colors shadow-2xs"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            Tambah
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })
+              })()}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-3 px-5 border-t border-border bg-background flex justify-between items-center text-xs text-muted">
+              <span>
+                Tekan <strong>Esc</strong> atau klik di luar untuk menutup
+              </span>
+              <button
+                onClick={() => setPickerSem(null)}
+                className="px-3 py-1.5 rounded-lg border border-border hover:bg-surface font-medium text-navy transition-colors"
+              >
+                Selesai
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
