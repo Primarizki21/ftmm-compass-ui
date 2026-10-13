@@ -213,8 +213,8 @@ export function SemesterColumn({
   onOpenManualPicker,
   onSelectCourse,
 }: SemesterColumnProps) {
+  const totalSKS = courses.reduce((acc, c) => acc + c.credits, 0)
   const odd = isOdd(sem)
-
   return (
     <div
       className={cn(
