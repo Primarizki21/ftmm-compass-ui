@@ -108,9 +108,9 @@ const INITIAL_PLAN: Record<number, PlacedCourse[]> = {
   ],
 }
 
-// A course is locked if it's Wajib or already completed
+// Completed courses are locked; Wajib courses in planned state stay in their semester, while Pilihan and Wishlist can be dragged
 const isLocked = (c: PlacedCourse) =>
-  c.type === "Wajib" || c.status === "completed"
+  c.status === "completed" || (c.type === "Wajib" && c.status !== "wishlist")
 
 interface DegreePlannerProps {
   pendingCourses: Course[]
@@ -154,12 +154,24 @@ export default function DegreePlanner({
     "planned",
   )
   const [catalog, setCatalog] = useState<Course[]>(ALL_COURSES)
+  const [availablePrograms, setAvailablePrograms] = useState<string[]>(PROGRAMS)
 
   useEffect(() => {
     let isMounted = true
     fetchCatalog().then((res) => {
-      if (isMounted && res?.courses?.length) {
+      if (!isMounted || !res) return
+      if (res.courses?.length) {
         setCatalog(res.courses)
+      }
+      if (res.programs && res.programs.length > 0) {
+        setAvailablePrograms(res.programs)
+      } else if (res.courses?.length) {
+        const derived = Array.from(
+          new Set(
+            res.courses.map((c) => c.program).filter(Boolean) as string[],
+          ),
+        ).sort((a, b) => a.localeCompare(b))
+        if (derived.length > 0) setAvailablePrograms(derived)
       }
     })
     return () => {
@@ -557,7 +569,7 @@ export default function DegreePlanner({
                             <div className="flex-1 min-w-0">
                               <div className="flex justify-between items-start mb-1">
                                 <span className="font-mono text-[10px] font-bold text-navy leading-none">
-                                  {course.id}
+                                  {course.code || course.id}
                                 </span>
                                 {course.status === "completed" && (
                                   <CheckCircle2 className="w-3.5 h-3.5 text-teal flex-shrink-0" />
@@ -597,8 +609,8 @@ export default function DegreePlanner({
                               </div>
                             </div>
 
-                            {/* Delete button — only for non-locked courses */}
-                            {!locked && (
+                            {/* Delete button — available for all non-completed courses */}
+                            {course.status !== "completed" && (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
@@ -681,7 +693,7 @@ export default function DegreePlanner({
                   >
                     <div className="flex items-start justify-between mb-1">
                       <span className="font-mono text-[10px] font-bold text-teal">
-                        {course.id}
+                        {course.code || course.id}
                       </span>
                       <GripVertical className="w-3.5 h-3.5 text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
@@ -771,203 +783,295 @@ export default function DegreePlanner({
             </div>
 
             {/* Filter Bar */}
-            <div className="p-4 border-b border-border bg-surface space-y-3">
-              <div className="flex flex-col sm:flex-row gap-2">
-                {/* Search */}
-                <div className="relative flex-1">
-                  <Search className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={pickerSearch}
-                    onChange={(e) => setPickerSearch(e.target.value)}
-                    placeholder="Cari nama matkul atau kode (misal: Data, II40, Fisika)..."
-                    className="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-border bg-background focus:outline-hidden focus:ring-2 focus:ring-teal/30 focus:border-teal text-foreground"
-                    autoFocus
-                  />
-                  {pickerSearch && (
-                    <button
-                      onClick={() => setPickerSearch("")}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-navy"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
+            {(() => {
+              const targetParity = isOdd(pickerSem) ? "odd" : "even"
+              const q = pickerSearch.toLowerCase().trim()
 
-                {/* Program Selector */}
-                <select
-                  value={pickerProgram}
-                  onChange={(e) => setPickerProgram(e.target.value)}
-                  className="text-xs py-2 px-3 rounded-lg border border-border bg-background text-navy font-medium focus:outline-hidden focus:ring-2 focus:ring-teal/30 focus:border-teal max-w-[200px]"
-                >
-                  <option value="all">Semua Program Studi</option>
-                  {PROGRAMS.map((prog) => (
-                    <option key={prog} value={prog}>
-                      {prog}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Status & Type selector */}
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-                {/* Type Filter */}
-                <div className="flex items-center gap-1 bg-background p-0.5 rounded-lg border border-border">
-                  {([
-                    { key: "all", label: "Semua Tipe" },
-                    { key: "Pilihan", label: "Pilihan" },
-                    { key: "Wajib", label: "Wajib" },
-                  ] as const).map((t) => (
-                    <button
-                      key={t.key}
-                      onClick={() => setPickerType(t.key)}
-                      className={cn(
-                        "px-2.5 py-1 rounded text-[11px] font-medium transition-all",
-                        pickerType === t.key
-                          ? "bg-navy text-white shadow-2xs"
-                          : "text-muted hover:text-navy",
-                      )}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Add Status Toggle */}
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="text-muted text-[11px]">
-                    Tambahkan sebagai:
-                  </span>
-                  <div className="flex items-center gap-1 bg-background p-0.5 rounded-lg border border-border">
-                    <button
-                      onClick={() => setPickerStatus("planned")}
-                      className={cn(
-                        "flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium transition-all",
-                        pickerStatus === "planned"
-                          ? "bg-gold text-navy shadow-2xs font-semibold"
-                          : "text-muted hover:text-navy",
-                      )}
-                    >
-                      <Clock className="w-3 h-3 text-gold" />
-                      Direncanakan
-                    </button>
-                    <button
-                      onClick={() => setPickerStatus("wishlist")}
-                      className={cn(
-                        "flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium transition-all",
-                        pickerStatus === "wishlist"
-                          ? "bg-navy text-white shadow-2xs font-semibold"
-                          : "text-muted hover:text-navy",
-                      )}
-                    >
-                      <Bookmark className="w-3 h-3 text-white" />
-                      Wishlist
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Course List */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-2.5 min-h-[220px]">
-              {(() => {
-                const targetParity = isOdd(pickerSem) ? "odd" : "even"
-                const q = pickerSearch.toLowerCase().trim()
-                const filtered = catalog.filter((c) => {
+              // Base pool filtered by semester rule, program, and search query
+              const basePool = catalog.filter((c) => {
+                // Wajib courses must match the exact target semester; Pilihan courses match semester parity (odd/even)
+                if (c.type === "Wajib") {
+                  if (c.semester !== pickerSem) return false
+                } else {
                   if (c.parity !== targetParity) return false
-                  if (pickerProgram !== "all" && c.program !== pickerProgram)
-                    return false
-                  if (pickerType !== "all" && c.type !== pickerType)
-                    return false
-                  if (q) {
-                    const matchName = c.name.toLowerCase().includes(q)
-                    const matchId = c.id.toLowerCase().includes(q)
-                    const matchCode = c.code
-                      ? c.code.toLowerCase().includes(q)
-                      : false
-                    if (!matchName && !matchId && !matchCode) return false
-                  }
-                  return true
+                }
+                if (pickerProgram !== "all" && c.program !== pickerProgram)
+                  return false
+                if (q) {
+                  const matchName = c.name.toLowerCase().includes(q)
+                  const matchId = c.id.toLowerCase().includes(q)
+                  const matchCode = c.code
+                    ? c.code.toLowerCase().includes(q)
+                    : false
+                  if (!matchName && !matchId && !matchCode) return false
+                }
+                return true
+              })
+
+              const pilihanCount = basePool.filter(
+                (c) => c.type === "Pilihan",
+              ).length
+              const wajibCount = basePool.filter(
+                (c) => c.type === "Wajib",
+              ).length
+
+              const filtered = basePool
+                .filter((c) =>
+                  pickerType === "all" ? true : c.type === pickerType,
+                )
+                .sort((a, b) => {
+                  const aExact = a.semester === pickerSem ? 0 : 1
+                  const bExact = b.semester === pickerSem ? 0 : 1
+                  if (aExact !== bExact) return aExact - bExact
+                  return a.name.localeCompare(b.name)
                 })
 
-                if (filtered.length === 0) {
-                  return (
-                    <div className="h-44 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-border rounded-xl">
-                      <BookOpen className="w-8 h-8 text-muted/40 mb-2" />
-                      <p className="text-sm font-medium text-navy">
-                        Tidak ada mata kuliah yang cocok
-                      </p>
-                      <p className="text-xs text-muted mt-1">
-                        Coba ubah kata kunci pencarian atau ganti filter prodi.
-                      </p>
-                    </div>
-                  )
-                }
-
-                return filtered.map((course) => {
-                  const placedInSem = placedMap.get(course.id)
-                  const isAlreadyPlaced = placedInSem !== undefined
-
-                  return (
-                    <div
-                      key={course.id}
-                      className={cn(
-                        "p-3 rounded-xl border flex items-center justify-between gap-3 transition-all",
-                        isAlreadyPlaced
-                          ? "bg-background/40 border-border/60 opacity-60"
-                          : "bg-surface border-border hover:border-gold/60 hover:shadow-2xs",
-                      )}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-mono text-[10px] font-bold text-navy bg-navy/8 px-1.5 py-0.5 rounded">
-                            {course.code || course.id}
-                          </span>
-                          <span
-                            className={cn(
-                              "text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded",
-                              course.type === "Wajib"
-                                ? "bg-navy/10 text-navy"
-                                : "bg-gold/15 text-navy",
-                            )}
-                          >
-                            {course.type}
-                          </span>
-                          <span className="text-[10px] text-muted font-mono">
-                            {course.credits} SKS
-                          </span>
-                          {course.program && (
-                            <span className="text-[10px] text-muted truncate max-w-[180px] hidden sm:inline">
-                              • {course.program}
-                            </span>
-                          )}
-                        </div>
-                        <h4 className="font-medium text-sm text-foreground leading-tight truncate">
-                          {course.name}
-                        </h4>
-                      </div>
-
-                      <div className="flex-shrink-0">
-                        {isAlreadyPlaced ? (
-                          <span className="px-2.5 py-1.5 rounded-lg text-xs font-mono font-medium text-muted bg-background border border-border flex items-center gap-1.5">
-                            <Check className="w-3.5 h-3.5 text-teal" />
-                            Di Sem {placedInSem}
-                          </span>
-                        ) : (
+              return (
+                <>
+                  <div className="p-4 border-b border-border bg-surface space-y-3">
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      {/* Search */}
+                      <div className="relative flex-1">
+                        <Search className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          value={pickerSearch}
+                          onChange={(e) => setPickerSearch(e.target.value)}
+                          placeholder="Cari nama matkul atau kode (misal: Data, II40, Fisika)..."
+                          className="w-full pl-9 pr-8 py-2 text-xs rounded-lg border border-border bg-background focus:outline-hidden focus:ring-2 focus:ring-teal/30 focus:border-teal text-foreground"
+                          autoFocus
+                        />
+                        {pickerSearch && (
                           <button
-                            onClick={() => handleAddCourseFromModal(course)}
-                            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-navy text-white hover:bg-navy-light flex items-center gap-1.5 transition-colors shadow-2xs"
+                            onClick={() => setPickerSearch("")}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-navy"
+                            aria-label="Hapus pencarian"
                           >
-                            <Plus className="w-3.5 h-3.5" />
-                            Tambah
+                            <X className="w-3.5 h-3.5" />
                           </button>
                         )}
                       </div>
+
+                      {/* Program Studi Selector */}
+                      <select
+                        aria-label="Filter Program Studi"
+                        value={pickerProgram}
+                        onChange={(e) => setPickerProgram(e.target.value)}
+                        className="text-xs py-2 px-3 rounded-lg border border-border bg-background text-navy font-medium focus:outline-hidden focus:ring-2 focus:ring-teal/30 focus:border-teal sm:w-[240px]"
+                      >
+                        <option value="all">Semua Program Studi</option>
+                        {availablePrograms.map((prog) => (
+                          <option key={prog} value={prog}>
+                            {prog}
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                  )
-                })
-              })()}
-            </div>
+
+                    {/* Type Filter & Add Status Toggle */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                      {/* Type Filter */}
+                      <div
+                        role="group"
+                        aria-label="Filter tipe mata kuliah"
+                        className="flex items-center gap-1 bg-background p-1 rounded-lg border border-border"
+                      >
+                        {([
+                          {
+                            key: "all",
+                            label: "Semua Tipe",
+                            count: basePool.length,
+                          },
+                          {
+                            key: "Pilihan",
+                            label: "Pilihan",
+                            count: pilihanCount,
+                          },
+                          {
+                            key: "Wajib",
+                            label: `Wajib Sem ${pickerSem}`,
+                            count: wajibCount,
+                          },
+                        ] as const).map((t) => (
+                          <button
+                            key={t.key}
+                            type="button"
+                            onClick={() => setPickerType(t.key)}
+                            className={cn(
+                              "px-2.5 py-1 rounded-md text-[11px] font-medium transition-all flex items-center gap-1.5",
+                              pickerType === t.key
+                                ? "bg-navy text-white shadow-2xs font-semibold"
+                                : "text-muted hover:text-navy",
+                            )}
+                          >
+                            <span>{t.label}</span>
+                            <span
+                              className={cn(
+                                "text-[9px] font-mono px-1.5 py-0.2 rounded-full",
+                                pickerType === t.key
+                                  ? "bg-white/20 text-white"
+                                  : "bg-surface text-muted border border-border",
+                              )}
+                            >
+                              {t.count}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Add Status Toggle */}
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-muted text-[11px] font-medium">
+                          Tambahkan sebagai:
+                        </span>
+                        <div
+                          role="group"
+                          aria-label="Status penambahan mata kuliah"
+                          className="flex items-center gap-1 bg-background p-1 rounded-lg border border-border"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => setPickerStatus("planned")}
+                            className={cn(
+                              "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all",
+                              pickerStatus === "planned"
+                                ? "bg-gold text-navy shadow-2xs font-semibold"
+                                : "text-muted hover:text-navy",
+                            )}
+                          >
+                            <Clock
+                              className={cn(
+                                "w-3.5 h-3.5",
+                                pickerStatus === "planned"
+                                  ? "text-navy"
+                                  : "text-gold",
+                              )}
+                            />
+                            Direncanakan
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPickerStatus("wishlist")}
+                            className={cn(
+                              "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all",
+                              pickerStatus === "wishlist"
+                                ? "bg-navy text-white shadow-2xs font-semibold"
+                                : "text-muted hover:text-navy",
+                            )}
+                          >
+                            <Bookmark
+                              className={cn(
+                                "w-3.5 h-3.5",
+                                pickerStatus === "wishlist"
+                                  ? "text-gold"
+                                  : "text-muted",
+                              )}
+                            />
+                            Wishlist
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Course List */}
+                  <div className="flex-1 overflow-y-auto p-4 space-y-2.5 min-h-[220px]">
+                    {filtered.length === 0 ? (
+                      <div className="h-44 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-border rounded-xl">
+                        <BookOpen className="w-8 h-8 text-muted/40 mb-2" />
+                        <p className="text-sm font-medium text-navy">
+                          Tidak ada mata kuliah yang cocok
+                        </p>
+                        <p className="text-xs text-muted mt-1">
+                          Coba ubah kata kunci pencarian, tipe matkul, atau
+                          ganti filter program studi.
+                        </p>
+                      </div>
+                    ) : (
+                      filtered.map((course) => {
+                        const placedInSem = placedMap.get(course.id)
+                        const isAlreadyPlaced = placedInSem !== undefined
+
+                        return (
+                          <div
+                            key={course.id}
+                            className={cn(
+                              "p-3 rounded-xl border flex items-center justify-between gap-3 transition-all",
+                              isAlreadyPlaced
+                                ? "bg-background/40 border-border/60 opacity-60"
+                                : "bg-surface border-border hover:border-gold/60 hover:shadow-2xs",
+                            )}
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center flex-wrap gap-2 mb-1">
+                                <span className="font-mono text-[10px] font-bold text-navy bg-navy/8 px-1.5 py-0.5 rounded">
+                                  {course.code || course.id}
+                                </span>
+                                <span
+                                  className={cn(
+                                    "text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded",
+                                    course.type === "Wajib"
+                                      ? "bg-navy/10 text-navy"
+                                      : "bg-gold/15 text-navy",
+                                  )}
+                                >
+                                  {course.type}
+                                </span>
+                                <span className="text-[10px] text-muted font-mono">
+                                  {course.credits} SKS • Sem {course.semester}
+                                </span>
+                                {course.program && (
+                                  <span className="text-[10px] text-muted truncate max-w-[200px] hidden sm:inline">
+                                    • {course.program}
+                                  </span>
+                                )}
+                              </div>
+                              <h4 className="font-medium text-sm text-foreground leading-tight truncate">
+                                {course.name}
+                              </h4>
+                            </div>
+
+                            <div className="flex-shrink-0">
+                              {isAlreadyPlaced ? (
+                                <span className="px-2.5 py-1.5 rounded-lg text-xs font-mono font-medium text-muted bg-background border border-border flex items-center gap-1.5">
+                                  <Check className="w-3.5 h-3.5 text-teal" />
+                                  Di Sem {placedInSem}
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleAddCourseFromModal(course)
+                                  }
+                                  className={cn(
+                                    "px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs",
+                                    pickerStatus === "wishlist"
+                                      ? "bg-surface text-navy border border-dashed border-navy/40 hover:bg-navy/5"
+                                      : "bg-navy text-white hover:bg-navy-light",
+                                  )}
+                                >
+                                  {pickerStatus === "wishlist" ? (
+                                    <>
+                                      <Bookmark className="w-3.5 h-3.5 text-navy" />
+                                      Wishlist
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Plus className="w-3.5 h-3.5" />
+                                      Tambah
+                                    </>
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })
+                    )}
+                  </div>
+                </>
+              )
+            })()}
 
             {/* Modal Footer */}
             <div className="p-3 px-5 border-t border-border bg-background flex justify-between items-center text-xs text-muted">

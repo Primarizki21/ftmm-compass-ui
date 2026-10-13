@@ -194,18 +194,29 @@ export async function fetchCatalog(
         : []
     if (rawList.length === 0) return null
 
-    const courses: Course[] = rawList.map((c) => ({
-      id: c.id || `${slugify(c.program)}:${c.code || slugify(c.name)}`,
-      code: c.code || undefined,
-      name: c.name,
-      credits: Number(c.credits) || 0,
-      semester: Number(c.semester) || 1,
-      type: c.type === "Pilihan" ? "Pilihan" : "Wajib",
-      parity: c.parity === "even" ? "even" : "odd",
-      desc: c.desc || "",
-      program: c.program,
-      prerequisites: (c.prerequisites || []).map((p) => ({ id: p, name: p })),
-    }))
+    const usedIds = new Set<string>()
+    const courses: Course[] = rawList.map((c, i) => {
+      const baseCode = c.code || c.id || `mk-${i + 1}`
+      let id = `${slugify(c.program || "ftmm")}:${baseCode}`
+      if (usedIds.has(id)) id += `-${slugify(c.name)}`
+      while (usedIds.has(id)) id += "-x"
+      usedIds.add(id)
+      return {
+        id,
+        code: c.code || c.id || undefined,
+        name: c.name,
+        credits: Number(c.credits) || 0,
+        semester: Number(c.semester) || 1,
+        type: c.type === "Pilihan" ? "Pilihan" : "Wajib",
+        parity: c.parity === "even" ? "even" : "odd",
+        desc: c.desc || "",
+        program: c.program,
+        prerequisites: (c.prerequisites || []).map((p) => ({
+          id: p,
+          name: p,
+        })),
+      }
+    })
 
     return {
       courses,
@@ -234,18 +245,29 @@ export async function searchCatalog(
     if (!res.ok) return null
     const data = (await res.json()) as { results?: ApiCourseItem[] }
     const results = data.results || []
-    return results.map((c) => ({
-      id: c.id || `${slugify(c.program)}:${c.code || slugify(c.name)}`,
-      code: c.code || undefined,
-      name: c.name,
-      credits: Number(c.credits) || 0,
-      semester: Number(c.semester) || 1,
-      type: c.type === "Pilihan" ? "Pilihan" : "Wajib",
-      parity: c.parity === "even" ? "even" : "odd",
-      desc: c.desc || "",
-      program: c.program,
-      prerequisites: (c.prerequisites || []).map((p) => ({ id: p, name: p })),
-    }))
+    const usedIds = new Set<string>()
+    return results.map((c, i) => {
+      const baseCode = c.code || c.id || `mk-${i + 1}`
+      let id = `${slugify(c.program || "ftmm")}:${baseCode}`
+      if (usedIds.has(id)) id += `-${slugify(c.name)}`
+      while (usedIds.has(id)) id += "-x"
+      usedIds.add(id)
+      return {
+        id,
+        code: c.code || c.id || undefined,
+        name: c.name,
+        credits: Number(c.credits) || 0,
+        semester: Number(c.semester) || 1,
+        type: c.type === "Pilihan" ? "Pilihan" : "Wajib",
+        parity: c.parity === "even" ? "even" : "odd",
+        desc: c.desc || "",
+        program: c.program,
+        prerequisites: (c.prerequisites || []).map((p) => ({
+          id: p,
+          name: p,
+        })),
+      }
+    })
   } catch {
     return null
   }
