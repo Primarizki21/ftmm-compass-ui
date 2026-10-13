@@ -7,7 +7,9 @@
     "dev": "vite --host 0.0.0.0",
     "dev:backend": "uv run --directory backend python app.py",
     "dev:all": "concurrently -n backend,frontend -c magenta,cyan \"pnpm dev:backend\" \"pnpm dev\"",
-    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "test:frontend": "python3 scripts/verify_frontend.py",
+    "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "format": "oxfmt",
     "format:check": "oxfmt --check"

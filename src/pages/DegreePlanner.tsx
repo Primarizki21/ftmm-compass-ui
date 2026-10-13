@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { BookOpen, Calendar } from "lucide-react"
 import { cn } from "../utils"
-import { Course, SCHEDULE } from "../data"
+import { Course } from "../data"
 import { ALL_COURSES, PROGRAMS, fetchCatalog } from "../courseData"
 import TimetableGrid from "../components/TimetableGrid"
 import {
@@ -35,7 +35,7 @@ export default function DegreePlanner({
   appliedSummary,
   onResetPlan,
   onNavigate,
-  activeSchedule,
+  activeSchedule: _activeSchedule,
   onUpdateSchedule,
 }: DegreePlannerProps) {
   const [activeTab, setActiveTab] = useState<Tab>("roadmap")
@@ -495,7 +495,7 @@ export default function DegreePlanner({
           {/* Course Bank — only Pilihan */}
           <ElectiveCourseBank
             pendingCourses={pendingCourses}
-            onDragStartBank={handleDragStart}
+            onDragStartBank={(e, course) => handleDragStart(e, course, "bank")}
             onDragEnd={handleDragEnd}
             onSelectCourse={(c) =>
               setInspectCourse({ course: c, sem: c.semester || 5 })

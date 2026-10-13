@@ -1,11 +1,4 @@
-import React from "react"
-import {
-  CheckCircle2,
-  Clock,
-  AlertCircle,
-  ArrowDown,
-  ExternalLink,
-} from "lucide-react"
+import { CheckCircle2, Clock, AlertCircle } from "lucide-react"
 import { Course } from "../../data"
 import {
   ALL_COURSES,

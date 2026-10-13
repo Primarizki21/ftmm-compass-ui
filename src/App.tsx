@@ -10,7 +10,7 @@ import {
   User,
   X,
 } from "lucide-react"
-import React, { useState } from "react"
+import { useState } from "react"
 import { cn } from "./utils"
 import { Course, SCHEDULE, ScheduleItem } from "./data"
 
@@ -20,6 +20,7 @@ import CourseFinder from "./pages/CourseFinder"
 import DegreePlanner, { PlacedCourse } from "./pages/DegreePlanner"
 import Chatbot, { DegreePlanPayload } from "./pages/Chatbot"
 import Login from "./pages/Login"
+import ErrorBoundary from "./components/ErrorBoundary"
 
 import mainLogo from "./imports/image-6.png"
 
@@ -35,6 +36,9 @@ export default function App() {
   const [appliedPlanSummary, setAppliedPlanSummary] =
     useState<DegreePlanPayload["summary"] | null>(null)
   const [activeSchedule, setActiveSchedule] = useState<ScheduleItem[]>(SCHEDULE)
+  const handleNavigate = (page: string) => {
+    setActivePage(page as Page)
+  }
   const handleApplyPlanFromChatbot = (payload: DegreePlanPayload) => {
     const mappedPlan: Record<number, PlacedCourse[]> = {}
     for (const [semStr, list] of Object.entries(payload.plan)) {
@@ -217,30 +221,35 @@ export default function App() {
         {/* Page Content */}
         <div className="flex-1 overflow-auto p-4 md:p-8 relative">
           <div className="max-w-7xl mx-auto h-full">
-            {activePage === "dashboard" && (
-              <Dashboard onNavigate={setActivePage} schedule={activeSchedule} />
-            )}
-            {activePage === "course-finder" && (
-              <CourseFinder
-                onAddToPlanner={addCourseToPlanner}
-                addedCourseIds={addedCourseIds}
-              />
-            )}
-            {activePage === "degree-planner" && (
-              <DegreePlanner
-                pendingCourses={pendingCourses}
-                setPendingCourses={setPendingCourses}
-                customPlan={customPlan}
-                appliedSummary={appliedPlanSummary}
-                onResetPlan={handleResetPlan}
-                onNavigate={setActivePage}
-                activeSchedule={activeSchedule}
-                onUpdateSchedule={setActiveSchedule}
-              />
-            )}
-            {activePage === "chatbot" && (
-              <Chatbot onApplyPlan={handleApplyPlanFromChatbot} />
-            )}
+            <ErrorBoundary key={activePage}>
+              {activePage === "dashboard" && (
+                <Dashboard
+                  onNavigate={handleNavigate}
+                  schedule={activeSchedule}
+                />
+              )}
+              {activePage === "course-finder" && (
+                <CourseFinder
+                  onAddToPlanner={addCourseToPlanner}
+                  addedCourseIds={addedCourseIds}
+                />
+              )}
+              {activePage === "degree-planner" && (
+                <DegreePlanner
+                  pendingCourses={pendingCourses}
+                  setPendingCourses={setPendingCourses}
+                  customPlan={customPlan}
+                  appliedSummary={appliedPlanSummary}
+                  onResetPlan={handleResetPlan}
+                  onNavigate={handleNavigate}
+                  activeSchedule={activeSchedule}
+                  onUpdateSchedule={setActiveSchedule}
+                />
+              )}
+              {activePage === "chatbot" && (
+                <Chatbot onApplyPlan={handleApplyPlanFromChatbot} />
+              )}
+            </ErrorBoundary>
           </div>
         </div>
       </main>

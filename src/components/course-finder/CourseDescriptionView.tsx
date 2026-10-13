@@ -1,5 +1,3 @@
-import React from "react"
-
 interface CourseDescriptionViewProps {
   text?: string
   className?: string
@@ -7,7 +5,7 @@ interface CourseDescriptionViewProps {
 
 interface ParsedDescription {
   intro: string
-  items: { marker: string content: string }[]
+  items: { marker: string; content: string }[]
 }
 
 /**
@@ -42,7 +40,7 @@ export function parseDescription(raw?: string): ParsedDescription {
       .replace(/[:;,]\s*$/, "")
       .trim()
 
-    const items: { marker: string content: string }[] = []
+    const items: { marker: string; content: string }[] = []
     for (let i = 0; i < matches.length; i++) {
       const match = matches[i]
       const marker = match[1].trim()
@@ -74,7 +72,7 @@ export function parseDescription(raw?: string): ParsedDescription {
     .filter(Boolean)
   if (lines.length >= 2) {
     const lineItemPattern = /^(\([a-z0-9]+\)|[a-z0-9]{1,2}[\.\)]|[-•])\s+(.*)$/i
-    const parsedLines: { marker: string content: string }[] = []
+    const parsedLines: { marker: string; content: string }[] = []
     let detectedIntro = ""
 
     for (const line of lines) {

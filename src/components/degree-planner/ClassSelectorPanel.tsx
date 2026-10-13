@@ -1,11 +1,9 @@
-import React from "react"
 import {
   Calendar,
   AlertTriangle,
   CheckCircle2,
   Clock,
   MapPin,
-  User,
   RotateCcw,
 } from "lucide-react"
 import { cn } from "../../utils"

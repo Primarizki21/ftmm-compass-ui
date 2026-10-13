@@ -1,4 +1,3 @@
-import React from "react"
 import { Search, X, Clock, Bookmark, BookOpen, Check, Plus } from "lucide-react"
 import { cn } from "../../utils"
 import { Course } from "../../data"

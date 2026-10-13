@@ -2,7 +2,7 @@ export interface PrerequisiteNode {
   id: string
   name: string
   isAdministrative?: boolean
-  prereqs?: { id: string name: string }[]
+  prereqs?: { id: string; name: string }[]
 }
 
 export interface WorkloadInfo {

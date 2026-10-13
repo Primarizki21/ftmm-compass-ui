@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Send, Bot, Sparkles, AlertCircle } from "lucide-react"
 import { cn } from "../utils"
 import MarkdownRenderer from "../components/MarkdownRenderer"
@@ -127,7 +127,7 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
                 token?: string
                 done?: boolean
                 reply?: string
-                error?: { code?: string message?: string }
+                error?: { code?: string; message?: string }
                 updated_profile?: StudentProfileState
                 plan_payload?: DegreePlanPayload
                 action_type?: string
@@ -227,7 +227,7 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
         )
       } else {
         const errorData = (await fallbackRes.json().catch(() => null)) as {
-          error?: { code?: string message?: string }
+          error?: { code?: string; message?: string }
           detail?: string
         } | null
         const detail =
@@ -348,7 +348,7 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
               >
                 <MarkdownRenderer
                   content={msg.content}
-                  isUser={msg.role === "user"}
+                  role={msg.role === "user" ? "user" : "assistant"}
                 />
               </div>
 

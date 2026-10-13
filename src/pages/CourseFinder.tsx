@@ -1,17 +1,15 @@
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import {
   Search,
-  Filter,
   BookOpen,
   Clock,
-  ChevronRight,
   CheckCircle2,
   RotateCcw,
   Layers,
   GraduationCap,
 } from "lucide-react"
 import { cn } from "../utils"
-import { Course, CourseCategory } from "../data"
+import { Course } from "../data"
 import {
   ALL_COURSES,
   PROGRAMS,

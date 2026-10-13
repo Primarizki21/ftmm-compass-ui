@@ -1,5 +1,4 @@
-import React from "react"
-import { AlertTriangle, ChevronRight } from "lucide-react"
+import { AlertTriangle } from "lucide-react"
 import { cn } from "../utils"
 import type { ScheduleItem } from "../data"
 

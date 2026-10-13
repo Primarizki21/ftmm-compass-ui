@@ -1,4 +1,4 @@
-import React, { useEffect } from "react"
+import { useEffect } from "react"
 import {
   X,
   BookOpen,
@@ -50,8 +50,8 @@ export default function CourseInspectModal({
   const completed = isCompleted(course)
 
   // Map courses taken before target semester
-  const priorCourses = new Map<string, { sem: number status: string }>()
-  const sameOrLaterCourses = new Map<string, { sem: number status: string }>()
+  const priorCourses = new Map<string, { sem: number; status: string }>()
+  const sameOrLaterCourses = new Map<string, { sem: number; status: string }>()
 
   Object.entries(allPlan).forEach(([semStr, list]) => {
     const semNum = Number(semStr)

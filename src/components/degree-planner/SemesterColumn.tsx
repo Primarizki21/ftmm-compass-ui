@@ -178,7 +178,7 @@ interface SemesterColumnProps {
     fromSem: number | "bank"
     fromIndex?: number
   } | null
-  dropTarget: { sem: number index: number } | null
+  dropTarget: { sem: number; index: number } | null
   onDragOverColumn: (e: React.DragEvent, sem: number) => void
   onDropColumn: (e: React.DragEvent, sem: number) => void
   onDragLeaveColumn: (e: React.DragEvent) => void
