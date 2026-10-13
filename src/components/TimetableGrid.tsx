@@ -7,7 +7,7 @@ const HOURS = Array.from({ length: 10 }, (_, i) => i + 7)
 
 interface TimetableGridProps {
   schedule: ScheduleItem[]
-  days: string[]
+  days: readonly string[]
   compact?: boolean
   onNavigate?: (page: string) => void
 }

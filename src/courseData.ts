@@ -134,8 +134,6 @@ export const PROGRAMS: string[] = Object.keys(coursesByProgram).sort((a, b) =>
   a.localeCompare(b),
 )
 
-export const COURSES_BY_PROGRAM: Record<string, Course[]> = coursesByProgram
-
 /** Every normalized course across all five programs (~369 entries). */
 export const ALL_COURSES: Course[] = PROGRAMS.flatMap(
   (p) => coursesByProgram[p] ?? [],
@@ -223,51 +221,6 @@ export async function fetchCatalog(
       programs:
         data.programs && data.programs.length > 0 ? data.programs : undefined,
     }
-  } catch {
-    return null
-  }
-}
-
-/** Searches course catalog using semantic/keyword course search endpoint. */
-export async function searchCatalog(
-  query: string,
-  program?: string,
-): Promise<Course[] | null> {
-  try {
-    const params = new URLSearchParams({ q: query })
-    if (program && program !== "all") {
-      params.set("prodi", program)
-    }
-    let res = await fetch(`/api/v1/courses/search?${params.toString()}`)
-    if (!res.ok) {
-      res = await fetch(`/api/courses/search?${params.toString()}`)
-    }
-    if (!res.ok) return null
-    const data = (await res.json()) as { results?: ApiCourseItem[] }
-    const results = data.results || []
-    const usedIds = new Set<string>()
-    return results.map((c, i) => {
-      const baseCode = c.code || c.id || `mk-${i + 1}`
-      let id = `${slugify(c.program || "ftmm")}:${baseCode}`
-      if (usedIds.has(id)) id += `-${slugify(c.name)}`
-      while (usedIds.has(id)) id += "-x"
-      usedIds.add(id)
-      return {
-        id,
-        code: c.code || c.id || undefined,
-        name: c.name,
-        credits: Number(c.credits) || 0,
-        semester: Number(c.semester) || 1,
-        type: c.type === "Pilihan" ? "Pilihan" : "Wajib",
-        parity: c.parity === "even" ? "even" : "odd",
-        desc: c.desc || "",
-        program: c.program,
-        prerequisites: (c.prerequisites || []).map((p) => ({
-          id: p,
-          name: p,
-        })),
-      }
-    })
   } catch {
     return null
   }

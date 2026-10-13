@@ -30,38 +30,31 @@ export default function CourseFinder({
   const [activeProgram, setActiveProgram] = useState<string>("all")
   const [courses, setCourses] = useState<Course[]>(ALL_COURSES)
   const [availablePrograms, setAvailablePrograms] = useState<string[]>(PROGRAMS)
-  const [, setIsLoading] = useState<boolean>(false)
 
   useEffect(() => {
     let active = true
-    setIsLoading(true)
-    fetchCatalog(activeProgram)
-      .then((res) => {
-        if (!active) return
-        if (res) {
-          setCourses(res.courses)
-          if (res.programs && res.programs.length > 0) {
-            setAvailablePrograms(res.programs)
-          }
-        } else {
-          setCourses(
-            activeProgram === "all"
-              ? ALL_COURSES
-              : ALL_COURSES.filter((c) => c.program === activeProgram),
-          )
+    fetchCatalog(activeProgram).then((res) => {
+      if (!active) return
+      if (res) {
+        setCourses(res.courses)
+        if (res.programs && res.programs.length > 0) {
+          setAvailablePrograms(res.programs)
         }
-      })
-      .finally(() => {
-        if (active) setIsLoading(false)
-      })
+      } else {
+        setCourses(
+          activeProgram === "all"
+            ? ALL_COURSES
+            : ALL_COURSES.filter((c) => c.program === activeProgram),
+        )
+      }
+    })
 
     return () => {
       active = false
     }
   }, [activeProgram])
 
-  const pool = courses
-  const filtered = pool.filter((c) => {
+  const filtered = courses.filter((c) => {
     const q = searchQuery.toLowerCase()
     const matchesSearch =
       c.name.toLowerCase().includes(q) ||

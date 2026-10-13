@@ -8,11 +8,8 @@ import {
   AlertTriangle,
   ChevronRight,
 } from "lucide-react"
-import { SCHEDULE } from "../data"
+import { SCHEDULE, TIMETABLE_DAYS } from "../data"
 import TimetableGrid from "../components/TimetableGrid"
-
-const DAYS = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"]
-
 interface DashboardProps {
   onNavigate: (page: any) => void
 }
@@ -123,7 +120,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
         <TimetableGrid
           schedule={SCHEDULE}
-          days={DAYS}
+          days={TIMETABLE_DAYS}
           compact
           onNavigate={onNavigate}
         />

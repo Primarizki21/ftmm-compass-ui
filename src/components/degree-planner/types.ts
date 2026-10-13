@@ -1,15 +1,8 @@
 import React from "react"
-import { Course } from "../../data"
+import { Course, TIMETABLE_DAYS } from "../../data"
 
+export { TIMETABLE_DAYS }
 export const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8] as const
-export const TIMETABLE_DAYS = [
-  "Senin",
-  "Selasa",
-  "Rabu",
-  "Kamis",
-  "Jumat",
-] as const
-
 export interface PlacedCourse extends Course {
   status: "completed" | "planned" | "wishlist"
 }
