@@ -267,6 +267,106 @@ export const ALL_COURSES: Course[] = PROGRAMS.flatMap(
   (p) => coursesByProgram[p] ?? [],
 )
 
+/** Finds the best-matching official Course by its name or code, prioritizing the owning program. */
+export function findCourseByNameOrCode(
+  nameOrCode: string,
+  catalog: Course[] = ALL_COURSES,
+  preferredProgram?: string,
+): Course | undefined {
+  if (!nameOrCode || !nameOrCode.trim()) return undefined
+  const q = nameOrCode.trim().toLowerCase()
+  const prefProg = preferredProgram
+    ? normalizeProgramName(preferredProgram)
+    : undefined
+
+  // 1. Exact match on code (e.g. BID101) within preferred program
+  if (prefProg) {
+    const exactCode = catalog.find(
+      (c) => c.program === prefProg && c.code && c.code.toLowerCase() === q,
+    )
+    if (exactCode) return exactCode
+  }
+
+  // 2. Exact match on code across any program
+  const anyCode = catalog.find((c) => c.code && c.code.toLowerCase() === q)
+  if (anyCode) return anyCode
+
+  // 3. Exact match on course name within preferred program
+  if (prefProg) {
+    const exactName = catalog.find(
+      (c) => c.program === prefProg && c.name.toLowerCase() === q,
+    )
+    if (exactName) return exactName
+  }
+
+  // 4. Exact match on course name across any program
+  const anyName = catalog.find((c) => c.name.toLowerCase() === q)
+  if (anyName) return anyName
+
+  // 5. Normalized prefix/fuzzy name match (e.g. "Fisika Dasar 1" vs "Fisika Dasar I")
+  const normalizeRoman = (s: string) =>
+    s.toLowerCase()
+      .replace(/\s+1\b/g, " i")
+      .replace(/\s+2\b/g, " ii")
+      .replace(/\s+3\b/g, " iii")
+      .trim()
+
+  const qNorm = normalizeRoman(q)
+  if (prefProg) {
+    const romanMatch = catalog.find(
+      (c) => c.program === prefProg && normalizeRoman(c.name) === qNorm,
+    )
+    if (romanMatch) return romanMatch
+  }
+
+  return catalog.find((c) => normalizeRoman(c.name) === qNorm)
+}
+
+/** Returns all courses in the catalog that require the specified course. */
+export function findUnlockedCourses(
+  course: Course,
+  catalog: Course[] = ALL_COURSES,
+): Course[] {
+  const courseName = course.name.toLowerCase().trim()
+  const courseCode = course.code ? course.code.toLowerCase().trim() : undefined
+  const prefProg = course.program
+    ? normalizeProgramName(course.program)
+    : undefined
+
+  const normalizeRoman = (s: string) =>
+    s.toLowerCase()
+      .replace(/\s+1\b/g, " i")
+      .replace(/\s+2\b/g, " ii")
+      .replace(/\s+3\b/g, " iii")
+      .trim()
+
+  const targetNorm = normalizeRoman(courseName)
+
+  const matches = catalog.filter((c) => {
+    if (c.id === course.id) return false
+    const prereqs = c.prerequisites || []
+    return prereqs.some((p) => {
+      if (p.isAdministrative) return false
+      const pName = p.name.toLowerCase().trim()
+      const pId = p.id.toLowerCase().trim()
+      if (pName === courseName || (courseCode && pName === courseCode))
+        return true
+      if (courseCode && (pId === courseCode || pName === courseCode))
+        return true
+      if (normalizeRoman(pName) === targetNorm) return true
+      return false
+    })
+  })
+
+  // Sort: courses from the same program first, then by semester
+  return matches.sort((a, b) => {
+    const aSame = a.program === prefProg ? 0 : 1
+    const bSame = b.program === prefProg ? 0 : 1
+    if (aSame !== bSame) return aSame - bSame
+    return a.semester - b.semester
+  })
+}
+
 export interface ApiCourseItem {
   id: string
   code?: string | null

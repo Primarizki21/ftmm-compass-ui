@@ -127,6 +127,7 @@ export default function CourseFinder({
     return (
       <CourseDetailView
         course={detailCourse}
+        catalog={courses}
         onBack={() => setDetailCourse(null)}
         onAdd={handleAddToPlanner}
         addedCourseIds={addedCourseIds}
@@ -386,6 +387,7 @@ export default function CourseFinder({
       {/* Quick Modal */}
       <CourseQuickModal
         course={selectedCourse}
+        catalog={courses}
         addedCourseIds={addedCourseIds}
         onClose={() => setSelectedCourse(null)}
         onAddToPlanner={handleAddToPlanner}

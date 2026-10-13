@@ -9,9 +9,12 @@ import {
 } from "lucide-react"
 import { cn } from "../../utils"
 import { Course } from "../../data"
+import { ALL_COURSES, findCourseByNameOrCode } from "../../courseData"
 import CourseDescriptionView from "./CourseDescriptionView"
+
 export interface CourseQuickModalProps {
   course: Course | null
+  catalog?: Course[]
   addedCourseIds: Set<string>
   onClose: () => void
   onAddToPlanner: (course: Course) => void
@@ -20,6 +23,7 @@ export interface CourseQuickModalProps {
 
 export default function CourseQuickModal({
   course,
+  catalog = ALL_COURSES,
   addedCourseIds,
   onClose,
   onAddToPlanner,
@@ -164,17 +168,50 @@ export default function CourseQuickModal({
                 Prasyarat
               </h3>
               <ul className="space-y-2">
-                {course.prerequisites.map((p) => (
-                  <li key={p.id} className="flex items-center gap-2 text-sm">
-                    <div className="w-2 h-2 rounded-full bg-teal flex-shrink-0" />
-                    {p.id !== p.name && (
-                      <span className="font-mono text-xs font-bold text-navy">
-                        {p.id}
-                      </span>
-                    )}
-                    <span className="text-foreground">{p.name}</span>
-                  </li>
-                ))}
+                {course.prerequisites.map((p) => {
+                  const matched = findCourseByNameOrCode(
+                    p.name,
+                    catalog,
+                    course.program,
+                  )
+                  const displayCode =
+                    matched?.code || (p.id !== p.name ? p.id : undefined)
+                  const isClickable = Boolean(matched)
+
+                  return (
+                    <li
+                      key={p.id}
+                      onClick={() => {
+                        if (matched) {
+                          onOpenDetail(matched)
+                        }
+                      }}
+                      className={cn(
+                        "flex items-center justify-between gap-2 p-2 rounded-lg border border-border/60 transition-all text-sm",
+                        isClickable
+                          ? "hover:border-gold hover:bg-gold/5 cursor-pointer group"
+                          : "bg-background/50",
+                      )}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-2 h-2 rounded-full bg-teal flex-shrink-0" />
+                        {displayCode && (
+                          <span className="font-mono text-xs font-bold text-navy bg-navy/8 px-1.5 py-0.5 rounded">
+                            {displayCode}
+                          </span>
+                        )}
+                        <span className="text-foreground font-medium truncate">
+                          {p.name}
+                        </span>
+                      </div>
+                      {isClickable && (
+                        <span className="text-[11px] text-muted flex items-center gap-1 group-hover:text-gold flex-shrink-0">
+                          Buka <ChevronRight className="w-3.5 h-3.5" />
+                        </span>
+                      )}
+                    </li>
+                  )
+                })}
               </ul>
             </div>
           )}
