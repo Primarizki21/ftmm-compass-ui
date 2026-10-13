@@ -18,6 +18,7 @@ logs/
 .figma/make/*
 !.figma/make/site.json
 .codegraph/
+graphify-out/
 /Ekstrak/
 
 # Python
