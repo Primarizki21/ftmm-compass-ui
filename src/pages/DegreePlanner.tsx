@@ -290,6 +290,14 @@ export default function DegreePlanner({
     setDropTarget({ sem, index: insertAfter ? idx + 1 : idx })
   }
 
+  const handleCardDrop = (e: React.DragEvent, sem: number, idx: number) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const rect = e.currentTarget.getBoundingClientRect()
+    const insertAfter = e.clientY > rect.top + rect.height / 2
+    const targetIdx = insertAfter ? idx + 1 : idx
+    handleDrop(e, sem, targetIdx)
+  }
   const handleDragOver = (e: React.DragEvent, sem: number) => {
     if (!dragging) return
     if (canDrop(dragging.course, sem, dragging.fromSem)) {
@@ -324,21 +332,27 @@ export default function DegreePlanner({
 
     if (fromSem === sem) {
       // Intra-semester reordering (atas-bawah)
-      if (fromIndex !== undefined) {
-        setPlan((prev) => {
-          const currentList = [...(prev[sem] || [])]
-          const itemIndex = currentList.findIndex((c) => c.id === course.id)
-          if (itemIndex === -1) return prev
-          const [removed] = currentList.splice(itemIndex, 1)
-          const insertAt = targetIdx > itemIndex ? targetIdx - 1 : targetIdx
-          currentList.splice(
-            Math.max(0, Math.min(insertAt, currentList.length)),
-            0,
-            removed,
-          )
-          return { ...prev, [sem]: currentList }
-        })
-      }
+      setPlan((prev) => {
+        const currentList = [...(prev[sem] || [])]
+        const fromIdx =
+          fromIndex !== undefined
+            ? fromIndex
+            : currentList.findIndex((c) => c.id === course.id)
+        if (fromIdx === -1) return prev
+        const [removed] = currentList.splice(fromIdx, 1)
+        let insertAt =
+          explicitTargetIndex !== undefined
+            ? explicitTargetIndex
+            : dropTarget?.sem === sem
+              ? dropTarget.index
+              : currentList.length
+        if (insertAt > fromIdx) {
+          insertAt -= 1
+        }
+        insertAt = Math.max(0, Math.min(insertAt, currentList.length))
+        currentList.splice(insertAt, 0, removed)
+        return { ...prev, [sem]: currentList }
+      })
     } else if (fromSem === "bank") {
       // Drop from Bank Matkul Pilihan
       setPendingCourses((prev) => prev.filter((c) => c.id !== course.id))
@@ -641,9 +655,10 @@ export default function DegreePlanner({
                                 : undefined
                             }
                             onDragOver={(e) => handleCardDragOver(e, sem, idx)}
+                            onDrop={(e) => handleCardDrop(e, sem, idx)}
                             onDragEnd={handleDragEnd}
                             className={cn(
-                              "p-3 rounded-lg border bg-surface flex gap-2 group transition-all select-none relative",
+                              "p-3 rounded-lg border bg-surface flex flex-col group transition-all select-none relative",
                               completed
                                 ? "cursor-default opacity-85"
                                 : "cursor-move hover:cursor-move hover:shadow-md",
@@ -661,66 +676,73 @@ export default function DegreePlanner({
                                 "border-t-2 border-t-teal shadow-md",
                             )}
                           >
-                            {/* Left icon: grip for draggable, lock for completed */}
-                            <div className="flex-shrink-0 mt-0.5 w-4">
-                              {completed ? (
-                                <Lock className="w-3.5 h-3.5 text-muted/50" />
-                              ) : (
-                                <GripVertical className="w-4 h-4 text-muted opacity-60 group-hover:opacity-100 group-hover:text-navy transition-all" />
-                              )}
-                            </div>
-
-                            <div className="flex-1 min-w-0">
-                              <div className="flex justify-between items-start mb-1">
-                                <span className="font-mono text-[10px] font-bold text-navy leading-none">
-                                  {course.code || course.id}
-                                </span>
-                                {/* Right status icon — fades out on hover so delete X button has zero overlap */}
-                                <div
-                                  className={cn(
-                                    "flex-shrink-0 transition-opacity duration-150",
-                                    !completed &&
-                                      "group-hover:opacity-0 pointer-events-none",
-                                  )}
-                                >
-                                  {course.status === "completed" && (
+                            {/* Header: Grip/Status + Kode MK di KIRI, Badges Tipe & Status di KANAN — SEMUA HORIZONTAL */}
+                            <div className="flex items-center justify-between gap-2 mb-1.5 pb-1 border-b border-border/40">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <div className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
+                                  {completed ? (
                                     <CheckCircle2 className="w-3.5 h-3.5 text-teal" />
-                                  )}
-                                  {semLocked && (
-                                    <Lock className="w-3.5 h-3.5 text-muted/60" />
-                                  )}
-                                  {!semLocked &&
-                                    course.status === "planned" && (
-                                      <Clock className="w-3.5 h-3.5 text-gold" />
-                                    )}
-                                  {course.status === "wishlist" && (
-                                    <Bookmark className="w-3.5 h-3.5 text-muted/80" />
+                                  ) : (
+                                    <GripVertical className="w-3.5 h-3.5 text-muted/50 opacity-60 group-hover:opacity-100 group-hover:text-navy transition-all" />
                                   )}
                                 </div>
-                              </div>
-                              <h5 className="font-medium text-xs leading-tight text-foreground">
-                                {course.name}
-                              </h5>
-                              <div className="flex items-center gap-2 mt-1.5">
-                                <span className="text-[10px] text-muted">
-                                  {course.credits} SKS
+                                <span className="font-mono text-[11px] font-bold text-navy leading-none tracking-tight">
+                                  {course.code || course.id}
                                 </span>
+                              </div>
+
+                              {/* Badges horizontal: Tipe (Wajib/Pilihan) + Status (Lulus/Wishlist/Direncanakan) */}
+                              <div
+                                className={cn(
+                                  "flex items-center gap-1.5 flex-shrink-0 transition-opacity duration-150",
+                                  !completed &&
+                                    "group-hover:opacity-0 pointer-events-none",
+                                )}
+                              >
                                 <span
                                   className={cn(
-                                    "text-[8px] font-bold uppercase tracking-wide px-1 py-0.5 rounded",
+                                    "text-[8px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded leading-none flex items-center gap-1",
                                     course.type === "Wajib"
                                       ? "bg-navy/8 text-navy"
-                                      : "bg-gold/10 text-navy",
+                                      : "bg-gold/15 text-navy",
                                   )}
                                 >
+                                  {course.type === "Wajib" && (
+                                    <Lock className="w-2.5 h-2.5 text-navy/70" />
+                                  )}
                                   {course.type}
                                 </span>
+
+                                {course.status === "completed" && (
+                                  <span className="text-[8px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-teal/15 text-navy leading-none flex items-center gap-1 font-medium">
+                                    Lulus
+                                  </span>
+                                )}
                                 {course.status === "wishlist" && (
-                                  <span className="text-[8px] font-bold uppercase tracking-wide px-1 py-0.5 rounded border border-dashed border-border text-muted">
+                                  <span className="text-[8px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border border-dashed border-border text-muted leading-none flex items-center gap-1">
+                                    <Bookmark className="w-2.5 h-2.5 text-muted" />
                                     Wishlist
                                   </span>
                                 )}
+                                {course.status === "planned" && !completed && (
+                                  <Clock className="w-3.5 h-3.5 text-gold flex-shrink-0" />
+                                )}
                               </div>
+                            </div>
+
+                            {/* Body: Course Name */}
+                            <h5 className="font-medium text-xs leading-snug text-foreground mb-1.5 line-clamp-2">
+                              {course.name}
+                            </h5>
+
+                            {/* Footer: SKS */}
+                            <div className="flex items-center justify-between text-[10px] text-muted font-mono">
+                              <span>{course.credits} SKS</span>
+                              {course.program && (
+                                <span className="text-[9px] text-muted/70 truncate max-w-[120px]">
+                                  {course.program}
+                                </span>
+                              )}
                             </div>
 
                             {/* Delete button — available for all non-completed courses, zero overlap with status icon */}
