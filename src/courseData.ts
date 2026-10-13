@@ -53,14 +53,42 @@ function normalizeType(raw?: string): "Wajib" | "Pilihan" {
   return "Wajib"
 }
 
-function cleanPrereqText(s: string): string {
-  return s
-    .replace(/^diambil\s+bersamaan(\s*\/\s*sudah\s+mengambil)?\s*/i, "")
-    .replace(/^(dan\/atau|atau|dan)\s+/i, "")
+export function cleanPrereqText(s: string): string {
+  let cleaned = s.trim()
+  if (!cleaned || /^(dan|atau|dan\/atau)$/i.test(cleaned)) {
+    return ""
+  }
+
+  // Remove trailing credit requirements attached to course names
+  cleaned = cleaned
+    .replace(
+      /\s+(?:dan|serta)\s+(?:sudah\s+menempuh|menempuh|lulus|sudah\s+mengambil)?\s*(?:minimal|minimum)?\s*\d+\s*sks.*$/i,
+      "",
+    )
+    .replace(/\s+(?:serta|dan)\s*$/i, "")
     .trim()
+
+  // Remove leading co-requisite / pre-requisite boilerplate
+  cleaned = cleaned
+    .replace(
+      /^(?:diambil\s+bersamaan(?:\s*\/\s*sudah\s+mengambil)?|telah\s*\/\s*tengah\s+mengambil|sudah\s*\/\s*sedang\s+mengambil|sudah\s+atau\s+pernah\s+mengambil|pernah\s+mengambil|sudah\s+mengambil)\s+/i,
+      "",
+    )
+    .replace(/^lulus\s+(?!\d|minimum|minimal)/i, "")
+    .replace(/^(?:dan\/atau|atau|dan)\s+/i, "")
+    .replace(/[,;]\s*$/g, "")
+    .trim()
+
+  return cleaned
 }
 
-function toPrereqNodes(raw: unknown): PrerequisiteNode[] {
+export function isAdministrativeRequirement(s: string): boolean {
+  return /^(?:lulus\s+mini|sudah\s+menempuh|menempuh\s+mini|minimal\s+semester|minimal\s+sudah|sudah\s+lulus|\d+\s*sks)/i.test(
+    s.trim(),
+  )
+}
+
+export function toPrereqNodes(raw: unknown): PrerequisiteNode[] {
   if (!Array.isArray(raw)) return []
   const nodes: PrerequisiteNode[] = []
   const seen = new Set<string>()
@@ -71,9 +99,11 @@ function toPrereqNodes(raw: unknown): PrerequisiteNode[] {
     const key = name.toLowerCase()
     if (seen.has(key)) continue
     seen.add(key)
-    // Real silabus prereqs carry no codes: keep id identical to the name so
-    // views that print both (modal list, diagram) render it only once.
-    nodes.push({ id: name, name })
+    nodes.push({
+      id: name,
+      name,
+      isAdministrative: isAdministrativeRequirement(name),
+    })
   }
   return nodes
 }
@@ -312,10 +342,7 @@ export async function fetchCatalog(
         program: normProgram,
         prodiAbbr: getProdiAbbreviation(normProgram),
         category: classifyCourseCategory({ code, name: c.name, semester }),
-        prerequisites: (c.prerequisites || []).map((p) => ({
-          id: p,
-          name: p,
-        })),
+        prerequisites: toPrereqNodes(c.prerequisites),
       }
     })
 

@@ -1,9 +1,13 @@
 import React from "react"
-import { CheckCircle2 } from "lucide-react"
+import { CheckCircle2, Clock, AlertCircle } from "lucide-react"
 import { Course } from "../../data"
 
 export default function PrerequisiteDiagram({ course }: { course: Course }) {
-  if (!course.prerequisites || course.prerequisites.length === 0) {
+  const allPrereqs = course.prerequisites || []
+  const coursePrereqs = allPrereqs.filter((p) => !p.isAdministrative)
+  const adminPrereqs = allPrereqs.filter((p) => p.isAdministrative)
+
+  if (allPrereqs.length === 0) {
     return (
       <div className="bg-background rounded-lg p-6 text-center">
         <div className="w-12 h-12 rounded-full bg-teal/10 flex items-center justify-center mx-auto mb-3">
@@ -17,6 +21,33 @@ export default function PrerequisiteDiagram({ course }: { course: Course }) {
     )
   }
 
+  if (coursePrereqs.length === 0 && adminPrereqs.length > 0) {
+    return (
+      <div className="bg-background rounded-xl p-6 text-center border border-border">
+        <div className="w-12 h-12 rounded-full bg-gold/10 flex items-center justify-center mx-auto mb-3">
+          <Clock className="w-6 h-6 text-gold" />
+        </div>
+        <p className="text-sm font-bold text-navy">
+          Syarat Akademik Administratif
+        </p>
+        <p className="text-xs text-foreground/80 mt-1.5 max-w-md mx-auto">
+          Mata kuliah ini tidak memiliki prasyarat mata kuliah langsung,
+          melainkan syarat kelayakan akademik:
+        </p>
+        <div className="flex flex-wrap justify-center gap-2 mt-3">
+          {adminPrereqs.map((a) => (
+            <span
+              key={a.id}
+              className="px-3 py-1 bg-gold/15 text-navy font-semibold text-xs rounded-lg border border-gold/30"
+            >
+              {a.name}
+            </span>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   const NODE_W = 162
   const NODE_H = 54
   const H_GAP = 22
@@ -25,13 +56,13 @@ export default function PrerequisiteDiagram({ course }: { course: Course }) {
 
   // Collect level-0 nodes (prereqs of prereqs), deduped
   const level0Map = new Map<string, { id: string name: string }>()
-  course.prerequisites.forEach((p) => {
+  coursePrereqs.forEach((p) => {
     ;(p.prereqs || []).forEach((pp) => {
       if (!level0Map.has(pp.id)) level0Map.set(pp.id, pp)
     })
   })
   const level0Nodes = Array.from(level0Map.values())
-  const level1Nodes = course.prerequisites
+  const level1Nodes = coursePrereqs
 
   const hasLevel0 = level0Nodes.length > 0
   const numLevels = hasLevel0 ? 3 : 2
@@ -185,33 +216,35 @@ export default function PrerequisiteDiagram({ course }: { course: Course }) {
                 stroke="#86efac"
                 strokeWidth="1.5"
               />
+              {node.id !== node.name && Boolean(node.id) && (
+                <text
+                  x={x + NODE_W / 2}
+                  y={y + 17}
+                  textAnchor="middle"
+                  fontSize="9"
+                  fontWeight="700"
+                  letterSpacing="0.5"
+                  fill="#165a49"
+                  fontFamily="JetBrains Mono, monospace"
+                >
+                  {node.id}
+                </text>
+              )}
               <text
                 x={x + NODE_W / 2}
-                y={y + 17}
+                y={node.id !== node.name && Boolean(node.id) ? y + 32 : y + 26}
                 textAnchor="middle"
-                fontSize="9"
-                fontWeight="700"
-                letterSpacing="0.5"
+                fontSize="10"
                 fill="#165a49"
-                fontFamily="JetBrains Mono, monospace"
+                fontWeight="600"
               >
-                {node.id}
-              </text>
-              <text
-                x={x + NODE_W / 2}
-                y={y + 32}
-                textAnchor="middle"
-                fontSize="10.5"
-                fill="#165a49"
-                fontWeight="500"
-              >
-                {node.name.length > 20
-                  ? node.name.slice(0, 20) + "…"
+                {node.name.length > 22
+                  ? node.name.slice(0, 22) + "…"
                   : node.name}
               </text>
               <text
                 x={x + NODE_W / 2}
-                y={y + 46}
+                y={node.id !== node.name && Boolean(node.id) ? y + 46 : y + 42}
                 textAnchor="middle"
                 fontSize="8.5"
                 fill="#6b7280"
@@ -293,6 +326,15 @@ export default function PrerequisiteDiagram({ course }: { course: Course }) {
           </div>
         )}
       </div>
+      {adminPrereqs.length > 0 && (
+        <div className="mt-4 flex items-center gap-2.5 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-900 max-w-xl mx-auto">
+          <AlertCircle className="w-4 h-4 text-amber-700 flex-shrink-0" />
+          <div>
+            <strong>Persyaratan Akademik Tambahan:</strong>{" "}
+            {adminPrereqs.map((a) => a.name).join("; ")}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
