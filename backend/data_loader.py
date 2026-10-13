@@ -210,122 +210,236 @@ FTMM_CURRICULUM: Dict[str, List[CourseModel]] = {
             program="Teknologi Sains Data", prerequisites=[]
         ),
     ],
-    "Rekayasa Perangkat Lunak": [
-        # Semester 1
+    "Teknik Robotika dan Kecerdasan Buatan": [
         CourseModel(
-            id="RPL101", code="MA1101", name="Matematika I", credits=4, semester=1,
+            id="TRKB101", code="MA1101", name="Matematika I", credits=4, semester=1,
             type="Wajib", parity="odd", desc="Kalkulus diferensial dan integral.",
-            program="Rekayasa Perangkat Lunak", prerequisites=[]
+            program="Teknik Robotika dan Kecerdasan Buatan", prerequisites=[]
         ),
         CourseModel(
-            id="RPL102", code="FI1101", name="Fisika Dasar I", credits=4, semester=1,
-            type="Wajib", parity="odd", desc="Fisika mekanika dan gelombang.",
-            program="Rekayasa Perangkat Lunak", prerequisites=[]
+            id="TRKB102", code="FI1101", name="Fisika Dasar I", credits=4, semester=1,
+            type="Wajib", parity="odd", desc="Mekanika klasik dan kinematika partikel.",
+            program="Teknik Robotika dan Kecerdasan Buatan", prerequisites=[]
         ),
         CourseModel(
-            id="RPL103", code="IF1101", name="Pengantar Rekayasa Perangkat Lunak", credits=3, semester=1,
-            type="Wajib", parity="odd", desc="Prinsip dasar rekayasa software dan SDLC.",
-            program="Rekayasa Perangkat Lunak", prerequisites=[]
+            id="TRKB103", code="TRKB1101", name="Pengantar Robotika & AI", credits=3, semester=1,
+            type="Wajib", parity="odd", desc="Sejarah, komponen sensor-aktuator, dan dasar otomasi cerdas.",
+            program="Teknik Robotika dan Kecerdasan Buatan", prerequisites=[]
         ),
         CourseModel(
-            id="RPL104", code="KU1001", name="Agama", credits=2, semester=1,
-            type="Wajib", parity="odd", desc="Pendidikan agama.",
-            program="Rekayasa Perangkat Lunak", prerequisites=[]
-        ),
-        # Semester 2
-        CourseModel(
-            id="RPL201", code="MA1201", name="Matematika II", credits=4, semester=2,
-            type="Wajib", parity="even", desc="Kalkulus lanjut dan aljabar dasar.",
-            program="Rekayasa Perangkat Lunak", prerequisites=["Matematika I"]
+            id="TRKB201", code="IF1210", name="Dasar Pemrograman", credits=3, semester=2,
+            type="Wajib", parity="even", desc="Pemrograman C/C++ dan Python untuk sistem tertanam.",
+            program="Teknik Robotika dan Kecerdasan Buatan", prerequisites=[]
         ),
         CourseModel(
-            id="RPL202", code="IF1210", name="Dasar Pemrograman", credits=3, semester=2,
-            type="Wajib", parity="even", desc="Algoritma dan pemrograman dasar.",
-            program="Rekayasa Perangkat Lunak", prerequisites=[]
+            id="TRKB202", code="II2011", name="Aljabar Linear", credits=3, semester=2,
+            type="Wajib", parity="even", desc="Matriks transformasi homogen dan ruang vektor robotika.",
+            program="Teknik Robotika dan Kecerdasan Buatan", prerequisites=["Matematika I"]
         ),
         CourseModel(
-            id="RPL203", code="II2011", name="Aljabar Linear", credits=3, semester=2,
-            type="Wajib", parity="even", desc="Vektor dan matriks.",
-            program="Rekayasa Perangkat Lunak", prerequisites=["Matematika I"]
-        ),
-        # Semester 3
-        CourseModel(
-            id="RPL301", code="IF2101", name="Struktur Data & Algoritma", credits=3, semester=3,
-            type="Wajib", parity="odd", desc="Struktur data dan algoritma.",
-            program="Rekayasa Perangkat Lunak", prerequisites=["Dasar Pemrograman"]
+            id="TRKB301", code="TRKB2101", name="Rangkaian Listrik & Elektronika", credits=3, semester=3,
+            type="Wajib", parity="odd", desc="Analisis rangkaian DC/AC, semikonduktor, dan penguat operasional.",
+            program="Teknik Robotika dan Kecerdasan Buatan", prerequisites=["Fisika Dasar I"]
         ),
         CourseModel(
-            id="RPL302", code="II3011", name="Database Systems", credits=4, semester=3,
-            type="Wajib", parity="odd", desc="Sistem basis data dan SQL.",
-            program="Rekayasa Perangkat Lunak", prerequisites=["Dasar Pemrograman"]
-        ),
-        # Semester 4
-        CourseModel(
-            id="RPL401", code="II3060", name="Rekayasa Perangkat Lunak", credits=3, semester=4,
-            type="Wajib", parity="even", desc="Analisis perancangan perangkat lunak, UML, Agile.",
-            program="Rekayasa Perangkat Lunak", prerequisites=["Dasar Pemrograman"]
+            id="TRKB401", code="TRKB2201", name="Kinematika & Dinamika Robot", credits=3, semester=4,
+            type="Wajib", parity="even", desc="Forward/inverse kinematics, Denavit-Hartenberg, dan dinamika manipulator.",
+            program="Teknik Robotika dan Kecerdasan Buatan", prerequisites=["Aljabar Linear"]
         ),
         CourseModel(
-            id="RPL402", code="IF2201", name="Pemrograman Web & Mobile", credits=4, semester=4,
-            type="Wajib", parity="even", desc="Full-stack development, REST API, React, Flutter.",
-            program="Rekayasa Perangkat Lunak", prerequisites=["Database Systems"]
-        ),
-        # Semester 5
-        CourseModel(
-            id="RPL501", code="II4042", name="Machine Learning", credits=3, semester=5,
-            type="Pilihan", parity="odd", desc="Dasar pembelajaran mesin.",
-            program="Rekayasa Perangkat Lunak", prerequisites=["Aljabar Linear"]
+            id="TRKB501", code="TRKB3101", name="Sistem Kendali Cerdas", credits=3, semester=5,
+            type="Wajib", parity="odd", desc="Kendali PID, ruang keadaan, fuzzy logic, dan kendali adaptif.",
+            program="Teknik Robotika dan Kecerdasan Buatan", prerequisites=["Kinematika & Dinamika Robot"]
         ),
         CourseModel(
-            id="RPL502", code="IF3101", name="Cloud Computing & DevOps", credits=3, semester=5,
-            type="Pilihan", parity="odd", desc="Docker, Kubernetes, CI/CD pipeline.",
-            program="Rekayasa Perangkat Lunak", prerequisites=["Rekayasa Perangkat Lunak"]
+            id="TRKB502", code="II4042", name="Machine Learning", credits=3, semester=5,
+            type="Pilihan", parity="odd", desc="Pembelajaran mesin untuk persepsi dan pengambilan keputusan robot.",
+            program="Teknik Robotika dan Kecerdasan Buatan", prerequisites=["Aljabar Linear"]
         ),
         CourseModel(
-            id="RPL503", code="IF3102", name="Software Architecture & Design Patterns", credits=3, semester=5,
-            type="Wajib", parity="odd", desc="Microservices, Clean Architecture, Design Patterns.",
-            program="Rekayasa Perangkat Lunak", prerequisites=["Rekayasa Perangkat Lunak"]
-        ),
-        # Semester 6
-        CourseModel(
-            id="RPL601", code="II4050", name="Deep Learning", credits=3, semester=6,
-            type="Pilihan", parity="even", desc="Neural networks dan deep learning.",
-            program="Rekayasa Perangkat Lunak", prerequisites=["Machine Learning"]
+            id="TRKB601", code="TRKB3201", name="Visi Komputer untuk Robotika", credits=3, semester=6,
+            type="Pilihan", parity="even", desc="Visual SLAM, deteksi objek real-time, dan kalibrasi kamera.",
+            program="Teknik Robotika dan Kecerdasan Buatan", prerequisites=["Machine Learning"]
         ),
         CourseModel(
-            id="RPL602", code="IF3201", name="Software Quality Assurance & Testing", credits=3, semester=6,
-            type="Pilihan", parity="even", desc="Unit test, integration test, E2E testing, TDD.",
-            program="Rekayasa Perangkat Lunak", prerequisites=["Rekayasa Perangkat Lunak"]
-        ),
-        # Semester 7 & 8
-        CourseModel(
-            id="RPL701", code="IF4101", name="Kerja Praktik / Magang", credits=4, semester=7,
-            type="Wajib", parity="odd", desc="Magang industri.",
-            program="Rekayasa Perangkat Lunak", prerequisites=[]
+            id="TRKB701", code="TRKB4101", name="Kerja Praktik / Magang", credits=4, semester=7,
+            type="Wajib", parity="odd", desc="Magang industri robotika dan otomasi.",
+            program="Teknik Robotika dan Kecerdasan Buatan", prerequisites=[]
         ),
         CourseModel(
-            id="RPL801", code="IF4201", name="Skripsi / Tugas Akhir", credits=6, semester=8,
-            type="Wajib", parity="even", desc="Tugas akhir sarjana.",
-            program="Rekayasa Perangkat Lunak", prerequisites=[]
+            id="TRKB801", code="TRKB4201", name="Skripsi / Tugas Akhir", credits=6, semester=8,
+            type="Wajib", parity="even", desc="Tugas akhir sarjana teknik robotika dan kecerdasan buatan.",
+            program="Teknik Robotika dan Kecerdasan Buatan", prerequisites=[]
+        ),
+    ],
+    "Rekayasa Nanoteknologi": [
+        CourseModel(
+            id="RN101", code="MA1101", name="Matematika I", credits=4, semester=1,
+            type="Wajib", parity="odd", desc="Kalkulus diferensial dan integral.",
+            program="Rekayasa Nanoteknologi", prerequisites=[]
+        ),
+        CourseModel(
+            id="RN102", code="FI1101", name="Fisika Dasar I", credits=4, semester=1,
+            type="Wajib", parity="odd", desc="Fisika dasar mekanika dan termodinamika.",
+            program="Rekayasa Nanoteknologi", prerequisites=[]
+        ),
+        CourseModel(
+            id="RN103", code="KI1101", name="Kimia Dasar I", credits=3, semester=1,
+            type="Wajib", parity="odd", desc="Struktur atom, ikatan kimia, dan stoikiometri.",
+            program="Rekayasa Nanoteknologi", prerequisites=[]
+        ),
+        CourseModel(
+            id="RN201", code="RN1201", name="Pengantar Nanoteknologi", credits=3, semester=2,
+            type="Wajib", parity="even", desc="Prinsip skala nano, efek kuantum, dan klasifikasi nanomaterial.",
+            program="Rekayasa Nanoteknologi", prerequisites=["Kimia Dasar I"]
+        ),
+        CourseModel(
+            id="RN301", code="RN2101", name="Fisika Kuantum untuk Nanoteknologi", credits=3, semester=3,
+            type="Wajib", parity="odd", desc="Persamaan Schrodinger, sumur potensial kuantum, dan tunneling.",
+            program="Rekayasa Nanoteknologi", prerequisites=["Fisika Dasar I", "Matematika I"]
+        ),
+        CourseModel(
+            id="RN401", code="RN2201", name="Sintesis & Fabrikasi Nanomaterial", credits=3, semester=4,
+            type="Wajib", parity="even", desc="Metode top-down dan bottom-up, sol-gel, CVD, dan litografi.",
+            program="Rekayasa Nanoteknologi", prerequisites=["Pengantar Nanoteknologi"]
+        ),
+        CourseModel(
+            id="RN501", code="RN3101", name="Karakterisasi Material Nano", credits=3, semester=5,
+            type="Wajib", parity="odd", desc="Instrumentasi XRD, SEM, TEM, AFM, dan spektroskopi UV-Vis/FTIR.",
+            program="Rekayasa Nanoteknologi", prerequisites=["Sintesis & Fabrikasi Nanomaterial"]
+        ),
+        CourseModel(
+            id="RN601", code="RN3201", name="Nanobioteknologi & Sistem Penghantaran Obat", credits=3, semester=6,
+            type="Pilihan", parity="even", desc="Nanocarrier, biosensor, dan aplikasi biomedis nanomaterial.",
+            program="Rekayasa Nanoteknologi", prerequisites=["Karakterisasi Material Nano"]
+        ),
+        CourseModel(
+            id="RN701", code="RN4101", name="Kerja Praktik / Magang", credits=4, semester=7,
+            type="Wajib", parity="odd", desc="Magang riset atau industri nanoteknologi.",
+            program="Rekayasa Nanoteknologi", prerequisites=[]
+        ),
+        CourseModel(
+            id="RN801", code="RN4201", name="Skripsi / Tugas Akhir", credits=6, semester=8,
+            type="Wajib", parity="even", desc="Tugas akhir sarjana rekayasa nanoteknologi.",
+            program="Rekayasa Nanoteknologi", prerequisites=[]
+        ),
+    ],
+    "Teknik Industri": [
+        CourseModel(
+            id="TI101", code="MA1101", name="Matematika I", credits=4, semester=1,
+            type="Wajib", parity="odd", desc="Kalkulus diferensial dan integral.",
+            program="Teknik Industri", prerequisites=[]
+        ),
+        CourseModel(
+            id="TI102", code="TI1101", name="Pengantar Teknik Industri", credits=3, semester=1,
+            type="Wajib", parity="odd", desc="Sistem terintegrasi manusia, material, informasi, dan peralatan.",
+            program="Teknik Industri", prerequisites=[]
+        ),
+        CourseModel(
+            id="TI201", code="II2011", name="Aljabar Linear", credits=3, semester=2,
+            type="Wajib", parity="even", desc="Matriks dan sistem persamaan linear untuk optimasi.",
+            program="Teknik Industri", prerequisites=["Matematika I"]
+        ),
+        CourseModel(
+            id="TI301", code="TI2101", name="Penelitian Operasional I", credits=3, semester=3,
+            type="Wajib", parity="odd", desc="Pemrograman linear, metode simpleks, dan analisis sensitivitas.",
+            program="Teknik Industri", prerequisites=["Aljabar Linear"]
+        ),
+        CourseModel(
+            id="TI401", code="TI2201", name="Ergonomi & Perancangan Sistem Kerja", credits=3, semester=4,
+            type="Wajib", parity="even", desc="Antropometri, biomekanika, studi waktu dan gerakan.",
+            program="Teknik Industri", prerequisites=["Pengantar Teknik Industri"]
+        ),
+        CourseModel(
+            id="TI501", code="TI3101", name="Perencanaan & Pengendalian Produksi", credits=3, semester=5,
+            type="Wajib", parity="odd", desc="Forecasting permintaan, MPS, MRP, dan penjadwalan lantai produksi.",
+            program="Teknik Industri", prerequisites=["Penelitian Operasional I"]
+        ),
+        CourseModel(
+            id="TI601", code="TI3201", name="Manajemen Rantai Pasok", credits=3, semester=6,
+            type="Pilihan", parity="even", desc="Desain jaringan logistik, koordinasi pasokan, dan distribusi.",
+            program="Teknik Industri", prerequisites=["Perencanaan & Pengendalian Produksi"]
+        ),
+        CourseModel(
+            id="TI701", code="TI4101", name="Kerja Praktik / Magang", credits=4, semester=7,
+            type="Wajib", parity="odd", desc="Magang industri manufaktur atau jasa.",
+            program="Teknik Industri", prerequisites=[]
+        ),
+        CourseModel(
+            id="TI801", code="TI4201", name="Skripsi / Tugas Akhir", credits=6, semester=8,
+            type="Wajib", parity="even", desc="Tugas akhir sarjana teknik industri.",
+            program="Teknik Industri", prerequisites=[]
+        ),
+    ],
+    "Teknik Elektro": [
+        CourseModel(
+            id="TE101", code="MA1101", name="Matematika I", credits=4, semester=1,
+            type="Wajib", parity="odd", desc="Kalkulus diferensial dan integral.",
+            program="Teknik Elektro", prerequisites=[]
+        ),
+        CourseModel(
+            id="TE102", code="FI1101", name="Fisika Dasar I", credits=4, semester=1,
+            type="Wajib", parity="odd", desc="Mekanika, gelombang, dan elektromagnetisme dasar.",
+            program="Teknik Elektro", prerequisites=[]
+        ),
+        CourseModel(
+            id="TE201", code="TE1201", name="Rangkaian Listrik I", credits=3, semester=2,
+            type="Wajib", parity="even", desc="Hukum Kirchhoff, teorema jaringan, dan analisis transien.",
+            program="Teknik Elektro", prerequisites=["Fisika Dasar I"]
+        ),
+        CourseModel(
+            id="TE301", code="TE2101", name="Medan Elektromagnetik", credits=3, semester=3,
+            type="Wajib", parity="odd", desc="Persamaan Maxwell, elektrostatika, dan magnetostatika.",
+            program="Teknik Elektro", prerequisites=["Matematika I", "Fisika Dasar I"]
+        ),
+        CourseModel(
+            id="TE401", code="TE2201", name="Sistem Tenaga Listrik", credits=3, semester=4,
+            type="Wajib", parity="even", desc="Pembangkitan, transmisi, distribusi daya, dan aliran daya.",
+            program="Teknik Elektro", prerequisites=["Rangkaian Listrik I"]
+        ),
+        CourseModel(
+            id="TE501", code="TE3101", name="Sistem Kendali Dasar", credits=3, semester=5,
+            type="Wajib", parity="odd", desc="Fungsi alih Laplace, kestabilan Routh-Hurwitz, dan Bode plot.",
+            program="Teknik Elektro", prerequisites=["Rangkaian Listrik I"]
+        ),
+        CourseModel(
+            id="TE601", code="TE3201", name="Energi Baru dan Terbarukan", credits=3, semester=6,
+            type="Pilihan", parity="even", desc="Sistem fotovoltaik, turbin angin, smart grid, dan penyimpanan energi.",
+            program="Teknik Elektro", prerequisites=["Sistem Tenaga Listrik"]
+        ),
+        CourseModel(
+            id="TE701", code="TE4101", name="Kerja Praktik / Magang", credits=4, semester=7,
+            type="Wajib", parity="odd", desc="Magang industri ketenagalistrikan atau telekomunikasi.",
+            program="Teknik Elektro", prerequisites=[]
+        ),
+        CourseModel(
+            id="TE801", code="TE4201", name="Skripsi / Tugas Akhir", credits=6, semester=8,
+            type="Wajib", parity="even", desc="Tugas akhir sarjana teknik elektro.",
+            program="Teknik Elektro", prerequisites=[]
         ),
     ],
 }
 
-# Alias mapping for user input normalization
+# Alias mapping for user input normalization across all 5 FTMM programs
 PRODI_ALIASES = {
-    "tsd": "Teknologi Sains Data",
+    "teknologi sains data": "Teknologi Sains Data",
     "sains data": "Teknologi Sains Data",
     "data science": "Teknologi Sains Data",
-    "teknologi sains data": "Teknologi Sains Data",
-    "rpl": "Rekayasa Perangkat Lunak",
-    "rekayasa perangkat lunak": "Rekayasa Perangkat Lunak",
-    "software engineering": "Rekayasa Perangkat Lunak",
-    "trkb": "Teknik Robotika dan Kecerdasan Buatan",
+    "tsd": "Teknologi Sains Data",
+    "teknik robotika dan kecerdasan buatan": "Teknik Robotika dan Kecerdasan Buatan",
+    "robotika dan kecerdasan buatan": "Teknik Robotika dan Kecerdasan Buatan",
     "robotika": "Teknik Robotika dan Kecerdasan Buatan",
-    "te": "Teknik Elektro",
-    "elektro": "Teknik Elektro",
-    "ti": "Teknik Industri",
+    "trkb": "Teknik Robotika dan Kecerdasan Buatan",
+    "rekayasa nanoteknologi": "Rekayasa Nanoteknologi",
+    "nanoteknologi": "Rekayasa Nanoteknologi",
+    "nano": "Rekayasa Nanoteknologi",
+    "rn": "Rekayasa Nanoteknologi",
+    "teknik industri": "Teknik Industri",
     "industri": "Teknik Industri",
+    "ti": "Teknik Industri",
+    "teknik elektro": "Teknik Elektro",
+    "elektro": "Teknik Elektro",
+    "te": "Teknik Elektro",
 }
 
 
@@ -333,8 +447,10 @@ def normalize_prodi(prodi_input: Optional[str]) -> Optional[str]:
     if not prodi_input:
         return None
     cleaned = prodi_input.strip().lower()
+    if cleaned in PRODI_ALIASES:
+        return PRODI_ALIASES[cleaned]
     for alias, formal_name in PRODI_ALIASES.items():
-        if alias in cleaned:
+        if len(alias) > 3 and alias in cleaned:
             return formal_name
     return prodi_input.strip()
 
@@ -343,5 +459,4 @@ def get_courses_for_program(prodi: str) -> List[CourseModel]:
     norm = normalize_prodi(prodi) or "Teknologi Sains Data"
     if norm in FTMM_CURRICULUM:
         return FTMM_CURRICULUM[norm]
-    # Default fallback to TSD if unknown
     return FTMM_CURRICULUM["Teknologi Sains Data"]

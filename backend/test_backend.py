@@ -9,13 +9,18 @@ from tools.planner import generate_study_plan
 
 def test_data_loader():
     print("Testing data loader...")
-    courses = get_courses_for_program("Teknologi Sains Data")
-    assert len(courses) > 0, "TSD catalog should not be empty"
-    
-    rpl_courses = get_courses_for_program("rpl")
-    assert len(rpl_courses) > 0, "RPL catalog should not be empty"
-    print(f"✓ Data loader OK ({len(courses)} TSD courses, {len(rpl_courses)} RPL courses)")
-
+    for alias, expected_name in [
+        ("Teknologi Sains Data", "Teknologi Sains Data"),
+        ("trkb", "Teknik Robotika dan Kecerdasan Buatan"),
+        ("rn", "Rekayasa Nanoteknologi"),
+        ("ti", "Teknik Industri"),
+        ("te", "Teknik Elektro"),
+    ]:
+        assert normalize_prodi(alias) == expected_name
+        courses = get_courses_for_program(alias)
+        assert len(courses) > 0, f"{expected_name} catalog should not be empty"
+        assert all(c.program == expected_name for c in courses)
+    print("✓ Data loader OK across all 5 official FTMM study programs")
 
 def test_prerequisite_validator():
     print("Testing prerequisite validator...")
