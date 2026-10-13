@@ -35,8 +35,8 @@ interface PlannerCourseCardProps {
   onDrop: (e: React.DragEvent, sem: number, idx: number) => void
   onDragEnd: () => void
   onDelete: (courseId: string, sem: number) => void
+  onSelect: (course: PlacedCourse) => void
 }
-
 export function PlannerCourseCard({
   course,
   sem,
@@ -47,13 +47,24 @@ export function PlannerCourseCard({
   onDrop,
   onDragEnd,
   onDelete,
+  onSelect,
 }: PlannerCourseCardProps) {
   const completed = isCompleted(course)
   const semLocked = isSemLocked(course)
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-label={`${course.name} (${course.code || course.id}), ${course.credits} SKS. Klik untuk melihat detail silabus dan prasyarat.`}
       draggable={!completed}
+      onClick={() => onSelect(course)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          onSelect(course)
+        }
+      }}
       onDragStart={
         !completed ? (e) => onDragStart(e, course, sem, idx) : undefined
       }
@@ -61,10 +72,10 @@ export function PlannerCourseCard({
       onDrop={(e) => onDrop(e, sem, idx)}
       onDragEnd={onDragEnd}
       className={cn(
-        "p-3 rounded-lg border bg-surface flex flex-col group transition-all select-none relative",
+        "p-3 rounded-lg border bg-surface flex flex-col group transition-all select-none relative focus:outline-hidden focus-visible:ring-2 focus-visible:ring-gold/60",
         completed
-          ? "cursor-default opacity-85"
-          : "cursor-move hover:cursor-move hover:shadow-md",
+          ? "cursor-pointer opacity-85 hover:shadow-md"
+          : "cursor-pointer hover:shadow-md",
         course.status === "completed" && "border-teal-light/50",
         course.status === "planned" && !semLocked && "border-gold/50",
         course.status === "planned" && semLocked && "border-navy/20",
@@ -182,6 +193,7 @@ interface SemesterColumnProps {
   onDragEnd: () => void
   onDeleteCourse: (courseId: string, sem: number) => void
   onOpenManualPicker: (sem: number) => void
+  onSelectCourse: (course: PlacedCourse) => void
 }
 
 export function SemesterColumn({
@@ -199,8 +211,8 @@ export function SemesterColumn({
   onDragEnd,
   onDeleteCourse,
   onOpenManualPicker,
+  onSelectCourse,
 }: SemesterColumnProps) {
-  const totalSKS = courses.reduce((acc, c) => acc + c.credits, 0)
   const odd = isOdd(sem)
 
   return (
@@ -279,6 +291,7 @@ export function SemesterColumn({
             onDrop={onCardDrop}
             onDragEnd={onDragEnd}
             onDelete={onDeleteCourse}
+            onSelect={onSelectCourse}
           />
         ))}
 
@@ -319,12 +332,14 @@ interface ElectiveCourseBankProps {
   pendingCourses: Course[]
   onDragStartBank: (e: React.DragEvent, course: PlacedCourse) => void
   onDragEnd: () => void
+  onSelectCourse?: (course: PlacedCourse) => void
 }
 
 export function ElectiveCourseBank({
   pendingCourses,
   onDragStartBank,
   onDragEnd,
+  onSelectCourse,
 }: ElectiveCourseBankProps) {
   const pilihanPending = pendingCourses.filter((c) => c.type === "Pilihan")
   if (pilihanPending.length === 0) return null
@@ -353,7 +368,13 @@ export function ElectiveCourseBank({
               } as PlacedCourse)
             }
             onDragEnd={onDragEnd}
-            className="bg-surface rounded-xl border border-gold/40 p-3 cursor-move flex-shrink-0 w-[196px] group hover:shadow-md hover:border-gold transition-all select-none"
+            onClick={() =>
+              onSelectCourse?.({
+                ...course,
+                status: "planned",
+              } as PlacedCourse)
+            }
+            className="bg-surface rounded-xl border border-gold/40 p-3 cursor-pointer flex-shrink-0 w-[196px] group hover:shadow-md hover:border-gold transition-all select-none focus:outline-hidden focus-visible:ring-2 focus-visible:ring-gold"
           >
             <div className="flex items-start justify-between mb-1">
               <span className="font-mono text-[10px] font-bold text-teal">

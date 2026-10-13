@@ -10,6 +10,7 @@ interface TimetableGridProps {
   days: readonly string[]
   compact?: boolean
   onNavigate?: (page: string) => void
+  onItemClick?: (item: ScheduleItem) => void
 }
 
 export default function TimetableGrid({
@@ -17,28 +18,30 @@ export default function TimetableGrid({
   days,
   compact,
   onNavigate,
+  onItemClick,
 }: TimetableGridProps) {
-  const hasConflict = schedule.some((s) => s.conflict)
+  const conflictingItems = schedule.filter((s) => s.conflict)
+  const hasConflict = conflictingItems.length > 0
 
   return (
     <>
       {/* Conflict banner — above grid in full mode */}
       {!compact && hasConflict && (
-        <div className="bg-danger/10 border border-danger/30 rounded-xl p-4 flex items-start gap-3 mb-5 flex-shrink-0">
+        <div className="bg-danger/10 border border-danger/30 rounded-xl p-4 flex items-start gap-3 mb-4 flex-shrink-0">
           <AlertTriangle className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" />
           <div className="flex-1">
-            <h4 className="font-medium text-danger">
-              Terdeteksi Bentrok Jadwal
+            <h4 className="font-medium text-danger text-sm">
+              Terdeteksi Bentrok Jadwal Kuliah ({conflictingItems.length}{" "}
+              Matkul)
             </h4>
-            <p className="text-sm text-danger/80 mt-1">
-              <strong>II4042 Machine Learning</strong> dan{" "}
-              <strong>II4045 Data Visualization</strong> bentrok pada hari
-              Selasa jam 10:00 – 12:00.
+            <p className="text-xs text-danger/80 mt-1">
+              {conflictingItems
+                .map((c) => `${c.code} (${c.sectionCode || "Kelas"})`)
+                .join(" dan ")}{" "}
+              memiliki irisan waktu kuliah pada hari yang sama. Silakan pilih
+              kelas alternatif di panel pemilihan kelas.
             </p>
           </div>
-          <button className="text-sm font-medium text-danger hover:underline flex-shrink-0">
-            Lihat Alternatif
-          </button>
         </div>
       )}
 
@@ -118,27 +121,41 @@ export default function TimetableGrid({
                       return (
                         <div
                           key={item.id}
+                          onClick={() => onItemClick?.(item)}
                           className={cn(
-                            "absolute left-1 right-1 rounded-md p-2 border shadow-sm flex flex-col overflow-hidden",
+                            "absolute left-1 right-1 rounded-md p-2 border shadow-2xs flex flex-col overflow-hidden transition-all",
                             item.color,
                             item.conflict &&
-                              "border-danger border-dashed bg-danger/10 z-10 animate-pulse",
+                              "border-danger border-dashed bg-danger/15 z-10 ring-1 ring-danger/30",
+                            onItemClick && "cursor-pointer hover:shadow-md",
                           )}
                           style={{ top: `${top}px`, height: `${height}px` }}
                         >
                           {item.conflict && (
                             <div className="absolute top-1 right-1 text-danger">
-                              <AlertTriangle className="w-3 h-3" />
+                              <AlertTriangle className="w-3.5 h-3.5" />
                             </div>
                           )}
-                          <span
-                            className={cn(
-                              "font-mono font-bold opacity-80",
-                              compact ? "text-[9px]" : "text-xs",
+                          <div className="flex items-center gap-1">
+                            <span
+                              className={cn(
+                                "font-mono font-bold opacity-80",
+                                compact ? "text-[9px]" : "text-xs",
+                              )}
+                            >
+                              {item.code}
+                            </span>
+                            {item.sectionCode && (
+                              <span
+                                className={cn(
+                                  "font-bold px-1 py-0.2 rounded bg-navy/10 text-navy",
+                                  compact ? "text-[8px]" : "text-[9px]",
+                                )}
+                              >
+                                {item.sectionCode}
+                              </span>
                             )}
-                          >
-                            {item.code}
-                          </span>
+                          </div>
                           <span
                             className={cn(
                               "font-medium leading-tight mt-0.5 line-clamp-2",
@@ -172,12 +189,16 @@ export default function TimetableGrid({
             <AlertTriangle className="w-4 h-4 text-danger flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <p className="text-sm text-danger font-medium">
-                Bentrok jadwal terdeteksi
+                Bentrok jadwal terdeteksi ({conflictingItems.length} Matkul)
               </p>
               <p className="text-xs text-danger/70 mt-0.5">
-                <span className="font-mono font-bold">II4042</span> Machine
-                Learning dan <span className="font-mono font-bold">II4045</span>{" "}
-                Data Visualization bentrok Selasa 10:00–12:00
+                {conflictingItems
+                  .map(
+                    (c) =>
+                      `${c.code} ${c.sectionCode ? `(${c.sectionCode})` : ""}`,
+                  )
+                  .join(" dan ")}{" "}
+                memiliki jam kuliah bertabrakan.
               </p>
             </div>
             <button

@@ -12,7 +12,7 @@ import {
 } from "lucide-react"
 import React, { useState } from "react"
 import { cn } from "./utils"
-import { Course } from "./data"
+import { Course, SCHEDULE, ScheduleItem } from "./data"
 
 // Pages
 import Dashboard from "./pages/Dashboard"
@@ -34,7 +34,7 @@ export default function App() {
     useState<Record<number, PlacedCourse[]> | null>(null)
   const [appliedPlanSummary, setAppliedPlanSummary] =
     useState<DegreePlanPayload["summary"] | null>(null)
-
+  const [activeSchedule, setActiveSchedule] = useState<ScheduleItem[]>(SCHEDULE)
   const handleApplyPlanFromChatbot = (payload: DegreePlanPayload) => {
     const mappedPlan: Record<number, PlacedCourse[]> = {}
     for (const [semStr, list] of Object.entries(payload.plan)) {
@@ -218,7 +218,7 @@ export default function App() {
         <div className="flex-1 overflow-auto p-4 md:p-8 relative">
           <div className="max-w-7xl mx-auto h-full">
             {activePage === "dashboard" && (
-              <Dashboard onNavigate={setActivePage} />
+              <Dashboard onNavigate={setActivePage} schedule={activeSchedule} />
             )}
             {activePage === "course-finder" && (
               <CourseFinder
@@ -233,6 +233,9 @@ export default function App() {
                 customPlan={customPlan}
                 appliedSummary={appliedPlanSummary}
                 onResetPlan={handleResetPlan}
+                onNavigate={setActivePage}
+                activeSchedule={activeSchedule}
+                onUpdateSchedule={setActiveSchedule}
               />
             )}
             {activePage === "chatbot" && (

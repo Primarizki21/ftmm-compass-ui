@@ -1,5 +1,5 @@
 import React from "react"
-import { Course, TIMETABLE_DAYS } from "../../data"
+import { Course, TIMETABLE_DAYS, ScheduleItem } from "../../data"
 
 export { TIMETABLE_DAYS }
 export const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8] as const
@@ -130,4 +130,7 @@ export interface DegreePlannerProps {
     note?: string
   } | null
   onResetPlan?: () => void
+  onNavigate?: (page: string) => void
+  activeSchedule?: ScheduleItem[]
+  onUpdateSchedule?: (schedule: ScheduleItem[]) => void
 }

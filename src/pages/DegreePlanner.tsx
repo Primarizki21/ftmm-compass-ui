@@ -20,6 +20,11 @@ import {
   ElectiveCourseBank,
 } from "../components/degree-planner/SemesterColumn"
 import CoursePickerModal from "../components/degree-planner/CoursePickerModal"
+import CourseInspectModal from "../components/degree-planner/CourseInspectModal"
+import ClassSelectorPanel, {
+  TimetableConflict,
+} from "../components/degree-planner/ClassSelectorPanel"
+import { getOfferingForCourse, ScheduleItem } from "../data"
 
 export type { PlacedCourse } from "../components/degree-planner/types"
 
@@ -29,6 +34,9 @@ export default function DegreePlanner({
   customPlan,
   appliedSummary,
   onResetPlan,
+  onNavigate,
+  activeSchedule,
+  onUpdateSchedule,
 }: DegreePlannerProps) {
   const [activeTab, setActiveTab] = useState<Tab>("roadmap")
   const [plan, setPlan] = useState<Record<number, PlacedCourse[]>>(
@@ -50,7 +58,18 @@ export default function DegreePlanner({
   )
   const [catalog, setCatalog] = useState<Course[]>(ALL_COURSES)
   const [availablePrograms, setAvailablePrograms] = useState<string[]>(PROGRAMS)
-
+  const [inspectCourse, setInspectCourse] = useState<{
+    course: PlacedCourse
+    sem: number
+  } | null>(null)
+  const [activeTimetableSem, setActiveTimetableSem] = useState<number>(5)
+  const [selectedSections, setSelectedSections] =
+    useState<Record<string, string>>({
+      II4042: "II4042-A",
+      II4045: "II4045-A",
+      KU2001: "KU2001-A",
+      II4050: "II4050-A",
+    })
   useEffect(() => {
     let isMounted = true
     fetchCatalog().then((res) => {
@@ -283,6 +302,131 @@ export default function DegreePlanner({
     }))
   }
 
+  const handleToggleStatus = (
+    courseId: string,
+    sem: number,
+    newStatus: "planned" | "wishlist",
+  ) => {
+    setPlan((prev) => ({
+      ...prev,
+      [sem]: (prev[sem] || []).map((c) =>
+        c.id === courseId ? { ...c, status: newStatus } : c,
+      ),
+    }))
+    if (inspectCourse && inspectCourse.course.id === courseId) {
+      setInspectCourse((prev) =>
+        prev
+          ? {
+              ...prev,
+              course: { ...prev.course, status: newStatus },
+            }
+          : null,
+      )
+    }
+  }
+
+  // Active semester courses for timetable view
+  const currentTimetableCourses = useMemo(
+    () => plan[activeTimetableSem] || [],
+    [plan, activeTimetableSem],
+  )
+
+  // Derive dynamic schedule items & detect conflicts
+  const { dynamicSchedule, conflicts } = useMemo(() => {
+    const COLOR_PALETTE = [
+      "bg-teal/20 text-navy border-teal/50",
+      "bg-gold/20 text-navy border-gold/50",
+      "bg-navy/10 text-navy border-navy/30",
+      "bg-purple-100 text-purple-900 border-purple-300",
+      "bg-blue-100 text-blue-900 border-blue-300",
+      "bg-emerald-100 text-emerald-900 border-emerald-300",
+    ]
+
+    const items: ScheduleItem[] = []
+    currentTimetableCourses.forEach((c, index) => {
+      const offering = getOfferingForCourse(c)
+      const chosenSectionId = selectedSections[c.id]
+      const section =
+        offering.sections.find((s) => s.sectionId === chosenSectionId) ||
+        offering.sections[0]
+
+      if (section) {
+        items.push({
+          id: `${c.id}-${section.sectionId}`,
+          course: c.name,
+          code: c.code || c.id,
+          sectionCode: section.sectionCode,
+          day: section.schedule.day,
+          start: section.schedule.start,
+          duration: section.schedule.duration,
+          color: COLOR_PALETTE[index % COLOR_PALETTE.length],
+          room: section.schedule.room,
+          lecturer: section.lecturer,
+        })
+      }
+    })
+
+    // Detect overlapping slots
+    const foundConflicts: TimetableConflict[] = []
+    for (let i = 0; i < items.length; i++) {
+      for (let j = i + 1; j < items.length; j++) {
+        const a = items[i]
+        const b = items[j]
+        const aEnd = a.start + a.duration
+        const bEnd = b.start + b.duration
+
+        if (a.day === b.day && a.start < bEnd && b.start < aEnd) {
+          a.conflict = true
+          b.conflict = true
+          foundConflicts.push({
+            courseA: a.course,
+            codeA: a.code,
+            sectionA: a.sectionCode || "Kelas",
+            courseB: b.course,
+            codeB: b.code,
+            sectionB: b.sectionCode || "Kelas",
+            day: a.day,
+            start: Math.max(a.start, b.start),
+            end: Math.min(aEnd, bEnd),
+          })
+        }
+      }
+    }
+
+    return { dynamicSchedule: items, conflicts: foundConflicts }
+  }, [currentTimetableCourses, selectedSections])
+
+  // Sync timetable schedule with parent state
+  useEffect(() => {
+    if (onUpdateSchedule) {
+      onUpdateSchedule(dynamicSchedule)
+    }
+  }, [dynamicSchedule, onUpdateSchedule])
+
+  const handleSelectSection = (courseId: string, sectionId: string) => {
+    setSelectedSections((prev) => ({
+      ...prev,
+      [courseId]: sectionId,
+    }))
+  }
+
+  // Auto-resolve conflicts by picking conflict-free section alternatives
+  const handleAutoResolveConflicts = () => {
+    const updated = { ...selectedSections }
+    currentTimetableCourses.forEach((c) => {
+      const offering = getOfferingForCourse(c)
+      if (offering.sections.length > 1) {
+        const alternate = offering.sections.find(
+          (s) => s.sectionId !== updated[c.id],
+        )
+        if (alternate) {
+          updated[c.id] = alternate.sectionId
+        }
+      }
+    })
+    setSelectedSections(updated)
+  }
+
   return (
     <div className="h-full flex flex-col animate-in fade-in duration-500">
       {/* Tab Bar */}
@@ -342,6 +486,7 @@ export default function DegreePlanner({
                     setPickerSem(s)
                     setPickerSearch("")
                   }}
+                  onSelectCourse={(c) => setInspectCourse({ course: c, sem })}
                 />
               ))}
             </div>
@@ -352,6 +497,9 @@ export default function DegreePlanner({
             pendingCourses={pendingCourses}
             onDragStartBank={handleDragStart}
             onDragEnd={handleDragEnd}
+            onSelectCourse={(c) =>
+              setInspectCourse({ course: c, sem: c.semester || 5 })
+            }
           />
 
           {/* Modal Pop-up: Tambah Manual */}
@@ -371,21 +519,100 @@ export default function DegreePlanner({
             onClose={() => setPickerSem(null)}
             onAddCourse={handleAddCourseFromModal}
           />
+
+          {/* Modal Pop-up: Inspeksi Silabus & Prasyarat In-Situ */}
+          <CourseInspectModal
+            course={inspectCourse ? inspectCourse.course : null}
+            currentSem={inspectCourse ? inspectCourse.sem : 1}
+            allPlan={plan}
+            onClose={() => setInspectCourse(null)}
+            onToggleStatus={handleToggleStatus}
+            onDeleteCourse={deleteCourse}
+            onOpenInCourseFinder={() => {
+              onNavigate?.("course-finder")
+            }}
+          />
         </>
       )}
 
       {/* ─── TAB: Jadwal Aktif ─── */}
       {activeTab === "timetable" && (
         <div className="flex-1 flex flex-col min-h-0">
-          <div className="mb-4 flex justify-between items-end flex-shrink-0">
+          {/* Timetable Header & Semester Picker */}
+          <div className="mb-4 flex flex-wrap justify-between items-center gap-3 flex-shrink-0">
             <div>
-              <h3 className="font-heading font-bold text-lg text-navy">
-                Jadwal Mingguan
-              </h3>
-              <p className="text-sm text-muted">Semester Ganjil 2024/2025</p>
+              <div className="flex items-center gap-2">
+                <h3 className="font-heading font-bold text-lg text-navy">
+                  Jadwal Kuliah Aktif
+                </h3>
+                <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-gold/15 text-navy border border-gold/30">
+                  Semester Ganjil 2024/2025
+                </span>
+              </div>
+              <p className="text-xs text-muted mt-0.5">
+                Konfigurasikan kelas perkuliahan mahasiswa untuk melihat jadwal
+                mingguan dan menyelesaikan bentrok waktu.
+              </p>
+            </div>
+
+            {/* Semester Switcher */}
+            <div className="flex items-center gap-1.5 bg-background p-1 rounded-xl border border-border">
+              <span className="text-xs text-muted font-medium px-2">
+                Tampilkan Semester:
+              </span>
+              {SEMESTERS.map((sem) => {
+                const count = (plan[sem] || []).length
+                const isActive = activeTimetableSem === sem
+                return (
+                  <button
+                    key={sem}
+                    type="button"
+                    onClick={() => setActiveTimetableSem(sem)}
+                    className={cn(
+                      "px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1",
+                      isActive
+                        ? "bg-navy text-white shadow-2xs"
+                        : "text-muted hover:text-navy hover:bg-navy/5",
+                    )}
+                  >
+                    <span>Sem {sem}</span>
+                    {count > 0 && (
+                      <span
+                        className={cn(
+                          "text-[9px] font-mono px-1 rounded-full",
+                          isActive
+                            ? "bg-white/20 text-white"
+                            : "bg-surface text-muted border border-border",
+                        )}
+                      >
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
             </div>
           </div>
-          <TimetableGrid schedule={SCHEDULE} days={TIMETABLE_DAYS} />
+
+          {/* Timetable Body: Left Class Selector & Right Grid */}
+          <div className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-4 min-h-0 overflow-y-auto lg:overflow-hidden pb-1">
+            {/* Left Column: Class Selector Panel (5 cols on desktop) */}
+            <div className="lg:col-span-5 h-[400px] lg:h-full min-h-0 flex flex-col">
+              <ClassSelectorPanel
+                activeSemester={activeTimetableSem}
+                semesterCourses={currentTimetableCourses}
+                selectedSections={selectedSections}
+                onSelectSection={handleSelectSection}
+                conflicts={conflicts}
+                onAutoResolveConflicts={handleAutoResolveConflicts}
+              />
+            </div>
+
+            {/* Right Column: Timetable Grid (7 cols on desktop) */}
+            <div className="lg:col-span-7 flex flex-col min-h-0 h-[520px] lg:h-full">
+              <TimetableGrid schedule={dynamicSchedule} days={TIMETABLE_DAYS} />
+            </div>
+          </div>
         </div>
       )}
     </div>
