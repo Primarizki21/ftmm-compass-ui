@@ -594,7 +594,16 @@ async def handle_chat_stream(request: ChatRequest) -> StreamingResponse:
 
 
 async def handle_validate_plan(request: PlanValidationRequest) -> PlanValidationResponse:
-    # Try forward to Chatbot microservice SSOT
+    # 1. Deterministic local validation (parity, DAG, SKS, religion limits)
+    local_val = validate_plan_constraints(
+        plan=request.plan,
+        riwayat_matkul_lulus=request.riwayat_matkul_lulus,
+        maks_sks_per_semester=request.maks_sks_per_semester,
+    )
+    if not local_val.is_valid:
+        return local_val
+
+    # 2. Forward to Chatbot microservice SSOT for supplemental checks if available
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
             payload = {
