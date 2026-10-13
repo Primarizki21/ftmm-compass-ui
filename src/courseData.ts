@@ -140,3 +140,113 @@ export const COURSES_BY_PROGRAM: Record<string, Course[]> = coursesByProgram
 export const ALL_COURSES: Course[] = PROGRAMS.flatMap(
   (p) => coursesByProgram[p] ?? [],
 )
+
+export interface ApiCourseItem {
+  id: string
+  code?: string | null
+  name: string
+  credits: number
+  semester: number
+  type: "Wajib" | "Pilihan"
+  parity: "odd" | "even"
+  desc?: string
+  program: string
+  prerequisites?: string[]
+}
+
+export interface ApiPaginationMeta {
+  total: number
+  page: number
+  per_page: number
+  total_pages: number
+}
+
+export interface ApiCoursesResponse {
+  source?: string
+  program_studi?: string | null
+  total_courses?: number
+  programs?: string[]
+  courses?: ApiCourseItem[]
+  data?: ApiCourseItem[]
+  meta?: ApiPaginationMeta
+}
+
+/** Fetches the official course catalog from the backend API with fallback to local cache. */
+export async function fetchCatalog(
+  program?: string,
+): Promise<{ courses: Course[] programs?: string[] } | null> {
+  try {
+    const queryParam =
+      program && program !== "all"
+        ? `?prodi=${encodeURIComponent(program)}`
+        : ""
+    const primaryUrl = `/api/v1/courses${queryParam}`
+    let res = await fetch(primaryUrl)
+    if (!res.ok) {
+      res = await fetch(`/api/courses${queryParam}`)
+    }
+    if (!res.ok) return null
+    const data: ApiCoursesResponse = await res.json()
+    const rawList = Array.isArray(data.courses)
+      ? data.courses
+      : Array.isArray(data.data)
+        ? data.data
+        : []
+    if (rawList.length === 0) return null
+
+    const courses: Course[] = rawList.map((c) => ({
+      id: c.id || `${slugify(c.program)}:${c.code || slugify(c.name)}`,
+      code: c.code || undefined,
+      name: c.name,
+      credits: Number(c.credits) || 0,
+      semester: Number(c.semester) || 1,
+      type: c.type === "Pilihan" ? "Pilihan" : "Wajib",
+      parity: c.parity === "even" ? "even" : "odd",
+      desc: c.desc || "",
+      program: c.program,
+      prerequisites: (c.prerequisites || []).map((p) => ({ id: p, name: p })),
+    }))
+
+    return {
+      courses,
+      programs:
+        data.programs && data.programs.length > 0 ? data.programs : undefined,
+    }
+  } catch {
+    return null
+  }
+}
+
+/** Searches course catalog using semantic/keyword course search endpoint. */
+export async function searchCatalog(
+  query: string,
+  program?: string,
+): Promise<Course[] | null> {
+  try {
+    const params = new URLSearchParams({ q: query })
+    if (program && program !== "all") {
+      params.set("prodi", program)
+    }
+    let res = await fetch(`/api/v1/courses/search?${params.toString()}`)
+    if (!res.ok) {
+      res = await fetch(`/api/courses/search?${params.toString()}`)
+    }
+    if (!res.ok) return null
+    const data = (await res.json()) as { results?: ApiCourseItem[] }
+    const results = data.results || []
+    return results.map((c) => ({
+      id: c.id || `${slugify(c.program)}:${c.code || slugify(c.name)}`,
+      code: c.code || undefined,
+      name: c.name,
+      credits: Number(c.credits) || 0,
+      semester: Number(c.semester) || 1,
+      type: c.type === "Pilihan" ? "Pilihan" : "Wajib",
+      parity: c.parity === "even" ? "even" : "odd",
+      desc: c.desc || "",
+      program: c.program,
+      prerequisites: (c.prerequisites || []).map((p) => ({ id: p, name: p })),
+    }))
+  } catch {
+    return null
+  }
+}

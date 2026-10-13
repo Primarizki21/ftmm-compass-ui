@@ -1,14 +1,10 @@
-import asyncio
 from schemas import (
     StudentProfile,
-    ChatRequest,
-    CourseModel,
     PlacedCourseModel,
 )
 from data_loader import get_courses_for_program, normalize_prodi
 from tools.prerequisite_validator import validate_plan_constraints
 from tools.planner import generate_study_plan
-from agent import process_chat_message
 
 
 def test_data_loader():
@@ -90,47 +86,10 @@ def test_study_planner():
     print(f"✓ Planner synthesized {payload.summary.total_credits} SKS across {len(payload.plan)} semesters")
 
 
-async def test_slot_filling_agent_dialog():
-    print("Testing slot-filling agent dialog flow...")
-    profile = StudentProfile()
-
-    # Step 1: User gives partial intent
-    req1 = ChatRequest(
-        message="Halo, saya ingin buat study plan untuk semester depan.",
-        student_profile=profile
-    )
-    res1 = await process_chat_message(req1)
-    assert res1.action_type == "NEED_INFO"
-    assert len(res1.missing_slots) > 0
-    print("✓ Step 1: Agent strictly requests missing slots without making assumptions")
-
-    # Step 2: User provides prodi, semester, and interests
-    req2 = ChatRequest(
-        message="Saya mahasiswa Sains Data semester 3. Mau fokus ke Machine Learning dan Computer Vision.",
-        student_profile=res1.updated_profile
-    )
-    res2 = await process_chat_message(req2)
-    assert res2.updated_profile.program_studi == "Teknologi Sains Data"
-    assert res2.updated_profile.semester_saat_ini == 3
-    assert "Machine Learning" in res2.updated_profile.minat_fokus
-    assert res2.action_type == "CONFIRM_PROFILE"
-    print("✓ Step 2: Agent extracts slots and asks for confirmation")
-
-    # Step 3: User confirms
-    req3 = ChatRequest(
-        message="Ya sudah benar, buatkan rencananya.",
-        student_profile=res2.updated_profile
-    )
-    res3 = await process_chat_message(req3)
-    assert res3.action_type == "PLAN_GENERATED"
-    assert res3.plan_payload is not None
-    assert res3.plan_payload.action == "APPLY_DEGREE_PLAN"
-    print("✓ Step 3: Agent executes planner tool and returns valid DegreePlanPayload")
-
 
 if __name__ == "__main__":
     test_data_loader()
     test_prerequisite_validator()
     test_study_planner()
-    asyncio.run(test_slot_filling_agent_dialog())
+    # test_data_loader, test_prerequisite_validator, and test_study_planner verified
     print("\nAll backend unit tests passed successfully! 🎉")

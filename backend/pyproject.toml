@@ -1,7 +1,7 @@
 [project]
 name = "ftmm-compass-backend"
 version = "1.0.0"
-description = "FastAPI backend service with LangChain agent and deterministic prerequisite validator for FTMM Compass"
+description = "FastAPI backend gateway and deterministic prerequisite validator for FTMM Compass"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [

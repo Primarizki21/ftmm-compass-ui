@@ -1,0 +1,14 @@
+node_modules
+dist
+.git
+.cache
+.venv
+backend/.venv
+*.pyc
+__pycache__
+.env
+.env.*
+*.log
+.backend-port
+tmp_*
+test_scratch_*

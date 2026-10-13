@@ -19,6 +19,7 @@ import Dashboard from "./pages/Dashboard"
 import CourseFinder from "./pages/CourseFinder"
 import DegreePlanner from "./pages/DegreePlanner"
 import Chatbot, { DegreePlanPayload } from "./pages/Chatbot"
+import Login from "./pages/Login"
 
 import mainLogo from "./imports/image-6.png"
 
@@ -36,7 +37,22 @@ export default function App() {
     useState<DegreePlanPayload["summary"] | null>(null)
 
   const handleApplyPlanFromChatbot = (payload: DegreePlanPayload) => {
-    setCustomPlan(payload.plan)
+    const mappedPlan: Record<number, Course[]> = {}
+    for (const [semStr, list] of Object.entries(payload.plan)) {
+      const sem = Number(semStr)
+      mappedPlan[sem] = (list || []).map((c) => ({
+        id: c.id || c.code || `${c.name}-${sem}`,
+        code: c.code,
+        name: c.name,
+        credits: c.credits || 3,
+        semester: c.semester || sem,
+        type: c.type === "Pilihan" ? "Pilihan" : "Wajib",
+        parity: c.parity === "even" ? "even" : "odd",
+        desc: "",
+        prerequisites: [],
+      }))
+    }
+    setCustomPlan(mappedPlan)
     setAppliedPlanSummary(payload.summary)
     setActivePage("degree-planner")
   }

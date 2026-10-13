@@ -13,6 +13,7 @@ import {
   RotateCcw,
 } from "lucide-react"
 import { cn } from "../utils"
+import MarkdownRenderer from "../components/MarkdownRenderer"
 
 export interface StudentProfileState {
   program_studi?: string | null
@@ -22,6 +23,17 @@ export interface StudentProfileState {
   target_kelulusan_semester?: number
   maks_sks_per_semester?: number
   is_confirmed_by_user?: boolean
+}
+
+export interface DegreePlanCourseItem {
+  id?: string
+  code?: string
+  name: string
+  credits?: number
+  semester?: number
+  type?: string
+  parity?: string
+  status?: string
 }
 
 export interface DegreePlanPayload {
@@ -34,7 +46,7 @@ export interface DegreePlanPayload {
     focus_tracks: string[]
     note?: string
   }
-  plan: Record<number, any[]>
+  plan: Record<number, DegreePlanCourseItem[]>
 }
 
 export interface ChatMessage {
@@ -44,13 +56,36 @@ export interface ChatMessage {
   plan_payload?: DegreePlanPayload | null
   action_type?: string
   applied?: boolean
+  routing_mode?: string
+  latency_ms?: number
 }
 
 interface ChatbotProps {
   onApplyPlan?: (payload: DegreePlanPayload) => void
 }
+const BACKEND_API_URL = import.meta.env.VITE_BACKEND_API_URL || "/api/v1/chat"
+const BACKEND_STREAM_URL =
+  import.meta.env.VITE_BACKEND_STREAM_URL || "/api/v1/chat/stream"
 
-const BACKEND_API_URL = import.meta.env.VITE_BACKEND_API_URL || "/api/chat"
+function sanitizeErrorMessage(raw?: string | null): string {
+  if (!raw) return ""
+  if (raw.includes("{") && raw.includes("}")) {
+    try {
+      const jsonMatch = raw.match(/\{[\s\S]*\}/)
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]) as {
+          error?: { message?: string }
+          detail?: string
+          message?: string
+        }
+        if (parsed.error?.message) return parsed.error.message
+        if (parsed.message) return parsed.message
+        if (parsed.detail) return parsed.detail
+      }
+    } catch {}
+  }
+  return raw
+}
 
 export default function Chatbot({ onApplyPlan }: ChatbotProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -73,205 +108,35 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
     is_confirmed_by_user: false,
   })
   const [appliedPlanId, setAppliedPlanId] = useState<string | null>(null)
+  const [backendStatus, setBackendStatus] = useState<{
+    status?: string
+    service?: string
+    ollama_online?: boolean
+    chatbot_service_online?: boolean
+    chatbot_model?: string
+    ollama?: {
+      online?: boolean
+      host?: string
+      default_model?: string
+    }
+  } | null>(null)
+
+  useEffect(() => {
+    fetch("/api/v1/health")
+      .then((res) =>
+        res.ok ? res.json() : fetch("/api/health").then((r) => r.json()),
+      )
+      .then((data) => {
+        if (data) setBackendStatus(data)
+      })
+      .catch(() => {})
+  }, [])
 
   const endOfMessagesRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages, isLoading])
-
-  // Client-side fallback if backend API is not responding
-  const clientFallbackProcess = (
-    text: string,
-    currentProf: StudentProfileState,
-  ) => {
-    const lower = text.toLowerCase()
-    const p = { ...currentProf }
-
-    if (
-      lower.includes("sains data") ||
-      lower.includes("data science") ||
-      lower.includes("tsd")
-    ) {
-      p.program_studi = "Teknologi Sains Data"
-    } else if (
-      lower.includes("rpl") ||
-      lower.includes("rekayasa perangkat lunak")
-    ) {
-      p.program_studi = "Rekayasa Perangkat Lunak"
-    }
-
-    const semMatch = lower.match(/semester\s*([1-8])|sem\s*([1-8])/)
-    if (semMatch) {
-      p.semester_saat_ini = parseInt(semMatch[1] || semMatch[2])
-    }
-
-    if (
-      lower.includes("machine learning") &&
-      !p.minat_fokus?.includes("Machine Learning")
-    ) {
-      p.minat_fokus = [...(p.minat_fokus || []), "Machine Learning"]
-    }
-    if (
-      lower.includes("vision") &&
-      !p.minat_fokus?.includes("Computer Vision")
-    ) {
-      p.minat_fokus = [...(p.minat_fokus || []), "Computer Vision"]
-    }
-
-    const isConfirming = /ya|benar|sesuai|oke|buatkan|setuju/i.test(lower)
-
-    if (!p.program_studi || !p.semester_saat_ini) {
-      return {
-        reply:
-          "Agar rencana studi tepat dan tidak ada salah asumsi, mohon sebutkan:\n1. Program Studi Anda di FTMM?\n2. Semester berapa yang sedang ditempuh saat ini?",
-        updatedProfile: p,
-        actionType: "NEED_INFO",
-        planPayload: null,
-      }
-    }
-
-    if (!p.minat_fokus || p.minat_fokus.length === 0) {
-      return {
-        reply: `Baik, mahasiswa ${p.program_studi} Semester ${p.semester_saat_ini}! Apa fokus topik/karir yang ingin Anda tuju? (Contoh: Machine Learning, Data Visualization, Cloud/DevOps)`,
-        updatedProfile: p,
-        actionType: "NEED_INFO",
-        planPayload: null,
-      }
-    }
-
-    if (!p.is_confirmed_by_user && !isConfirming) {
-      return {
-        reply: `Berikut rangkuman data rencana studimu:\n• **Prodi**: ${p.program_studi}\n• **Semester**: ${p.semester_saat_ini}\n• **Fokus**: ${p.minat_fokus.join(", ")}\n• **Target**: ${p.target_kelulusan_semester || 8} Semester\n\nApakah data di atas sudah benar? Balas **"Ya, buatkan"** untuk memproses.`,
-        updatedProfile: p,
-        actionType: "CONFIRM_PROFILE",
-        planPayload: null,
-      }
-    }
-
-    // Generate fallback plan payload
-    p.is_confirmed_by_user = true
-    const fallbackPayload: DegreePlanPayload = {
-      action: "APPLY_DEGREE_PLAN",
-      summary: {
-        program_studi: p.program_studi || "Teknologi Sains Data",
-        current_semester: p.semester_saat_ini || 3,
-        target_semester: p.target_kelulusan_semester || 7,
-        total_credits: 105,
-        focus_tracks: p.minat_fokus || ["Machine Learning"],
-        note: "Rencana studi tervalidasi memenuhi prasyarat FTMM.",
-      },
-      plan: {
-        1: [
-          {
-            id: "MA1101",
-            name: "Matematika I",
-            credits: 4,
-            semester: 1,
-            type: "Wajib",
-            parity: "odd",
-            status: "completed",
-          },
-          {
-            id: "FI1101",
-            name: "Fisika Dasar I",
-            credits: 4,
-            semester: 1,
-            type: "Wajib",
-            parity: "odd",
-            status: "completed",
-          },
-        ],
-        2: [
-          {
-            id: "MA1201",
-            name: "Matematika II",
-            credits: 4,
-            semester: 2,
-            type: "Wajib",
-            parity: "even",
-            status: "completed",
-          },
-          {
-            id: "IF1210",
-            name: "Dasar Pemrograman",
-            credits: 3,
-            semester: 2,
-            type: "Wajib",
-            parity: "even",
-            status: "completed",
-          },
-          {
-            id: "II2011",
-            name: "Aljabar Linear",
-            credits: 3,
-            semester: 2,
-            type: "Wajib",
-            parity: "even",
-            status: "completed",
-          },
-        ],
-        3: [
-          {
-            id: "II2012",
-            name: "Probabilitas & Statistik",
-            credits: 3,
-            semester: 3,
-            type: "Wajib",
-            parity: "odd",
-            status: "planned",
-          },
-          {
-            id: "II3011",
-            name: "Database Systems",
-            credits: 4,
-            semester: 3,
-            type: "Wajib",
-            parity: "odd",
-            status: "planned",
-          },
-        ],
-        5: [
-          {
-            id: "II4042",
-            name: "Machine Learning",
-            credits: 3,
-            semester: 5,
-            type: "Wajib",
-            parity: "odd",
-            status: "planned",
-          },
-          {
-            id: "II4045",
-            name: "Data Visualization",
-            credits: 3,
-            semester: 5,
-            type: "Pilihan",
-            parity: "odd",
-            status: "planned",
-          },
-        ],
-        6: [
-          {
-            id: "II4050",
-            name: "Deep Learning",
-            credits: 3,
-            semester: 6,
-            type: "Pilihan",
-            parity: "even",
-            status: "planned",
-          },
-        ],
-      },
-    }
-
-    return {
-      reply: `🎉 **Rencana studi telah berhasil disusun dan divalidasi!**\n\n• **Prodi**: ${fallbackPayload.summary.program_studi}\n• **Total SKS**: ${fallbackPayload.summary.total_credits} SKS\n• **Target Selesai**: Semester ${fallbackPayload.summary.target_semester}\n• **Fokus**: ${fallbackPayload.summary.focus_tracks.join(", ")}\n\nSemua rantai prasyarat (DAG) dan paritas semester Ganjil/Genap telah dipastikan valid. Klik tombol di bawah untuk menerapkannya langsung.`,
-      updatedProfile: p,
-      actionType: "PLAN_GENERATED",
-      planPayload: fallbackPayload,
-    }
-  }
 
   const handleSend = async (messageText?: string) => {
     const textToSend = messageText || input
@@ -283,13 +148,19 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
       content: textToSend,
     }
 
-    setMessages((prev) => [...prev, userMessage])
+    const assistantMsgId = `assistant-${Date.now()}`
+    const initialAssistantMessage: ChatMessage = {
+      id: assistantMsgId,
+      role: "assistant",
+      content: "",
+    }
+
+    setMessages((prev) => [...prev, userMessage, initialAssistantMessage])
     if (!messageText) setInput("")
     setIsLoading(true)
 
     try {
-      // Try calling FastAPI backend server
-      const response = await fetch(BACKEND_API_URL, {
+      const streamRes = await fetch(BACKEND_STREAM_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -302,32 +173,166 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
         }),
       })
 
-      if (response.ok) {
-        const data = await response.json()
-        setProfile(data.updated_profile)
-        const botMessage: ChatMessage = {
-          id: `assistant-${Date.now()}`,
-          role: "assistant",
-          content: data.reply,
-          plan_payload: data.plan_payload,
-          action_type: data.action_type,
+      if (streamRes.ok && streamRes.body) {
+        const reader = streamRes.body.getReader()
+        const decoder = new TextDecoder()
+        let accumulatedContent = ""
+        let buffer = ""
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split("\n")
+          buffer = lines.pop() || ""
+
+          for (const line of lines) {
+            const trimmed = line.trim()
+            if (!trimmed || !trimmed.startsWith("data:")) continue
+            const jsonStr = trimmed.replace(/^data:\s*/, "")
+            try {
+              const data = JSON.parse(jsonStr) as {
+                token?: string
+                done?: boolean
+                reply?: string
+                error?: { code?: string message?: string }
+                updated_profile?: StudentProfileState
+                plan_payload?: DegreePlanPayload
+                action_type?: string
+                routing_mode?: string
+                latency_ms?: number
+              }
+
+              if (data.error) {
+                accumulatedContent = `⚠️ **Layanan Tidak Tersedia**\n\n${data.error.message || "Gagal memproses permintaan."}`
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantMsgId
+                      ? {
+                          ...m,
+                          content: accumulatedContent,
+                          action_type: "GENERAL",
+                        }
+                      : m,
+                  ),
+                )
+                return
+              }
+
+              if (data.token) {
+                accumulatedContent += data.token
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantMsgId
+                      ? { ...m, content: accumulatedContent }
+                      : m,
+                  ),
+                )
+              }
+
+              if (data.done) {
+                if (
+                  data.reply &&
+                  (!accumulatedContent ||
+                    accumulatedContent.length < data.reply.length)
+                ) {
+                  accumulatedContent = data.reply
+                }
+                if (data.updated_profile) {
+                  setProfile(data.updated_profile)
+                }
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantMsgId
+                      ? {
+                          ...m,
+                          content: accumulatedContent,
+                          plan_payload: data.plan_payload,
+                          action_type: data.action_type || "GENERAL",
+                          routing_mode: data.routing_mode,
+                          latency_ms: data.latency_ms,
+                        }
+                      : m,
+                  ),
+                )
+              }
+            } catch {}
+          }
         }
-        setMessages((prev) => [...prev, botMessage])
+        return
+      }
+
+      // Standard non-streaming fallback
+      const fallbackRes = await fetch(BACKEND_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: textToSend,
+          history: messages.slice(-6).map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+          student_profile: profile,
+        }),
+      })
+
+      if (fallbackRes.ok) {
+        const data = await fallbackRes.json()
+        if (data.updated_profile) setProfile(data.updated_profile)
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantMsgId
+              ? {
+                  ...m,
+                  content: data.reply,
+                  plan_payload: data.plan_payload,
+                  action_type: data.action_type,
+                  routing_mode: data.routing_mode,
+                  latency_ms: data.latency_ms,
+                }
+              : m,
+          ),
+        )
       } else {
-        throw new Error("Backend non-200 response")
+        const errorData = (await fallbackRes.json().catch(() => null)) as {
+          error?: { code?: string message?: string }
+          detail?: string
+        } | null
+        const detail =
+          errorData?.error?.message ||
+          sanitizeErrorMessage(errorData?.detail) ||
+          "Gagal memproses pesan. Pastikan layanan backend dan microservice aktif."
+        const isRetry =
+          fallbackRes.status === 503 ||
+          errorData?.error?.code === "upstream_service_unavailable"
+        const retryNote = isRetry
+          ? "\n\n*Layanan AI sedang inisialisasi. Silakan ulangi dalam beberapa saat.*"
+          : ""
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantMsgId
+              ? {
+                  ...m,
+                  content: `⚠️ **Layanan Tidak Tersedia (${fallbackRes.status})**\n\n${detail}${retryNote}`,
+                  action_type: "GENERAL",
+                }
+              : m,
+          ),
+        )
       }
     } catch (err) {
-      // Fallback to client-side deterministic slot-filling
-      const fallbackResult = clientFallbackProcess(textToSend, profile)
-      setProfile(fallbackResult.updatedProfile)
-      const botMessage: ChatMessage = {
-        id: `assistant-${Date.now()}`,
-        role: "assistant",
-        content: fallbackResult.reply,
-        plan_payload: fallbackResult.planPayload,
-        action_type: fallbackResult.actionType,
-      }
-      setMessages((prev) => [...prev, botMessage])
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantMsgId
+            ? {
+                ...m,
+                content:
+                  "⚠️ **Koneksi Terputus**\n\nTidak dapat terhubung ke server FTMM Compass AI. Pastikan backend Gateway (`pnpm dev:backend`) dan kontainer Docker Chatbot (`ftmm-compass-chatbot`) telah aktif.",
+                action_type: "GENERAL",
+              }
+            : m,
+        ),
+      )
     } finally {
       setIsLoading(false)
     }
@@ -359,8 +364,18 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
                 Agentic Planner
               </span>
             </h3>
-            <p className="text-xs text-teal-light font-mono">
-              Online • FTMM Study Planner Harness
+            <p className="text-xs text-teal-light font-mono flex items-center gap-1.5">
+              <span
+                className={cn(
+                  "w-2 h-2 rounded-full",
+                  backendStatus?.chatbot_service_online
+                    ? "bg-teal animate-pulse"
+                    : "bg-orange",
+                )}
+              />
+              {backendStatus?.chatbot_service_online
+                ? `Online • Hybrid RAG-CAG (${backendStatus.chatbot_model || "Qwen2.5"})`
+                : "Chatbot Offline • Start Docker Service"}
             </p>
           </div>
         </div>
@@ -397,14 +412,29 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
             <div className="flex flex-col gap-2 flex-1">
               <div
                 className={cn(
-                  "p-4 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap shadow-sm",
+                  "p-4 rounded-2xl text-sm leading-relaxed shadow-sm",
                   msg.role === "user"
                     ? "bg-teal text-navy-dark rounded-tr-none font-medium"
                     : "bg-surface border border-border text-foreground rounded-tl-none",
                 )}
               >
-                {msg.content}
+                <MarkdownRenderer content={msg.content} role={msg.role} />
               </div>
+              {msg.role === "assistant" &&
+                (msg.routing_mode || msg.latency_ms !== undefined) && (
+                  <div className="flex items-center gap-2 px-1 text-[11px] text-muted font-mono">
+                    {msg.routing_mode && (
+                      <span className="px-1.5 py-0.5 rounded bg-navy/10 text-navy font-semibold text-[10px]">
+                        Engine: {msg.routing_mode}
+                      </span>
+                    )}
+                    {msg.latency_ms !== undefined && (
+                      <span>
+                        Inferensi: {(msg.latency_ms / 1000).toFixed(2)}s
+                      </span>
+                    )}
+                  </div>
+                )}
 
               {/* Interactive Degree Plan Action Card */}
               {msg.plan_payload && (

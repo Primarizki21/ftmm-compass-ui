@@ -1,6 +1,6 @@
 # FTMM Compass — Backend API
 
-FastAPI backend service for FTMM Compass, powering academic study plan synthesis, conversational slot-filling agent (`Compass AI`), and deterministic prerequisite graph validation.
+FastAPI backend gateway for FTMM Compass, powering academic study plan synthesis, Docker microservice proxying, and deterministic prerequisite graph validation.
 
 ---
 
@@ -9,7 +9,6 @@ FastAPI backend service for FTMM Compass, powering academic study plan synthesis
 ```
 backend/
 ├── app.py                     # FastAPI application, route endpoints, dynamic port discovery
-├── agent.py                   # Conversational slot-filling AI agent (Ollama / Qwen2.5)
 ├── schemas.py                 # Pydantic data schemas and validation contracts
 ├── data_loader.py             # Course catalog loader from frontend sources
 ├── tools/
@@ -52,12 +51,11 @@ cp .env.example .env
 
 | Variable | Default | Description |
 |---|---|---|
-| `BACKEND_PORT` | `8000` (auto-detect 8000–8050) | Listening port for FastAPI server |
+| `BACKEND_PORT` | `8001` (auto-detect 8001–8050) | Listening port for FastAPI server |
 | `HOST` | `0.0.0.0` | Bind host address |
-| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama API endpoint |
-| `LLM_MODEL` | `qwen2.5:3b-instruct` | LLM model tag for chat inference |
+| `CHATBOT_SERVICE_URL` | `http://127.0.0.1:8000` (host) / `http://ftmm-compass-chatbot:8000` (Docker) | Upstream URL for Chatbot AI microservice |
+| `CHATBOT_TIMEOUT_SECONDS` | `45.0` | Timeout in seconds for Chatbot microservice calls |
 | `CORS_ORIGINS` | `*` | Allowed CORS origins for frontend requests |
-
 ### 3. Run Development Server
 
 From within `backend/`:
@@ -71,20 +69,55 @@ pnpm dev:backend   # runs backend only
 pnpm dev:all       # runs backend and Vite frontend concurrently
 ```
 
-When started via `app.py`, the backend automatically finds an open port between 8000 and 8050, records it to `.backend-port`, and the Vite frontend proxy automatically routes `/api/*` calls.
+When started via `app.py`, the backend automatically finds an open port between 8001 and 8050, records it to `.backend-port`, and the Vite frontend proxy automatically routes `/api/*` calls.
 
+
+### 4. Run via Docker Compose (Multi-Container ftmm-network)
+
+Dalam lingkungan kontainer Docker terisolasi (Opsi B):
+```bash
+# 1. Pastikan bridge network bersama telah aktif
+docker network create ftmm-network 2>/dev/null || true
+
+# 2. Jalankan gateway & frontend
+docker compose up -d
+```
+Kontainer `ftmm-compass-gateway` secara otomatis terhubung ke `ftmm-network` dan berkomunikasi langsung dengan `http://ftmm-compass-chatbot:8000` via DNS internal Docker.
 ---
 
-## 📡 API Endpoints
+## 📡 API Endpoints (Dual-Tier REST Architecture)
 
-- `GET /api/health` — Health check & Ollama local server status.
-- `GET /api/courses?program={prodi}` — Retrieve course catalog with semester recommendations.
-- `POST /api/chat` — Conversational slot-filling endpoint for study plan consultation.
-- `POST /api/validate-plan` — Validate student study plans against prerequisite graph and semester parity constraints.
+### Canonical REST Endpoints (`/api/v1`)
+- `GET /api/v1/health` — Gateway health check, Ollama server status, and Docker Chatbot microservice connectivity.
+- `GET /api/v1/courses` — Official course catalog with adaptive pagination (`page`, `per_page`), semester filtering, and search (`q`). Proxies to Chatbot microservice SSOT with local dataset fallback.
+- `GET /api/v1/courses/search` — Keyword and semantic search for curriculum courses (`q`, `prodi`, `top_k`).
+- `POST /api/v1/chat` — Conversational study planner gateway to Hybrid RAG-CAG microservice.
+- `POST /api/v1/chat/stream` — Real-time Server-Sent Events (SSE) streaming endpoint for live token generation.
+- `POST /api/v1/plans/validations` — Validate student study plans against prerequisite graph DAG and semester parity constraints.
+- `POST /api/v1/plans` — Generate deterministic, DAG-validated degree plan from complete student profile.
+
+### Legacy Compatibility Endpoints (`/api`)
+- `GET /api/health` — Legacy health check alias.
+- `GET /api/courses` — Legacy courses catalog alias.
+- `GET /api/courses/search` — Legacy courses search alias.
+- `POST /api/chat` — Legacy chat alias.
+- `POST /api/chat/stream` — Legacy chat streaming alias.
+- `POST /api/plan/validate` — Legacy plan validation alias.
+- `POST /api/plan/generate` — Legacy plan generation alias.
 - `GET /docs` — Interactive OpenAPI / Swagger UI documentation.
 
----
-
+### Standard Error Envelope
+All 4xx and 5xx responses follow the standardized error payload:
+```json
+{
+  "detail": "Descriptive message",
+  "error": {
+    "code": "upstream_service_unavailable | upstream_timeout | validation_error | http_error",
+    "message": "Descriptive message",
+    "details": []
+  }
+}
+```
 ## 🧪 Testing
 
 Run automated unit and integration tests:
