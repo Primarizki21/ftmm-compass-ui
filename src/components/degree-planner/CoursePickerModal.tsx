@@ -290,9 +290,27 @@ export default function CoursePickerModal({
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center flex-wrap gap-2 mb-1">
+                      {course.prodiAbbr && (
+                        <span
+                          className="font-mono text-[9px] font-bold text-white bg-navy px-1.5 py-0.5 rounded tracking-wide"
+                          title={`Program: ${course.program}`}
+                        >
+                          {course.prodiAbbr}
+                        </span>
+                      )}
                       <span className="font-mono text-[10px] font-bold text-navy bg-navy/8 px-1.5 py-0.5 rounded">
                         {course.code || course.id}
                       </span>
+                      {course.category === "pdb_univ" && (
+                        <span className="text-[9px] font-bold bg-purple-100 text-purple-800 border border-purple-200 px-1.5 py-0.5 rounded">
+                          PDB Univ
+                        </span>
+                      )}
+                      {course.category === "pdb_faculty" && (
+                        <span className="text-[9px] font-bold bg-teal/20 text-navy border border-teal/40 px-1.5 py-0.5 rounded">
+                          PDB FTMM
+                        </span>
+                      )}
                       <span
                         className={cn(
                           "text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded",
@@ -306,11 +324,6 @@ export default function CoursePickerModal({
                       <span className="text-[10px] text-muted font-mono">
                         {course.credits} SKS • Sem {course.semester}
                       </span>
-                      {course.program && (
-                        <span className="text-[10px] text-muted truncate max-w-[200px] hidden sm:inline">
-                          • {course.program}
-                        </span>
-                      )}
                     </div>
                     <h4 className="font-medium text-sm text-foreground leading-tight truncate">
                       {course.name}

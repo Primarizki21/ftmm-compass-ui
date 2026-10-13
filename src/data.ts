@@ -10,12 +10,18 @@ export interface WorkloadInfo {
   labCredits: number
 }
 
+export type CourseCategory = "pdb_univ" | "pdb_faculty" | "prodi"
+
 export interface Course {
   id: string
   /** Official course code (e.g. EF401); differs from id when ids are program-scoped. */
   code?: string
   /** Owning study program, set for courses loaded from the curriculum catalog. */
   program?: string
+  /** Short abbreviation of owning program (e.g. TI, TSD, TRKB, TE, RN). */
+  prodiAbbr?: string
+  /** Academic category distinguishing universal PDB, FTMM faculty PDB, and prodi-specific courses. */
+  category?: CourseCategory
   name: string
   credits: number
   semester: number

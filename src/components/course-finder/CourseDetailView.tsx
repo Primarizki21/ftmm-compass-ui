@@ -1,5 +1,11 @@
 import React from "react"
-import { ArrowLeft, CheckCircle2, Plus } from "lucide-react"
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Plus,
+  GraduationCap,
+  BookOpen,
+} from "lucide-react"
 import { cn } from "../../utils"
 import { Course } from "../../data"
 import PrerequisiteDiagram from "./PrerequisiteDiagram"
@@ -30,9 +36,19 @@ export default function CourseDetailView({
           <ArrowLeft className="w-4 h-4" /> Kembali ke Daftar Matkul
         </button>
         <div className="relative z-10">
-          <span className="font-mono text-teal-light font-bold">
-            {course.code ?? course.id}
-          </span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-mono text-teal-light font-bold">
+              {course.code ?? course.id}
+            </span>
+            {course.prodiAbbr && (
+              <span
+                className="px-2 py-0.5 rounded font-mono text-xs font-bold bg-white/20 text-white tracking-wide"
+                title={`Program Studi: ${course.program}`}
+              >
+                {course.prodiAbbr} &bull; {course.program}
+              </span>
+            )}
+          </div>
           <h1 className="font-heading text-3xl font-bold mt-1 mb-4">
             {course.name}
           </h1>
@@ -52,11 +68,82 @@ export default function CourseDetailView({
                 ? "Ganjil (1, 3, 5, 7)"
                 : "Genap (2, 4, 6, 8)"}
             </span>
+            {course.category === "pdb_univ" && (
+              <span className="px-3 py-1 bg-purple-500/30 text-purple-200 border border-purple-300/40 rounded-md text-sm font-bold backdrop-blur-sm">
+                PDB Universitas (Campur se-UNAIR)
+              </span>
+            )}
+            {course.category === "pdb_faculty" && (
+              <span className="px-3 py-1 bg-teal/30 text-teal-light border border-teal/40 rounded-md text-sm font-bold backdrop-blur-sm">
+                PDB FTMM (Sains Dasar)
+              </span>
+            )}
           </div>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto space-y-4 pb-4">
+        {/* Academic Classification Callout */}
+        {course.category === "pdb_univ" && (
+          <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 flex items-start gap-3">
+            <div className="p-2 bg-purple-100 text-purple-700 rounded-lg flex-shrink-0 mt-0.5">
+              <GraduationCap className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-heading font-bold text-sm text-purple-900 mb-1">
+                Pembelajaran Dasar Bersama (PDB) Tingkat Universitas
+              </h3>
+              <p className="text-xs text-purple-800 leading-relaxed">
+                Mata kuliah wajib kurikulum nasional/universitas yang
+                diselenggarakan oleh Direktorat Pendidikan UNAIR. Kelas diikuti
+                secara heterogen oleh mahasiswa dari berbagai fakultas di UNAIR
+                (Fakultas Teknologi Maju dan Multidisiplin, Kedokteran, Ekonomi
+                dan Bisnis, Hukum, dll.) pada tahun pertama (Semester 1–2).
+              </p>
+            </div>
+          </div>
+        )}
+
+        {course.category === "pdb_faculty" && (
+          <div className="bg-teal/10 border border-teal/30 rounded-xl p-4 flex items-start gap-3">
+            <div className="p-2 bg-teal/20 text-navy rounded-lg flex-shrink-0 mt-0.5">
+              <BookOpen className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-heading font-bold text-sm text-navy mb-1">
+                Mata Kuliah Dasar Bersama Fakultas (FTMM)
+              </h3>
+              <p className="text-xs text-navy/80 leading-relaxed">
+                Mata kuliah dasar sains dan teknologi bersama (STEM Dasar FTMM).
+                Kurikulum ini diambil secara bersamaan oleh seluruh mahasiswa
+                dari 5 program studi di lingkungan FTMM (TI, TSD, TRKB, TE, dan
+                RN) pada Semester 1 dan 2.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {course.category === "prodi" &&
+          course.name.toLowerCase().includes("agama") && (
+            <div className="bg-navy/5 border border-navy/15 rounded-xl p-4 flex items-start gap-3">
+              <div className="p-2 bg-navy/10 text-navy rounded-lg flex-shrink-0 mt-0.5">
+                <BookOpen className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-heading font-bold text-sm text-navy mb-1">
+                  Mata Kuliah Agama Lanjutan (Kelas Khusus Program Studi{" "}
+                  {course.prodiAbbr})
+                </h3>
+                <p className="text-xs text-foreground/80 leading-relaxed">
+                  Berbeda dengan mata kuliah Agama 1 di semester 1 yang
+                  merupakan kelas campur PDB se-UNAIR, mata kuliah Agama 2 ini
+                  berfokus pada etika keilmuan dan profesi yang diselenggarakan
+                  khusus dalam kelas per program studi.
+                </p>
+              </div>
+            </div>
+          )}
+
         {/* Description + Workload */}
         <div className="bg-surface rounded-xl border border-border p-6">
           <h3 className="font-heading font-bold text-lg text-navy mb-3">

@@ -430,6 +430,7 @@ PRODI_ALIASES = {
     "robotika dan kecerdasan buatan": "Teknik Robotika dan Kecerdasan Buatan",
     "robotika": "Teknik Robotika dan Kecerdasan Buatan",
     "trkb": "Teknik Robotika dan Kecerdasan Buatan",
+    "s1 rekayasa nanoteknologi": "Rekayasa Nanoteknologi",
     "rekayasa nanoteknologi": "Rekayasa Nanoteknologi",
     "nanoteknologi": "Rekayasa Nanoteknologi",
     "nano": "Rekayasa Nanoteknologi",

@@ -1,8 +1,14 @@
 import React from "react"
-import { X, CheckCircle2, Plus, ChevronRight } from "lucide-react"
+import {
+  X,
+  CheckCircle2,
+  Plus,
+  ChevronRight,
+  GraduationCap,
+  BookOpen,
+} from "lucide-react"
 import { cn } from "../../utils"
 import { Course } from "../../data"
-
 export interface CourseQuickModalProps {
   course: Course | null
   addedCourseIds: Set<string>
@@ -44,9 +50,19 @@ export default function CourseQuickModal({
             <X className="w-5 h-5" />
           </button>
           <div className="relative z-10">
-            <span className="font-mono text-teal-light font-bold text-sm">
-              {course.code ?? course.id}
-            </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-mono text-teal-light font-bold text-sm">
+                {course.code ?? course.id}
+              </span>
+              {course.prodiAbbr && (
+                <span
+                  className="px-2 py-0.5 bg-white/20 text-white rounded text-xs font-mono font-bold tracking-wide"
+                  title={`Program Studi: ${course.program}`}
+                >
+                  {course.prodiAbbr}
+                </span>
+              )}
+            </div>
             <h2 className="font-heading text-2xl font-bold mt-1 mb-4">
               {course.name}
             </h2>
@@ -63,12 +79,78 @@ export default function CourseQuickModal({
               <span className="px-2.5 py-1 bg-white/10 rounded-md text-xs font-medium backdrop-blur-sm">
                 {course.parity === "odd" ? "Sem Ganjil" : "Sem Genap"}
               </span>
+              {course.category === "pdb_univ" && (
+                <span className="px-2.5 py-1 bg-purple-500/30 text-purple-200 border border-purple-300/40 rounded-md text-xs font-bold backdrop-blur-sm">
+                  PDB Univ (Campur)
+                </span>
+              )}
+              {course.category === "pdb_faculty" && (
+                <span className="px-2.5 py-1 bg-teal/30 text-teal-light border border-teal/40 rounded-md text-xs font-bold backdrop-blur-sm">
+                  PDB FTMM (Sains Dasar)
+                </span>
+              )}
             </div>
           </div>
         </div>
 
         {/* Modal Body */}
         <div className="p-6 overflow-y-auto flex-1 space-y-5">
+          {course.category === "pdb_univ" && (
+            <div className="bg-purple-50 border border-purple-200 rounded-xl p-3.5 flex items-start gap-3">
+              <div className="p-1.5 bg-purple-100 text-purple-700 rounded-lg flex-shrink-0 mt-0.5">
+                <GraduationCap className="w-4 h-4" />
+              </div>
+              <div className="text-xs">
+                <div className="font-bold text-purple-900 mb-0.5">
+                  Mata Kuliah PDB Universitas (Kelas Campur)
+                </div>
+                <p className="text-purple-800 leading-relaxed">
+                  Pembelajaran Dasar Bersama (PDB) Universitas Airlangga. Kelas
+                  diikuti secara gabungan oleh mahasiswa dari berbagai fakultas
+                  se-UNAIR (Semester 1–2).
+                </p>
+              </div>
+            </div>
+          )}
+
+          {course.category === "pdb_faculty" && (
+            <div className="bg-teal/10 border border-teal/30 rounded-xl p-3.5 flex items-start gap-3">
+              <div className="p-1.5 bg-teal/20 text-navy rounded-lg flex-shrink-0 mt-0.5">
+                <BookOpen className="w-4 h-4" />
+              </div>
+              <div className="text-xs">
+                <div className="font-bold text-navy mb-0.5">
+                  Mata Kuliah Dasar Bersama FTMM (STEM Dasar)
+                </div>
+                <p className="text-navy/80 leading-relaxed">
+                  Mata kuliah dasar sains dan rekayasa bersama tingkat fakultas.
+                  Diikuti oleh mahasiswa seluruh program studi di FTMM (Semester
+                  1–2).
+                </p>
+              </div>
+            </div>
+          )}
+
+          {course.category === "prodi" &&
+            course.name.toLowerCase().includes("agama") && (
+              <div className="bg-navy/5 border border-navy/15 rounded-xl p-3.5 flex items-start gap-3">
+                <div className="p-1.5 bg-navy/10 text-navy rounded-lg flex-shrink-0 mt-0.5">
+                  <BookOpen className="w-4 h-4" />
+                </div>
+                <div className="text-xs">
+                  <div className="font-bold text-navy mb-0.5">
+                    Mata Kuliah Agama Lanjutan (Kelas Khusus Prodi{" "}
+                    {course.prodiAbbr})
+                  </div>
+                  <p className="text-foreground/80 leading-relaxed">
+                    Mata kuliah etika profesi keagamaan tingkat lanjut. Berbeda
+                    dengan Agama 1, kelas ini diselenggarakan khusus per program
+                    studi.
+                  </p>
+                </div>
+              </div>
+            )}
+
           <div>
             <h3 className="text-xs font-bold text-navy uppercase tracking-wider mb-2">
               Deskripsi
@@ -77,7 +159,6 @@ export default function CourseQuickModal({
               {course.desc}
             </p>
           </div>
-
           {course.prerequisites && course.prerequisites.length > 0 && (
             <div>
               <h3 className="text-xs font-bold text-navy uppercase tracking-wider mb-2">

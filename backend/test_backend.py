@@ -13,6 +13,7 @@ def test_data_loader():
         ("Teknologi Sains Data", "Teknologi Sains Data"),
         ("trkb", "Teknik Robotika dan Kecerdasan Buatan"),
         ("rn", "Rekayasa Nanoteknologi"),
+        ("s1 rekayasa nanoteknologi", "Rekayasa Nanoteknologi"),
         ("ti", "Teknik Industri"),
         ("te", "Teknik Elektro"),
     ]:

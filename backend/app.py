@@ -289,21 +289,39 @@ async def handle_list_courses(
             resp = await client.get(f"{CHATBOT_SERVICE_URL}/api/courses", params=params)
             if resp.status_code == 200:
                 data = resp.json()
+                raw_programs = [
+                    p.replace("S1 ", "").strip() if isinstance(p, str) else p
+                    for p in data.get("programs", [])
+                ]
+                clean_prodi = (
+                    data.get("program_studi", "").replace("S1 ", "").strip()
+                    if data.get("program_studi")
+                    else norm_prodi
+                )
+                raw_courses = data.get("courses", [])
+                for c in raw_courses:
+                    if isinstance(c, dict) and "program" in c and isinstance(c["program"], str):
+                        c["program"] = c["program"].replace("S1 ", "").strip()
+
                 # If paginated shape
                 if "meta" in data and "data" in data:
+                    raw_paged = data.get("data", [])
+                    for c in raw_paged:
+                        if isinstance(c, dict) and "program" in c and isinstance(c["program"], str):
+                            c["program"] = c["program"].replace("S1 ", "").strip()
                     return {
                         "source": "chatbot_ssot",
-                        "data": data.get("data", []),
+                        "data": raw_paged,
                         "meta": data.get("meta"),
                         "links": data.get("links"),
-                        "program_studi": data.get("program_studi") or norm_prodi,
+                        "program_studi": clean_prodi or norm_prodi,
                     }
                 return {
                     "source": "chatbot_ssot",
-                    "program_studi": data.get("program_studi") or norm_prodi or "Semua Program Studi",
-                    "total_courses": data.get("total_courses", len(data.get("courses", []))),
-                    "programs": data.get("programs", []),
-                    "courses": data.get("courses", []),
+                    "program_studi": clean_prodi or norm_prodi or "Semua Program Studi",
+                    "total_courses": data.get("total_courses", len(raw_courses)),
+                    "programs": raw_programs,
+                    "courses": raw_courses,
                 }
     except Exception:
         pass

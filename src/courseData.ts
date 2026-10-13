@@ -1,4 +1,4 @@
-import { Course, PrerequisiteNode } from "./data"
+import { Course, CourseCategory, PrerequisiteNode } from "./data"
 
 /**
  * Loads the FTMM curriculum silabus JSONs from /Ekstrak (gitignored, local-only)
@@ -86,14 +86,110 @@ function slugify(s: string): string {
     .replace(/(^-|-$)/g, "")
 }
 
+export const PROGRAM_ABBREVIATIONS: Record<string, string> = {
+  "Teknik Industri": "TI",
+  "Teknologi Sains Data": "TSD",
+  "Teknik Robotika dan Kecerdasan Buatan": "TRKB",
+  "Teknik Elektro": "TE",
+  "Rekayasa Nanoteknologi": "RN",
+}
+
+export function normalizeProgramName(raw?: string): string {
+  if (!raw) return ""
+  return raw.replace(/^S1\s+/i, "").trim()
+}
+
+export function getProdiAbbreviation(program?: string): string {
+  if (!program) return ""
+  const normalized = normalizeProgramName(program)
+  return PROGRAM_ABBREVIATIONS[normalized] || normalized
+}
+
+export function classifyCourseCategory(course: {
+  code?: string
+  name: string
+  semester: number
+}): CourseCategory {
+  const code = (course.code || "").toUpperCase().trim()
+  const nl = course.name.toLowerCase().trim()
+  const sem = Number(course.semester) || 1
+
+  // Agama 2 is specifically taught per-prodi in upper semesters (Sem >= 5 or code AGI401, AGI102)
+  if (
+    nl.includes("agama") &&
+    (sem >= 5 ||
+      code.includes("401") ||
+      code.includes("102") ||
+      nl.includes(" ii") ||
+      (nl.includes("2") && !nl.includes("1")))
+  ) {
+    return "prodi"
+  }
+
+  // PDB Universitas: Semester 1 or 2 MKWU Nasional & Universitas (mixed across UNAIR faculties)
+  if (sem <= 2) {
+    if (
+      nl.includes("agama") ||
+      nl.includes("pancasila") ||
+      nl.includes("kewarganegaraan") ||
+      nl.includes("bahasa indonesia") ||
+      nl.includes("pemikiran kritis") ||
+      nl.includes("pengembangan diri") ||
+      nl.includes("kolaborasi keilmuan") ||
+      [
+        "NOP103",
+        "NOP104",
+        "BAI101",
+        "BA1101",
+        "PHP103",
+        "BHP103",
+        "MNM106",
+        "MNM107",
+      ].includes(code)
+    ) {
+      return "pdb_univ"
+    }
+
+    // PDB FTMM: Semester 1 or 2 basic STEM courses shared across FTMM
+    if (
+      nl.includes("data dan pustaka") ||
+      nl.includes("pengantar teknologi maju") ||
+      nl.includes("fisika dasar") ||
+      nl.includes("kimia dasar") ||
+      nl.includes("biologi dasar") ||
+      nl === "matematika" ||
+      nl === "matematika i" ||
+      nl === "kalkulus i" ||
+      nl === "kalkulus 1" ||
+      [
+        "SIP107",
+        "TNM101",
+        "MAT108",
+        "MAA103",
+        "MA1101",
+        "FID101",
+        "FID103",
+        "KID101",
+        "KID105",
+        "BID101",
+      ].includes(code)
+    ) {
+      return "pdb_faculty"
+    }
+  }
+
+  return "prodi"
+}
+
 const coursesByProgram: Record<string, Course[]> = {}
 
 for (const [path, mod] of Object.entries(modules)) {
   const cur = mod?.default ?? {}
   const fileName = path.split("/").pop() ?? path
-  const program =
+  const rawProgram =
     cur.metadata?.program_studi?.trim() ||
     fileName.replace(/^FIX\s*/i, "").replace(/\.json$/i, "")
+  const program = normalizeProgramName(rawProgram)
 
   const seen = new Set<string>()
   const usedIds = new Set<string>()
@@ -125,6 +221,8 @@ for (const [path, mod] of Object.entries(modules)) {
       parity: semester % 2 === 1 ? "odd" : "even",
       prerequisites: toPrereqNodes(m.prasyarat),
       program,
+      prodiAbbr: getProdiAbbreviation(program),
+      category: classifyCourseCategory({ code, name, semester }),
     })
   })
 }
@@ -195,20 +293,25 @@ export async function fetchCatalog(
     const usedIds = new Set<string>()
     const courses: Course[] = rawList.map((c, i) => {
       const baseCode = c.code || c.id || `mk-${i + 1}`
-      let id = `${slugify(c.program || "ftmm")}:${baseCode}`
+      const normProgram = normalizeProgramName(c.program || "ftmm")
+      let id = `${slugify(normProgram)}:${baseCode}`
       if (usedIds.has(id)) id += `-${slugify(c.name)}`
       while (usedIds.has(id)) id += "-x"
       usedIds.add(id)
+      const semester = Number(c.semester) || 1
+      const code = c.code || c.id || undefined
       return {
         id,
-        code: c.code || c.id || undefined,
+        code,
         name: c.name,
         credits: Number(c.credits) || 0,
-        semester: Number(c.semester) || 1,
+        semester,
         type: c.type === "Pilihan" ? "Pilihan" : "Wajib",
         parity: c.parity === "even" ? "even" : "odd",
         desc: c.desc || "",
-        program: c.program,
+        program: normProgram,
+        prodiAbbr: getProdiAbbreviation(normProgram),
+        category: classifyCourseCategory({ code, name: c.name, semester }),
         prerequisites: (c.prerequisites || []).map((p) => ({
           id: p,
           name: p,
@@ -219,7 +322,11 @@ export async function fetchCatalog(
     return {
       courses,
       programs:
-        data.programs && data.programs.length > 0 ? data.programs : undefined,
+        data.programs && data.programs.length > 0
+          ? Array.from(new Set(data.programs.map(normalizeProgramName))).sort(
+              (a, b) => a.localeCompare(b),
+            )
+          : undefined,
     }
   } catch {
     return null
