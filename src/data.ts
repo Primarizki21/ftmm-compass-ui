@@ -10,7 +10,7 @@ export interface WorkloadInfo {
   labCredits: number
 }
 
-export type CourseCategory = "pdb_univ" | "pdb_faculty" | "prodi"
+export type CourseCategory = "pdb_univ" | "pdb_saintek" | "prodi"
 
 export interface Course {
   id: string

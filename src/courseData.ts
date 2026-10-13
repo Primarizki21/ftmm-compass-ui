@@ -126,8 +126,9 @@ export function classifyCourseCategory(course: {
     return "prodi"
   }
 
-  // PDB Universitas: Semester 1 or 2 MKWU Nasional & Universitas (mixed across UNAIR faculties)
+  // Semester 1 or 2 foundational courses
   if (sem <= 2) {
+    // PDB Universitas (MKWU Nasional/Universitas + Dasar Saintek Universitas non-praktikum)
     if (
       nl.includes("agama") ||
       nl.includes("pancasila") ||
@@ -136,6 +137,14 @@ export function classifyCourseCategory(course: {
       nl.includes("pemikiran kritis") ||
       nl.includes("pengembangan diri") ||
       nl.includes("kolaborasi keilmuan") ||
+      nl.includes("data dan pustaka") ||
+      nl.includes("biologi dasar") ||
+      nl.includes("kimia dasar") ||
+      nl.includes("fisika dasar") ||
+      nl === "matematika" ||
+      nl === "matematika i" ||
+      nl === "kalkulus i" ||
+      nl === "kalkulus 1" ||
       [
         "NOP103",
         "NOP104",
@@ -145,25 +154,7 @@ export function classifyCourseCategory(course: {
         "BHP103",
         "MNM106",
         "MNM107",
-      ].includes(code)
-    ) {
-      return "pdb_univ"
-    }
-
-    // PDB FTMM: Semester 1 or 2 basic STEM courses shared across FTMM
-    if (
-      nl.includes("data dan pustaka") ||
-      nl.includes("pengantar teknologi maju") ||
-      nl.includes("fisika dasar") ||
-      nl.includes("kimia dasar") ||
-      nl.includes("biologi dasar") ||
-      nl === "matematika" ||
-      nl === "matematika i" ||
-      nl === "kalkulus i" ||
-      nl === "kalkulus 1" ||
-      [
         "SIP107",
-        "TNM101",
         "MAT108",
         "MAA103",
         "MA1101",
@@ -174,7 +165,16 @@ export function classifyCourseCategory(course: {
         "BID101",
       ].includes(code)
     ) {
-      return "pdb_faculty"
+      return "pdb_univ"
+    }
+
+    // PDB Saintek (Mata kuliah bersama saintek terapan FTMM)
+    if (
+      nl.includes("pengantar teknologi maju") ||
+      nl.includes("teknologi hijau") ||
+      ["TNM101", "TNM102"].includes(code)
+    ) {
+      return "pdb_saintek"
     }
   }
 

@@ -182,7 +182,7 @@ export default function CourseFinder({
               >
                 <span className="font-mono font-bold">{abbr}</span>
                 <span className="hidden sm:inline font-normal text-[11px] opacity-80">
-                  {p.replace(/^(Teknik|Teknologi)\s+/i, "")}
+                  &bull; {p}
                 </span>
               </button>
             )
@@ -261,10 +261,8 @@ export default function CourseFinder({
                 aria-label="Filter Kategori PDB"
               >
                 <option value="all">Kategori: Semua</option>
-                <option value="pdb_univ">
-                  PDB Universitas (Campur se-UNAIR)
-                </option>
-                <option value="pdb_faculty">PDB FTMM (Sains Dasar)</option>
+                <option value="pdb_univ">PDB Universitas</option>
+                <option value="pdb_saintek">PDB Saintek</option>
                 <option value="prodi">Mata Kuliah Prodi</option>
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-muted">
@@ -323,17 +321,17 @@ export default function CourseFinder({
                       {course.category === "pdb_univ" && (
                         <span
                           className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200 flex-shrink-0"
-                          title="PDB Universitas: Kelas Campur Seluruh Fakultas UNAIR (Semester 1–2)"
+                          title="PDB Universitas (Semester 1–2)"
                         >
                           PDB Univ
                         </span>
                       )}
-                      {course.category === "pdb_faculty" && (
+                      {course.category === "pdb_saintek" && (
                         <span
                           className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-teal/20 text-navy border border-teal/40 flex-shrink-0"
-                          title="PDB FTMM: Dasar Sains & Rekayasa Bersama FTMM (Semester 1–2)"
+                          title="PDB Saintek (Semester 1–2)"
                         >
-                          PDB FTMM
+                          PDB Saintek
                         </span>
                       )}
                     </div>

@@ -9,6 +9,7 @@ import {
 } from "lucide-react"
 import { cn } from "../../utils"
 import { Course } from "../../data"
+import CourseDescriptionView from "./CourseDescriptionView"
 export interface CourseQuickModalProps {
   course: Course | null
   addedCourseIds: Set<string>
@@ -81,12 +82,12 @@ export default function CourseQuickModal({
               </span>
               {course.category === "pdb_univ" && (
                 <span className="px-2.5 py-1 bg-purple-500/30 text-purple-200 border border-purple-300/40 rounded-md text-xs font-bold backdrop-blur-sm">
-                  PDB Univ (Campur)
+                  PDB Universitas
                 </span>
               )}
-              {course.category === "pdb_faculty" && (
+              {course.category === "pdb_saintek" && (
                 <span className="px-2.5 py-1 bg-teal/30 text-teal-light border border-teal/40 rounded-md text-xs font-bold backdrop-blur-sm">
-                  PDB FTMM (Sains Dasar)
+                  PDB Saintek
                 </span>
               )}
             </div>
@@ -102,30 +103,30 @@ export default function CourseQuickModal({
               </div>
               <div className="text-xs">
                 <div className="font-bold text-purple-900 mb-0.5">
-                  Mata Kuliah PDB Universitas (Kelas Campur)
+                  Mata Kuliah PDB Universitas
                 </div>
                 <p className="text-purple-800 leading-relaxed">
-                  Pembelajaran Dasar Bersama (PDB) Universitas Airlangga. Kelas
-                  diikuti secara gabungan oleh mahasiswa dari berbagai fakultas
-                  se-UNAIR (Semester 1–2).
+                  Pembelajaran Dasar Bersama (PDB) Universitas Airlangga.
+                  Meliputi mata kuliah wajib kurikulum nasional/universitas dan
+                  sains dasar yang diselenggarakan secara terpusat untuk
+                  mahasiswa tingkat pertama (Semester 1–2).
                 </p>
               </div>
             </div>
           )}
 
-          {course.category === "pdb_faculty" && (
+          {course.category === "pdb_saintek" && (
             <div className="bg-teal/10 border border-teal/30 rounded-xl p-3.5 flex items-start gap-3">
               <div className="p-1.5 bg-teal/20 text-navy rounded-lg flex-shrink-0 mt-0.5">
                 <BookOpen className="w-4 h-4" />
               </div>
               <div className="text-xs">
                 <div className="font-bold text-navy mb-0.5">
-                  Mata Kuliah Dasar Bersama FTMM (STEM Dasar)
+                  Mata Kuliah PDB Saintek
                 </div>
                 <p className="text-navy/80 leading-relaxed">
-                  Mata kuliah dasar sains dan rekayasa bersama tingkat fakultas.
-                  Diikuti oleh mahasiswa seluruh program studi di FTMM (Semester
-                  1–2).
+                  Mata kuliah terapan saintek dan rekayasa dasar bersama
+                  fakultas FTMM (Semester 1–2).
                 </p>
               </div>
             </div>
@@ -155,9 +156,7 @@ export default function CourseQuickModal({
             <h3 className="text-xs font-bold text-navy uppercase tracking-wider mb-2">
               Deskripsi
             </h3>
-            <p className="text-sm text-foreground leading-relaxed">
-              {course.desc}
-            </p>
+            <CourseDescriptionView text={course.desc} />
           </div>
           {course.prerequisites && course.prerequisites.length > 0 && (
             <div>

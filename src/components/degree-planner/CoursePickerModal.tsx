@@ -306,9 +306,9 @@ export default function CoursePickerModal({
                           PDB Univ
                         </span>
                       )}
-                      {course.category === "pdb_faculty" && (
+                      {course.category === "pdb_saintek" && (
                         <span className="text-[9px] font-bold bg-teal/20 text-navy border border-teal/40 px-1.5 py-0.5 rounded">
-                          PDB FTMM
+                          PDB Saintek
                         </span>
                       )}
                       <span

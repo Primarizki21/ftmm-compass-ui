@@ -9,6 +9,7 @@ import {
 import { cn } from "../../utils"
 import { Course } from "../../data"
 import PrerequisiteDiagram from "./PrerequisiteDiagram"
+import CourseDescriptionView from "./CourseDescriptionView"
 
 export interface CourseDetailViewProps {
   course: Course
@@ -70,12 +71,12 @@ export default function CourseDetailView({
             </span>
             {course.category === "pdb_univ" && (
               <span className="px-3 py-1 bg-purple-500/30 text-purple-200 border border-purple-300/40 rounded-md text-sm font-bold backdrop-blur-sm">
-                PDB Universitas (Campur se-UNAIR)
+                PDB Universitas
               </span>
             )}
-            {course.category === "pdb_faculty" && (
+            {course.category === "pdb_saintek" && (
               <span className="px-3 py-1 bg-teal/30 text-teal-light border border-teal/40 rounded-md text-sm font-bold backdrop-blur-sm">
-                PDB FTMM (Sains Dasar)
+                PDB Saintek
               </span>
             )}
           </div>
@@ -94,30 +95,28 @@ export default function CourseDetailView({
                 Pembelajaran Dasar Bersama (PDB) Tingkat Universitas
               </h3>
               <p className="text-xs text-purple-800 leading-relaxed">
-                Mata kuliah wajib kurikulum nasional/universitas yang
-                diselenggarakan oleh Direktorat Pendidikan UNAIR. Kelas diikuti
-                secara heterogen oleh mahasiswa dari berbagai fakultas di UNAIR
-                (Fakultas Teknologi Maju dan Multidisiplin, Kedokteran, Ekonomi
-                dan Bisnis, Hukum, dll.) pada tahun pertama (Semester 1–2).
+                Mata kuliah wajib kurikulum nasional/universitas serta fondasi
+                sains dasar yang diselenggarakan oleh Direktorat Pendidikan
+                UNAIR. Diikuti secara terpadu oleh mahasiswa tingkat pertama
+                (Semester 1–2).
               </p>
             </div>
           </div>
         )}
 
-        {course.category === "pdb_faculty" && (
+        {course.category === "pdb_saintek" && (
           <div className="bg-teal/10 border border-teal/30 rounded-xl p-4 flex items-start gap-3">
             <div className="p-2 bg-teal/20 text-navy rounded-lg flex-shrink-0 mt-0.5">
               <BookOpen className="w-5 h-5" />
             </div>
             <div>
               <h3 className="font-heading font-bold text-sm text-navy mb-1">
-                Mata Kuliah Dasar Bersama Fakultas (FTMM)
+                Mata Kuliah PDB Saintek (Terapan Dasar FTMM)
               </h3>
               <p className="text-xs text-navy/80 leading-relaxed">
-                Mata kuliah dasar sains dan teknologi bersama (STEM Dasar FTMM).
-                Kurikulum ini diambil secara bersamaan oleh seluruh mahasiswa
-                dari 5 program studi di lingkungan FTMM (TI, TSD, TRKB, TE, dan
-                RN) pada Semester 1 dan 2.
+                Mata kuliah terapan sains dan rekayasa dasar bersama fakultas
+                FTMM yang diambil oleh mahasiswa di lingkungan FTMM pada
+                Semester 1 dan 2.
               </p>
             </div>
           </div>
@@ -149,9 +148,7 @@ export default function CourseDetailView({
           <h3 className="font-heading font-bold text-lg text-navy mb-3">
             Deskripsi Mata Kuliah
           </h3>
-          <p className="text-sm text-foreground leading-relaxed">
-            {course.desc}
-          </p>
+          <CourseDescriptionView text={course.desc} />
           {course.workload && (
             <div className="mt-5 bg-background rounded-lg p-4 grid grid-cols-3 gap-4 text-center divide-x divide-border">
               <div>
