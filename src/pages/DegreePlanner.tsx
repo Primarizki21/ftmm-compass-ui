@@ -11,13 +11,14 @@ import {
   Sparkles,
   RotateCcw,
 } from "lucide-react"
+import { cn } from "../utils"
 import { Course, SCHEDULE } from "../data"
 import TimetableGrid from "../components/TimetableGrid"
 
 const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8]
 const TIMETABLE_DAYS = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"]
 
-interface PlacedCourse extends Course {
+export interface PlacedCourse extends Course {
   status: "completed" | "planned" | "wishlist"
 }
 
@@ -136,9 +137,7 @@ export default function DegreePlanner({
   )
 
   useEffect(() => {
-    if (customPlan) {
-      setPlan(customPlan)
-    }
+    setPlan(customPlan || INITIAL_PLAN)
   }, [customPlan])
   const [dragging, setDragging] = useState<{
     course: PlacedCourse

@@ -17,7 +17,7 @@ import { Course } from "./data"
 // Pages
 import Dashboard from "./pages/Dashboard"
 import CourseFinder from "./pages/CourseFinder"
-import DegreePlanner from "./pages/DegreePlanner"
+import DegreePlanner, { PlacedCourse } from "./pages/DegreePlanner"
 import Chatbot, { DegreePlanPayload } from "./pages/Chatbot"
 import Login from "./pages/Login"
 
@@ -30,14 +30,13 @@ export default function App() {
   const [activePage, setActivePage] = useState<Page>("dashboard")
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [pendingCourses, setPendingCourses] = useState<Course[]>([])
-  const [customPlan, setCustomPlan] = useState<Record<number, Course[]> | null>(
-    null,
-  )
+  const [customPlan, setCustomPlan] =
+    useState<Record<number, PlacedCourse[]> | null>(null)
   const [appliedPlanSummary, setAppliedPlanSummary] =
     useState<DegreePlanPayload["summary"] | null>(null)
 
   const handleApplyPlanFromChatbot = (payload: DegreePlanPayload) => {
-    const mappedPlan: Record<number, Course[]> = {}
+    const mappedPlan: Record<number, PlacedCourse[]> = {}
     for (const [semStr, list] of Object.entries(payload.plan)) {
       const sem = Number(semStr)
       mappedPlan[sem] = (list || []).map((c) => ({
@@ -50,6 +49,7 @@ export default function App() {
         parity: c.parity === "even" ? "even" : "odd",
         desc: "",
         prerequisites: [],
+        status: "planned",
       }))
     }
     setCustomPlan(mappedPlan)
