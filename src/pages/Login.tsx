@@ -189,7 +189,7 @@ export default function Login({ onLogin }: LoginProps) {
               <KeyRound className="w-3.5 h-3.5 text-gold" />
               <span>Akun Uji Coba (Testing Credentials)</span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
               <button
                 type="button"
                 onClick={() => fillCredentials("164231001", "Mahasiswa2026!")}
@@ -213,6 +213,31 @@ export default function Login({ onLogin }: LoginProps) {
               <button
                 type="button"
                 onClick={() =>
+                  fillCredentials(
+                    "dosen.testing@ftmm.unair.ac.id",
+                    "DosenFTMM2026!",
+                  )
+                }
+                className="p-2.5 rounded-lg border border-border bg-white hover:border-gold/50 text-left transition-all group"
+              >
+                <div className="flex items-center justify-between text-navy font-medium group-hover:text-gold mb-1">
+                  <span className="flex items-center gap-1.5">
+                    <UserCheck className="w-3.5 h-3.5 text-navy" />
+                    Dosen
+                  </span>
+                  <span className="text-[10px] text-muted">Isi Form</span>
+                </div>
+                <div className="text-[11px] font-mono text-muted truncate">
+                  dosen.testing...
+                </div>
+                <div className="text-[10px] font-mono text-muted/80 truncate">
+                  DosenFTMM2026!
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
                   fillCredentials("admin@ftmm.unair.ac.id", "AdminFTMM2026!")
                 }
                 className="p-2.5 rounded-lg border border-border bg-white hover:border-gold/50 text-left transition-all group"
@@ -225,7 +250,7 @@ export default function Login({ onLogin }: LoginProps) {
                   <span className="text-[10px] text-muted">Isi Form</span>
                 </div>
                 <div className="text-[11px] font-mono text-muted truncate">
-                  admin@ftmm.unair.ac.id
+                  admin@ftmm...
                 </div>
                 <div className="text-[10px] font-mono text-muted/80 truncate">
                   AdminFTMM2026!

@@ -429,6 +429,81 @@ def test_auth_login_and_me():
     print("✓ Auth login Dosen OK")
 
 
+
+def test_dashboard_me_roles():
+    # 1. Unauthorized request
+    unauth_res = client.get("/api/v1/dashboard/me")
+    assert unauth_res.status_code == 401
+    print("✓ Dashboard me unauthorized request rejected (401) OK")
+
+    # 2. Mahasiswa login & dashboard
+    mhs_login = client.post(
+        "/api/v1/auth/login",
+        json={"identifier": "164231001", "password": "Mahasiswa2026!"},
+    )
+    assert mhs_login.status_code == 200
+    mhs_token = mhs_login.json()["access_token"]
+    mhs_dash = client.get(
+        "/api/v1/dashboard/me",
+        headers={"Authorization": f"Bearer {mhs_token}"},
+    )
+    assert mhs_dash.status_code == 200
+    mhs_data = mhs_dash.json()
+    assert mhs_data["role"] == "student"
+    assert mhs_data["student_number"] == "164231001"
+    assert mhs_data["stats"]["type"] == "student"
+    assert mhs_data["stats"]["sks_completed"] == 44
+    assert mhs_data["stats"]["gpa"] == 3.78
+    assert len(mhs_data["schedule"]) >= 1
+    print(f"✓ Dashboard me Mahasiswa OK (SKS={mhs_data['stats']['sks_completed']}, IPK={mhs_data['stats']['gpa']}, Jadwal={len(mhs_data['schedule'])} items)")
+
+    # 3. Dosen login & dashboard
+    dosen_login = client.post(
+        "/api/v1/auth/login",
+        json={"identifier": "dosen.testing@ftmm.unair.ac.id", "password": "DosenFTMM2026!"},
+    )
+    assert dosen_login.status_code == 200
+    dosen_token = dosen_login.json()["access_token"]
+    dosen_dash = client.get(
+        "/api/v1/dashboard/me",
+        headers={"Authorization": f"Bearer {dosen_token}"},
+    )
+    assert dosen_dash.status_code == 200
+    dosen_data = dosen_dash.json()
+    assert dosen_data["role"] == "lecturer"
+    assert dosen_data["stats"]["type"] == "lecturer"
+    assert dosen_data["stats"]["courses_taught"] >= 1
+    assert dosen_data["stats"]["sks_taught"] >= 3
+    assert len(dosen_data["schedule"]) >= 1
+    print(f"✓ Dashboard me Dosen OK (MK Diampu={dosen_data['stats']['courses_taught']}, SKS={dosen_data['stats']['sks_taught']}, Jadwal Mengajar={len(dosen_data['schedule'])} items)")
+
+    # 4. Admin login & dashboard
+    admin_login = client.post(
+        "/api/v1/auth/login",
+        json={"identifier": "admin@ftmm.unair.ac.id", "password": "AdminFTMM2026!"},
+    )
+    assert admin_login.status_code == 200
+    admin_token = admin_login.json()["access_token"]
+    admin_dash = client.get(
+        "/api/v1/dashboard/me",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert admin_dash.status_code == 200
+    admin_data = admin_dash.json()
+    assert admin_data["role"] == "admin"
+    assert admin_data["stats"]["type"] == "admin"
+    assert admin_data["stats"]["total_active_students"] >= 1240
+    assert admin_data["stats"]["total_lecturers"] >= 68
+    print(f"✓ Dashboard me Admin OK (Total Mhs={admin_data['stats']['total_active_students']}, Dosen={admin_data['stats']['total_lecturers']})")
+
+    # 5. Dual-tier legacy endpoint check
+    legacy_dash = client.get(
+        "/api/dashboard/me",
+        headers={"Authorization": f"Bearer {mhs_token}"},
+    )
+    assert legacy_dash.status_code == 200
+    print("✓ Dual-tier legacy /api/dashboard/me alias OK")
+
 if __name__ == "__main__":
     test_health()
     test_v1_health()
@@ -448,4 +523,5 @@ if __name__ == "__main__":
     test_courses_proxy_chatbot_ssot()
     test_courses_fallback_isolation()
     test_auth_login_and_me()
+    test_dashboard_me_roles()
     print("\nAll modernized API endpoint integration tests passed! 🚀")
