@@ -17,7 +17,7 @@ jobs:
       - name: Verify no classified or sensitive files committed
         run: |
           echo "Scanning git-tracked files for secret or classified patterns..."
-          if git ls-files | grep -E "(^Ekstrak/|\.env$|\.env\.local$|\.pem$|\.key$)"; then
+          if git ls-files | grep -E "(^Ekstrak/|/Ekstrak/|\.env$|\.env\.local$|\.env\.production$|\.pem$|\.key$|\.crt$|\.pfx$|\.p12$|id_rsa|id_ed25519)"; then
             echo "[ERROR] Classified or secret files found committed in Git tree!"
             exit 1
           fi
