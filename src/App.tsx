@@ -347,6 +347,7 @@ export default function App() {
                   onNavigate={handleNavigate}
                   initialTab={plannerInitialTab}
                   onUpdateSchedule={setActiveSchedule}
+                  currentUser={currentUser}
                 />
               )}
               {activePage === "chatbot" && (

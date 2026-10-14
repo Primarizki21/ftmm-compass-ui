@@ -14,7 +14,7 @@ from sqlalchemy import (
     Time,
     func,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database import Base
@@ -38,6 +38,9 @@ class User(Base):
         server_default=func.now(),
         nullable=False,
     )
+    phone_number: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    bio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    career_interests: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
 
     student_profile: Mapped[Optional["StudentProfile"]] = relationship(
         "StudentProfile",

@@ -408,7 +408,10 @@ def test_auth_login_and_me():
     me_data = me_res.json()
     assert me_data["email"] == "mahasiswa.testing@ftmm.unair.ac.id"
     assert me_data["student_profile"]["student_number"] == "164231001"
-    print("✓ Auth me with valid token OK")
+    assert me_data["academic_identifier"] == "164231001"
+    assert me_data["unit_name"] == "Teknologi Sains Data"
+    assert me_data["auth_provider"] == "Cybercampus SSO UNAIR"
+    print("✓ Auth me with valid token and role-specific identity OK")
 
     # 6. Valid login Admin
     admin_res = client.post(
@@ -417,6 +420,8 @@ def test_auth_login_and_me():
     )
     assert admin_res.status_code == 200
     assert admin_res.json()["user"]["role"] == "admin"
+    assert admin_res.json()["user"]["academic_identifier"] == "198504122010121003"
+    assert admin_res.json()["user"]["unit_name"] == "Sub-Bagian Akademik & Kemahasiswaan FTMM"
     print("✓ Auth login Admin OK")
 
     # 7. Valid login Dosen
@@ -426,8 +431,32 @@ def test_auth_login_and_me():
     )
     assert dosen_res.status_code == 200
     assert dosen_res.json()["user"]["role"] == "lecturer"
+    assert dosen_res.json()["user"]["academic_identifier"] == "198803152015041002"
+    assert dosen_res.json()["user"]["unit_name"] == "Teknologi Sains Data"
     print("✓ Auth login Dosen OK")
 
+
+def test_auth_update_profile():
+    mhs_res = client.post(
+        "/api/v1/auth/login",
+        json={"identifier": "164231001", "password": "Mahasiswa2026!"},
+    )
+    token = mhs_res.json()["access_token"]
+    patch_res = client.patch(
+        "/api/v1/auth/me/profile",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "phone_number": "081299887766",
+            "bio": "Peminat AI & Data Science FTMM UNAIR",
+            "career_interests": ["Machine Learning", "Robotics"],
+        },
+    )
+    assert patch_res.status_code == 200
+    updated = patch_res.json()
+    assert updated["phone_number"] == "081299887766"
+    assert updated["bio"] == "Peminat AI & Data Science FTMM UNAIR"
+    assert "Robotics" in updated["career_interests"]
+    print("✓ Profile update via PATCH /api/v1/auth/me/profile OK")
 
 
 def test_dashboard_me_roles():
@@ -523,5 +552,6 @@ if __name__ == "__main__":
     test_courses_proxy_chatbot_ssot()
     test_courses_fallback_isolation()
     test_auth_login_and_me()
+    test_auth_update_profile()
     test_dashboard_me_roles()
     print("\nAll modernized API endpoint integration tests passed! 🚀")

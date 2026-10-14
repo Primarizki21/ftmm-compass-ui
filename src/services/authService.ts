@@ -16,7 +16,20 @@ export interface AuthUser {
   email: string
   full_name: string
   role: string
+  auth_provider?: string
+  academic_identifier?: string
+  unit_name?: string
+  phone_number?: string
+  bio?: string
+  career_interests?: string[]
+  permissions?: string[]
   student_profile?: StudentProfile
+}
+
+export interface ProfileUpdatePayload {
+  phone_number?: string
+  bio?: string
+  career_interests?: string[]
 }
 
 export interface AuthResponse {
@@ -162,5 +175,70 @@ export const authService = {
       localStorage.setItem(USER_KEY, JSON.stringify(user))
     }
     return user
+  },
+
+  async updateProfile(payload: ProfileUpdatePayload): Promise<AuthUser> {
+    const token = this.getStoredToken()
+    if (!token) {
+      throw new Error("Sesi tidak ditemukan")
+    }
+
+    let response: Response
+    try {
+      response = await fetch("/api/v1/auth/me/profile", {
+        method: "PATCH",
+        headers: {
+          ...this.getAuthHeaders(),
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(payload),
+      })
+      if (!response.ok && response.status === 404) {
+        response = await fetch("http://127.0.0.1:8001/api/v1/auth/me/profile", {
+          method: "PATCH",
+          headers: {
+            ...this.getAuthHeaders(),
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify(payload),
+        })
+      }
+    } catch {
+      response = await fetch("http://127.0.0.1:8001/api/v1/auth/me/profile", {
+        method: "PATCH",
+        headers: {
+          ...this.getAuthHeaders(),
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(payload),
+      })
+    }
+
+    if (!response.ok) {
+      let errorMessage = "Gagal memperbarui profil pengguna."
+      try {
+        const errJson = await response.json()
+        if (errJson.detail) {
+          errorMessage =
+            typeof errJson.detail === "string"
+              ? errJson.detail
+              : JSON.stringify(errJson.detail)
+        } else if (errJson.message) {
+          errorMessage = errJson.message
+        }
+      } catch {
+        // fallback default
+      }
+      throw new Error(errorMessage)
+    }
+
+    const updatedUser: AuthUser = await response.json()
+    if (typeof window !== "undefined" && window.localStorage) {
+      localStorage.setItem(USER_KEY, JSON.stringify(updatedUser))
+    }
+    return updatedUser
   },
 }

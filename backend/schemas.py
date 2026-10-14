@@ -184,14 +184,26 @@ class UserStudentProfileResponse(BaseModel):
     admission_year: Optional[int] = None
     current_semester: Optional[int] = None
 
+class UserProfileUpdateRequest(BaseModel):
+    phone_number: Optional[str] = Field(None, max_length=30, description="Nomor telepon atau WhatsApp aktif")
+    bio: Optional[str] = Field(None, max_length=500, description="Bio atau deskripsi singkat akademik")
+    career_interests: Optional[List[str]] = Field(default_factory=list, description="Minat atau fokus bidang karir")
+
+
 
 class UserResponse(BaseModel):
     user_id: str
     email: str
     full_name: str
     role: str
+    auth_provider: str = "Cybercampus SSO UNAIR"
+    academic_identifier: Optional[str] = None
+    unit_name: Optional[str] = None
+    phone_number: Optional[str] = None
+    bio: Optional[str] = None
+    career_interests: List[str] = Field(default_factory=list)
+    permissions: List[str] = Field(default_factory=list)
     student_profile: Optional[UserStudentProfileResponse] = None
-
 
 class LoginResponse(BaseModel):
     access_token: str

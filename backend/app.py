@@ -26,6 +26,7 @@ from schemas import (
     LoginRequest,
     LoginResponse,
     UserResponse,
+    UserProfileUpdateRequest,
     UserStudentProfileResponse,
     PollingPeriodResponse,
     CreatePollingPeriodRequest,
@@ -726,11 +727,72 @@ async def handle_generate_plan(profile: StudentProfile) -> DegreePlanPayload:
 # ============================================================================
 
 v1_router = APIRouter(prefix="/api/v1", tags=["v1"])
-
+legacy_router = APIRouter(prefix="/api", tags=["legacy"])
 
 @v1_router.get("/health", response_model=HealthResponse)
 async def v1_health(strict: bool = Query(False, description="Fail with 503 if chatbot is offline")):
     return await handle_health_check(strict=strict)
+
+
+def _build_user_response(user: User) -> UserResponse:
+    student_profile_data = None
+    if user.student_profile:
+        sp = user.student_profile
+        student_profile_data = UserStudentProfileResponse(
+            student_number=sp.student_number,
+            study_program=sp.study_program.program_name if sp.study_program else None,
+            program_code=sp.study_program.program_code if sp.study_program else None,
+            admission_year=sp.admission_year,
+            current_semester=sp.current_semester,
+        )
+
+    if user.role == "student":
+        academic_id = user.student_profile.student_number if user.student_profile else "164231001"
+        unit_name = (
+            user.student_profile.study_program.program_name
+            if (user.student_profile and user.student_profile.study_program)
+            else "Teknologi Sains Data"
+        )
+        permissions = ["view_catalog", "plan_courses", "vote_electives", "use_chatbot"]
+        default_phone = "081234567890"
+        default_bio = "Mahasiswa FTMM peminat Data Science dan Machine Learning"
+        default_interests = ["Machine Learning", "Data Science"]
+    elif user.role == "lecturer":
+        academic_id = "198803152015041002"
+        unit_name = "Teknologi Sains Data"
+        permissions = ["view_catalog", "view_demand_analytics", "review_study_plans", "use_chatbot"]
+        default_phone = "081398765432"
+        default_bio = "Dosen Pengajar dan Pembina Akademik FTMM UNAIR"
+        default_interests = []
+    else:
+        academic_id = "198504122010121003"
+        unit_name = "Sub-Bagian Akademik & Kemahasiswaan FTMM"
+        permissions = [
+            "view_catalog",
+            "view_demand_analytics",
+            "manage_polling",
+            "export_reports",
+            "inspect_curricula",
+            "use_chatbot",
+        ]
+        default_phone = "081122334455"
+        default_bio = "Pengelola Master Kurikulum dan Operasional Akademik FTMM"
+        default_interests = []
+
+    return UserResponse(
+        user_id=str(user.user_id),
+        email=user.email,
+        full_name=user.full_name,
+        role=user.role,
+        auth_provider="Cybercampus SSO UNAIR",
+        academic_identifier=academic_id,
+        unit_name=unit_name,
+        phone_number=user.phone_number or default_phone,
+        bio=user.bio or default_bio,
+        career_interests=user.career_interests or default_interests,
+        permissions=permissions,
+        student_profile=student_profile_data,
+    )
 
 
 @v1_router.post("/auth/login", response_model=LoginResponse)
@@ -744,51 +806,46 @@ async def v1_login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
 
     access_token = create_access_token(data={"sub": str(user.user_id), "role": user.role})
 
-    student_profile_data = None
-    if user.student_profile:
-        sp = user.student_profile
-        student_profile_data = UserStudentProfileResponse(
-            student_number=sp.student_number,
-            study_program=sp.study_program.program_name if sp.study_program else None,
-            program_code=sp.study_program.program_code if sp.study_program else None,
-            admission_year=sp.admission_year,
-            current_semester=sp.current_semester,
-        )
-
     return LoginResponse(
         access_token=access_token,
         token_type="bearer",
         expires_in=86400,
-        user=UserResponse(
-            user_id=str(user.user_id),
-            email=user.email,
-            full_name=user.full_name,
-            role=user.role,
-            student_profile=student_profile_data,
-        ),
+        user=_build_user_response(user),
     )
 
 
 @v1_router.get("/auth/me", response_model=UserResponse)
+@legacy_router.get("/auth/me", response_model=UserResponse)
 async def v1_me(current_user: User = Depends(get_current_user)):
-    student_profile_data = None
-    if current_user.student_profile:
-        sp = current_user.student_profile
-        student_profile_data = UserStudentProfileResponse(
-            student_number=sp.student_number,
-            study_program=sp.study_program.program_name if sp.study_program else None,
-            program_code=sp.study_program.program_code if sp.study_program else None,
-            admission_year=sp.admission_year,
-            current_semester=sp.current_semester,
-        )
+    return _build_user_response(current_user)
 
-    return UserResponse(
-        user_id=str(current_user.user_id),
-        email=current_user.email,
-        full_name=current_user.full_name,
-        role=current_user.role,
-        student_profile=student_profile_data,
+
+@v1_router.patch("/auth/me/profile", response_model=UserResponse)
+@legacy_router.patch("/auth/me/profile", response_model=UserResponse)
+async def v1_update_profile(
+    payload: UserProfileUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if payload.phone_number is not None:
+        current_user.phone_number = payload.phone_number.strip()
+    if payload.bio is not None:
+        current_user.bio = payload.bio.strip()
+    if payload.career_interests is not None:
+        current_user.career_interests = [
+            ci.strip() for ci in payload.career_interests if ci and ci.strip()
+        ]
+
+    await db.commit()
+    # Re-fetch with student_profile relationship loaded
+    stmt = (
+        select(User)
+        .options(selectinload(User.student_profile).selectinload(StudentProfileModel.study_program))
+        .where(User.user_id == current_user.user_id)
     )
+    res = await db.execute(stmt)
+    refreshed_user = res.scalars().first() or current_user
+    return _build_user_response(refreshed_user)
 
 @v1_router.get("/courses")
 async def v1_list_courses(
@@ -848,7 +905,6 @@ async def v1_generate_plan(profile: StudentProfile):
 # Legacy Router: /api (100% Backward-Compatibility for existing UI)
 # ============================================================================
 
-legacy_router = APIRouter(prefix="/api", tags=["legacy"])
 
 
 @legacy_router.get("/health", response_model=HealthResponse)

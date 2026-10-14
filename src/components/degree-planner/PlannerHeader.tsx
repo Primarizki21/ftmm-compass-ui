@@ -1,3 +1,4 @@
+import { type AuthUser } from "../../services/authService"
 import {
   Sparkles,
   RotateCcw,
@@ -23,6 +24,7 @@ interface PlannerHeaderProps {
     fromSem: number | "bank"
     fromIndex?: number
   } | null
+  currentUser?: AuthUser | null
 }
 
 const LEGEND_ITEMS = [
@@ -56,6 +58,7 @@ export default function PlannerHeader({
   appliedSummary,
   onResetPlan,
   dragging,
+  currentUser,
 }: PlannerHeaderProps) {
   return (
     <>
@@ -95,6 +98,38 @@ export default function PlannerHeader({
       )}
 
       {/* Header & Legend */}
+      {/* Role-Specific Mode Banner */}
+      {currentUser?.role === "admin" && (
+        <div className="mb-3 px-3.5 py-2 rounded-xl bg-gold/15 border border-gold/40 text-navy text-xs flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-gold flex-shrink-0" />
+            <span>
+              <strong>Mode Administrator FTMM:</strong> Anda memiliki kewenangan
+              inspeksi master kurikulum &amp; simulasi alur prasyarat 8 semester
+              untuk seluruh program studi.
+            </span>
+          </div>
+          <span className="font-mono text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-surface border border-border">
+            Super Admin Access
+          </span>
+        </div>
+      )}
+      {currentUser?.role === "lecturer" && (
+        <div className="mb-3 px-3.5 py-2 rounded-xl bg-navy/10 border border-navy/20 text-navy text-xs flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-teal flex-shrink-0" />
+            <span>
+              <strong>Mode Dosen Wali / Pembina Akademik:</strong> Anda dapat
+              meninjau alur rencana studi mahasiswa, memeriksa kepatuhan
+              prasyarat, dan mengevaluasi distribusi beban SKS.
+            </span>
+          </div>
+          <span className="font-mono text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-surface border border-border">
+            Advising Mode
+          </span>
+        </div>
+      )}
+
       <div className="mb-4 flex flex-col md:flex-row md:items-end justify-between gap-3 flex-shrink-0">
         <div>
           <h3 className="font-heading font-bold text-lg text-navy mb-1">
