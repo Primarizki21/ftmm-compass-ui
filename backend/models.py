@@ -466,3 +466,31 @@ class TimetableItem(Base):
     )
 
     class_section: Mapped["ClassSection"] = relationship("ClassSection")
+
+
+class UserNotification(Base):
+    __tablename__ = "user_notifications"
+
+    notification_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.user_id", ondelete="CASCADE"),
+        nullable=True,
+    )
+    target_role: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    type: Mapped[str] = mapped_column(String(20), nullable=False, default="info")
+    is_read: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    action_url: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    user: Mapped[Optional["User"]] = relationship("User")

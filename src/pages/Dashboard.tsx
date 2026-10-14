@@ -50,13 +50,37 @@ export default function Dashboard({
 
   const displayedSchedule = useMemo<ScheduleItem[]>(() => {
     if (currentUser?.role === "admin") return []
+    if (currentUser?.role === "lecturer") {
+      if (dashboardData?.schedule?.length) {
+        return dashboardData.schedule.map((item) => {
+          const [sh, sm] = (item.start_time || "08:00").split(":").map(Number)
+          const [eh, em] = (item.end_time || "10:00").split(":").map(Number)
+          const startHour = (sh || 0) + (sm || 0) / 60
+          const endHour = (eh || 0) + (em || 0) / 60
+          const duration = Math.max(1, endHour - startHour)
+          return {
+            id: item.id,
+            course: item.course_name,
+            code: item.course_code,
+            day: item.day,
+            start: startHour,
+            duration: duration,
+            color: item.color || "teal",
+            room: item.room,
+            sectionCode: item.class_name,
+            lecturer: item.lecturer,
+          }
+        })
+      }
+      return []
+    }
     if (schedule && schedule.length > 0) return schedule
     if (!dashboardData?.schedule?.length) return SCHEDULE
     return dashboardData.schedule.map((item) => {
-      const [sh, sm] = item.start_time.split(":").map(Number)
-      const [eh, em] = item.end_time.split(":").map(Number)
-      const startHour = sh + (sm || 0) / 60
-      const endHour = eh + (em || 0) / 60
+      const [sh, sm] = (item.start_time || "08:00").split(":").map(Number)
+      const [eh, em] = (item.end_time || "10:00").split(":").map(Number)
+      const startHour = (sh || 0) + (sm || 0) / 60
+      const endHour = (eh || 0) + (em || 0) / 60
       const duration = Math.max(1, endHour - startHour)
       return {
         id: item.id,
@@ -71,7 +95,7 @@ export default function Dashboard({
         lecturer: item.lecturer,
       }
     })
-  }, [dashboardData, schedule])
+  }, [currentUser?.role, dashboardData, schedule])
 
   const hasConflict = displayedSchedule.some((s) => s.conflict)
 

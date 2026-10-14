@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react"
 import { Bell, Check, Clock, AlertTriangle, BookOpen } from "lucide-react"
 import { cn } from "../utils"
 
-import { type AuthUser } from "../services/authService"
+import { authService, type AuthUser } from "../services/authService"
 
 export interface AcademicNotification {
   id: string
@@ -146,8 +146,46 @@ export default function NotificationDropdown({
   useEffect(() => {
     const role = currentUser?.role || "student"
     setNotifications(ROLE_NOTIFICATIONS[role] || ROLE_NOTIFICATIONS.student)
-  }, [currentUser?.role])
 
+    const token = authService.getStoredToken()
+    if (!token) return
+
+    let mounted = true
+    fetch("/api/v1/notifications/me", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (mounted && data?.items?.length) {
+          setNotifications(
+            data.items.map(
+              (it: {
+                id: string
+                title: string
+                message: string
+                type: "warning" | "deadline" | "info"
+                timestamp: string
+                is_read: boolean
+              }) => ({
+                id: it.id,
+                title: it.title,
+                message: it.message,
+                type: it.type,
+                timestamp: it.timestamp,
+                isRead: it.is_read,
+              }),
+            ),
+          )
+        }
+      })
+      .catch(() => {})
+
+    return () => {
+      mounted = false
+    }
+  }, [currentUser?.role])
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const unreadCount = notifications.filter((n) => !n.isRead).length
@@ -185,16 +223,37 @@ export default function NotificationDropdown({
     }
   }, [isOpen])
 
-  const markAllAsRead = () => {
+  const markAllAsRead = async () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })))
+    const token = authService.getStoredToken()
+    if (token) {
+      try {
+        await fetch("/api/v1/notifications/mark-all-read", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+      } catch {}
+    }
   }
 
-  const markAsRead = (id: string) => {
+  const markAsRead = async (id: string) => {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
     )
+    const token = authService.getStoredToken()
+    if (token && !id.startsWith("notif-")) {
+      try {
+        await fetch(`/api/v1/notifications/${id}/read`, {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+      } catch {}
+    }
   }
-
   return (
     <div className="relative z-50" ref={dropdownRef}>
       <button

@@ -83,8 +83,8 @@ class CourseModel(BaseModel):
     parity: Literal["odd", "even"] = "odd"
     desc: str = ""
     program: Optional[str] = None
+    lecturer: Optional[str] = None
     prerequisites: List[str] = Field(default_factory=list)
-
 class AdminCourseCreateRequest(BaseModel):
     course_code: str
     course_name: str
@@ -94,16 +94,19 @@ class AdminCourseCreateRequest(BaseModel):
     term: Literal["ganjil", "genap"] = "ganjil"
     course_type: Literal["Wajib", "Pilihan"] = "Pilihan"
     description: Optional[str] = ""
+    lecturer: Optional[str] = "Tim Dosen FTMM UNAIR"
     prerequisites: List[str] = Field(default_factory=list)
 
-
 class AdminCourseUpdateRequest(BaseModel):
+    course_code: Optional[str] = None
     course_name: Optional[str] = None
+    program_name: Optional[str] = None
     credits: Optional[int] = None
     recommended_semester: Optional[int] = None
     term: Optional[Literal["ganjil", "genap"]] = None
     course_type: Optional[Literal["Wajib", "Pilihan"]] = None
     description: Optional[str] = None
+    lecturer: Optional[str] = None
     is_active: Optional[bool] = None
     prerequisites: Optional[List[str]] = None
 
@@ -355,3 +358,19 @@ class DashboardMeResponse(BaseModel):
     academic_week: int = 4
     stats: Union[StudentDashboardStats, LecturerDashboardStats, AdminDashboardStats]
     schedule: List[DashboardScheduleItem] = Field(default_factory=list)
+
+
+class NotificationItemResponse(BaseModel):
+    id: str
+    title: str
+    message: str
+    type: Literal["warning", "deadline", "info", "success"] = "info"
+    is_read: bool = False
+    action_url: Optional[str] = None
+    timestamp: str
+    created_at: str
+
+
+class NotificationListResponse(BaseModel):
+    unread_count: int
+    items: List[NotificationItemResponse]

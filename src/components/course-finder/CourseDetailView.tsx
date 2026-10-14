@@ -5,9 +5,11 @@ import {
   Plus,
   GraduationCap,
   BookOpen,
+  User,
 } from "lucide-react"
 import { cn } from "../../utils"
 import { Course } from "../../data"
+import { type AuthUser } from "../../services/authService"
 import PrerequisiteDiagram from "./PrerequisiteDiagram"
 import CourseDescriptionView from "./CourseDescriptionView"
 
@@ -17,6 +19,7 @@ export interface CourseDetailViewProps {
   onBack: () => void
   onAdd: (c: Course) => void
   addedCourseIds: Set<string>
+  currentUser?: AuthUser | null
 }
 
 export default function CourseDetailView({
@@ -25,6 +28,7 @@ export default function CourseDetailView({
   onBack,
   onAdd,
   addedCourseIds,
+  currentUser,
 }: CourseDetailViewProps) {
   const [currentCourse, setCurrentCourse] = useState<Course>(course)
   const [navHistory, setNavHistory] = useState<Course[]>([])
@@ -92,6 +96,10 @@ export default function CourseDetailView({
             </span>
             <span className="px-3 py-1 bg-white/10 rounded-md text-sm font-medium backdrop-blur-sm">
               Semester {currentCourse.semester}
+            </span>
+            <span className="px-3 py-1 bg-white/10 rounded-md text-sm font-medium backdrop-blur-sm flex items-center gap-1.5">
+              <User className="w-3.5 h-3.5 text-teal" />
+              {currentCourse.lecturer || "Dr. Ir. Hendra Kurniawan, S.T., M.T."}
             </span>
             <span className="px-3 py-1 bg-gold/20 text-gold rounded-md text-sm font-bold uppercase tracking-wide border border-gold/30 backdrop-blur-sm">
               {currentCourse.type}
@@ -218,30 +226,32 @@ export default function CourseDetailView({
           />
         </div>
 
-        {/* Action */}
-        <div className="bg-surface rounded-xl border border-border p-5">
-          <button
-            onClick={() => onAdd(currentCourse)}
-            disabled={addedCourseIds.has(currentCourse.id)}
-            className={cn(
-              "w-full py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 cursor-pointer",
-              addedCourseIds.has(currentCourse.id)
-                ? "bg-teal/10 text-teal border border-teal/30 cursor-default"
-                : "bg-navy text-white hover:bg-navy-light",
-            )}
-          >
-            {addedCourseIds.has(currentCourse.id) ? (
-              <>
-                <CheckCircle2 className="w-4 h-4" /> Sudah Ditambahkan ke Degree
-                Planner
-              </>
-            ) : (
-              <>
-                <Plus className="w-4 h-4" /> Tambahkan ke Degree Planner
-              </>
-            )}
-          </button>
-        </div>
+        {/* Action: Only for students */}
+        {currentUser?.role === "student" && (
+          <div className="bg-surface rounded-xl border border-border p-5">
+            <button
+              onClick={() => onAdd(currentCourse)}
+              disabled={addedCourseIds.has(currentCourse.id)}
+              className={cn(
+                "w-full py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 cursor-pointer",
+                addedCourseIds.has(currentCourse.id)
+                  ? "bg-teal/10 text-teal border border-teal/30 cursor-default"
+                  : "bg-navy text-white hover:bg-navy-light",
+              )}
+            >
+              {addedCourseIds.has(currentCourse.id) ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4" /> Sudah Ditambahkan ke
+                  Degree Planner
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4" /> Tambahkan ke Degree Planner
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -7,7 +7,8 @@ from fastapi import FastAPI, APIRouter, Depends, HTTPException, Query, Request, 
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
-from sqlalchemy import text, select, func, case, or_, cast, String
+from datetime import datetime, timezone
+from sqlalchemy import text, select, func, case, or_, and_, update, cast, String
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from schemas import (
@@ -42,6 +43,8 @@ from schemas import (
     StudentDashboardStats,
     LecturerDashboardStats,
     AdminDashboardStats,
+    NotificationItemResponse,
+    NotificationListResponse,
 )
 from database import AsyncSessionLocal, get_db
 from models import (
@@ -62,6 +65,7 @@ from models import (
     Timetable,
     TimetableItem,
     StudyProgram,
+    UserNotification,
 )
 from auth import authenticate_user, create_access_token, get_current_user
 from data_loader import (
@@ -875,6 +879,97 @@ async def v1_update_profile(
     refreshed_user = res.scalars().first() or current_user
     return _build_user_response(refreshed_user)
 
+def _format_relative_time(dt: datetime) -> str:
+    now = datetime.now(dt.tzinfo or timezone.utc)
+    diff = now - dt
+    secs = int(diff.total_seconds())
+    if secs < 60:
+        return "Baru saja"
+    if secs < 3600:
+        return f"{secs // 60} menit lalu"
+    if secs < 86400:
+        return f"{secs // 3600} jam lalu"
+    days = secs // 86400
+    if days < 7:
+        return f"{days} hari lalu"
+    return dt.strftime("%d %b %Y")
+
+
+@v1_router.get("/notifications/me", response_model=NotificationListResponse)
+async def get_my_notifications(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = (
+        select(UserNotification)
+        .where(
+            or_(
+                UserNotification.user_id == current_user.user_id,
+                UserNotification.target_role == current_user.role,
+                and_(UserNotification.user_id == None, UserNotification.target_role == None),
+            )
+        )
+        .order_by(UserNotification.created_at.desc())
+    )
+    rows = (await db.execute(stmt)).scalars().all()
+    unread_count = sum(1 for r in rows if not r.is_read)
+
+    items = [
+        NotificationItemResponse(
+            id=str(r.notification_id),
+            title=r.title,
+            message=r.message,
+            type=r.type if r.type in ("warning", "deadline", "info", "success") else "info",
+            is_read=r.is_read,
+            action_url=r.action_url,
+            timestamp=_format_relative_time(r.created_at),
+            created_at=r.created_at.isoformat(),
+        )
+        for r in rows
+    ]
+
+    return NotificationListResponse(unread_count=unread_count, items=items)
+
+
+@v1_router.patch("/notifications/{notification_id}/read")
+async def mark_notification_read(
+    notification_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = select(UserNotification).where(
+        cast(UserNotification.notification_id, String) == notification_id
+    )
+    notif = (await db.execute(stmt)).scalars().first()
+    if not notif:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Notifikasi tidak ditemukan.",
+        )
+    notif.is_read = True
+    await db.commit()
+    return {"status": "success", "message": "Notifikasi ditandai sebagai telah dibaca."}
+
+
+@v1_router.post("/notifications/mark-all-read")
+async def mark_all_notifications_read(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = (
+        update(UserNotification)
+        .where(
+            or_(
+                UserNotification.user_id == current_user.user_id,
+                UserNotification.target_role == current_user.role,
+            )
+        )
+        .values(is_read=True)
+    )
+    await db.execute(stmt)
+    await db.commit()
+    return {"status": "success", "message": "Semua notifikasi telah ditandai dibaca."}
+
 @v1_router.get("/courses")
 async def v1_list_courses(
     program_studi: str | None = Query(None, description="Nama program studi FTMM."),
@@ -972,6 +1067,7 @@ async def v1_admin_create_course(
         parity="odd" if payload.term == "ganjil" else "even",
         desc=payload.description or "",
         program=norm_prodi,
+        lecturer=payload.lecturer or "Tim Dosen FTMM UNAIR",
         prerequisites=payload.prerequisites,
     )
     add_course_to_catalog(cm)
@@ -994,6 +1090,14 @@ async def v1_admin_update_course(
     stmt = select(Course).where(or_(Course.course_code == course_id, cast(Course.course_id, String) == course_id))
     course_db = (await db.execute(stmt)).scalars().first()
     if course_db:
+        if payload.course_code and payload.course_code != course_db.course_code:
+            stmt_dup = select(Course).where(Course.course_code == payload.course_code)
+            if (await db.execute(stmt_dup)).scalars().first():
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"Kode mata kuliah '{payload.course_code}' sudah terdaftar.",
+                )
+            course_db.course_code = payload.course_code
         if payload.course_name:
             course_db.course_name = payload.course_name
         if payload.is_active is not None:
@@ -1002,6 +1106,19 @@ async def v1_admin_update_course(
         stmt_cc = select(CurriculumCourse).where(CurriculumCourse.course_id == course_db.course_id)
         cc = (await db.execute(stmt_cc)).scalars().first()
         if cc:
+            if payload.program_name:
+                norm_p = normalize_prodi(payload.program_name) or "Teknologi Sains Data"
+                stmt_p = select(StudyProgram).where(StudyProgram.program_name.ilike(f"%{norm_p}%"))
+                prog = (await db.execute(stmt_p)).scalars().first()
+                if prog:
+                    stmt_c = (
+                        select(Curriculum)
+                        .where(Curriculum.study_program_id == prog.study_program_id)
+                        .order_by(Curriculum.curriculum_year.desc())
+                    )
+                    curr = (await db.execute(stmt_c)).scalars().first()
+                    if curr:
+                        cc.curriculum_id = curr.curriculum_id
             if payload.credits is not None:
                 cc.credits_total = payload.credits
             if payload.recommended_semester is not None:
@@ -1017,8 +1134,13 @@ async def v1_admin_update_course(
         await db.commit()
 
     updates = {}
+    if payload.course_code is not None:
+        updates["code"] = payload.course_code
+        updates["id"] = payload.course_code
     if payload.course_name is not None:
         updates["name"] = payload.course_name
+    if payload.program_name is not None:
+        updates["program"] = normalize_prodi(payload.program_name) or payload.program_name
     if payload.credits is not None:
         updates["credits"] = payload.credits
     if payload.recommended_semester is not None:
@@ -1029,9 +1151,10 @@ async def v1_admin_update_course(
         updates["type"] = payload.course_type
     if payload.description is not None:
         updates["desc"] = payload.description
+    if payload.lecturer is not None:
+        updates["lecturer"] = payload.lecturer
     if payload.prerequisites is not None:
         updates["prerequisites"] = payload.prerequisites
-
     updated = update_course_in_catalog(course_id, updates)
     if not updated and not course_db:
         raise HTTPException(

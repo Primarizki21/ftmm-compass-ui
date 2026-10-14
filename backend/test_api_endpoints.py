@@ -621,6 +621,77 @@ def test_admin_courses_crud():
     assert res_del.status_code == 200
     print("✓ Admin delete course OK")
 
+def test_notifications_endpoints():
+    # 1. Login student, dosen, admin
+    mhs_res = client.post(
+        "/api/v1/auth/login",
+        json={"identifier": "mahasiswa.testing@ftmm.unair.ac.id", "password": "Mahasiswa2026!"},
+    )
+    mhs_token = mhs_res.json()["access_token"]
+
+    dosen_res = client.post(
+        "/api/v1/auth/login",
+        json={"identifier": "dosen.testing@ftmm.unair.ac.id", "password": "DosenFTMM2026!"},
+    )
+    dosen_token = dosen_res.json()["access_token"]
+
+    admin_res = client.post(
+        "/api/v1/auth/login",
+        json={"identifier": "admin@ftmm.unair.ac.id", "password": "AdminFTMM2026!"},
+    )
+    admin_token = admin_res.json()["access_token"]
+
+    # 2. Get student notifications
+    mhs_notif = client.get(
+        "/api/v1/notifications/me",
+        headers={"Authorization": f"Bearer {mhs_token}"},
+    )
+    assert mhs_notif.status_code == 200
+    mhs_items = mhs_notif.json()["items"]
+    assert len(mhs_items) >= 1
+    assert any("Jadwal" in it["title"] or "KRS" in it["title"] for it in mhs_items)
+    print("✓ Student notifications endpoint OK")
+
+    # 3. Get lecturer notifications
+    dsn_notif = client.get(
+        "/api/v1/notifications/me",
+        headers={"Authorization": f"Bearer {dosen_token}"},
+    )
+    assert dsn_notif.status_code == 200
+    dsn_items = dsn_notif.json()["items"]
+    assert len(dsn_items) >= 1
+    assert any("Bimbingan" in it["title"] or "RPS" in it["title"] or "Kuorum" in it["title"] for it in dsn_items)
+    print("✓ Lecturer notifications endpoint OK")
+
+    # 4. Get admin notifications
+    adm_notif = client.get(
+        "/api/v1/notifications/me",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert adm_notif.status_code == 200
+    adm_items = adm_notif.json()["items"]
+    assert len(adm_items) >= 1
+    assert any("Polling" in it["title"] or "Kuorum" in it["title"] or "Kurikulum" in it["title"] for it in adm_items)
+    print("✓ Admin notifications endpoint OK")
+
+    # 5. Mark single notification as read
+    first_id = mhs_items[0]["id"]
+    res_read = client.patch(
+        f"/api/v1/notifications/{first_id}/read",
+        headers={"Authorization": f"Bearer {mhs_token}"},
+    )
+    assert res_read.status_code == 200
+    print("✓ Mark single notification as read OK")
+
+    # 6. Mark all as read
+    res_all = client.post(
+        "/api/v1/notifications/mark-all-read",
+        headers={"Authorization": f"Bearer {mhs_token}"},
+    )
+    assert res_all.status_code == 200
+    print("✓ Mark all notifications as read OK")
+
+
 
 if __name__ == "__main__":
     test_health()
@@ -644,4 +715,5 @@ if __name__ == "__main__":
     test_auth_update_profile()
     test_dashboard_me_roles()
     test_admin_courses_crud()
+    test_notifications_endpoints()
     print("\nAll modernized API endpoint integration tests passed! 🚀")

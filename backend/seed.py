@@ -23,6 +23,7 @@ from models import (
     TimetableItem,
     ElectivePollingPeriod,
     ElectiveCourseVote,
+    UserNotification,
 )
 from auth import get_password_hash
 
@@ -614,31 +615,179 @@ async def seed_data():
         else:
             print(f"  = Existing Active Polling Period: {polling_period.title}")
 
-        # Seed votes for student
-        student_votes_cfg = [
-            {"code": "TSD401", "name": "Pemrosesan Bahasa Alami", "credits": 3, "priority": 1},
-            {"code": "TSD402", "name": "Sistem Rekomendasi", "credits": 3, "priority": 2},
-        ]
-        for vcfg in student_votes_cfg:
-            stmt_v = select(ElectiveCourseVote).where(
-                ElectiveCourseVote.polling_period_id == polling_period.polling_period_id,
-                ElectiveCourseVote.user_id == mhs_user.user_id,
-                ElectiveCourseVote.course_id == vcfg["code"],
-            )
-            v_obj = (await session.execute(stmt_v)).scalars().first()
-            if not v_obj:
-                v_obj = ElectiveCourseVote(
-                    polling_period_id=polling_period.polling_period_id,
-                    user_id=mhs_user.user_id,
-                    course_id=vcfg["code"],
-                    course_code=vcfg["code"],
-                    course_name=vcfg["name"],
-                    credits=vcfg["credits"],
-                    priority=vcfg["priority"],
+        # 7a. Seed realistic elective votes from students
+        voter_users = [mhs_user]
+        for i in range(1, 46):
+            v_email = f"student.voter{i:02d}@ftmm.unair.ac.id"
+            stmt_vu = select(User).where(User.email == v_email)
+            vu = (await session.execute(stmt_vu)).scalars().first()
+            if not vu:
+                vu = User(
+                    email=v_email,
+                    full_name=f"Mahasiswa Pemilih {i:02d}",
+                    role="student",
+                    password_hash=get_password_hash("VoterPass2026!"),
+                    is_active=True,
                 )
-                session.add(v_obj)
+                session.add(vu)
+                await session.flush()
+            voter_users.append(vu)
+
+        vote_distributions = [
+            {"code": "TSD302", "name": "Pembelajaran Mesin Lanjut", "credits": 3, "count": 42},
+            {"code": "TSD401", "name": "Pemrosesan Bahasa Alami", "credits": 3, "count": 35},
+            {"code": "TSD402", "name": "Sistem Rekomendasi", "credits": 3, "count": 18},
+            {"code": "TRKB301", "name": "Visi Komputer Cerdas", "credits": 3, "count": 12},
+            {"code": "TI301", "name": "Ergonomi dan Rekayasa Sistem Kerja", "credits": 3, "count": 8},
+        ]
+
+        for dist in vote_distributions:
+            for idx in range(dist["count"]):
+                user_voter = voter_users[idx % len(voter_users)]
+                stmt_chk = select(ElectiveCourseVote).where(
+                    ElectiveCourseVote.polling_period_id == polling_period.polling_period_id,
+                    ElectiveCourseVote.user_id == user_voter.user_id,
+                    ElectiveCourseVote.course_id == dist["code"],
+                )
+                v_exists = (await session.execute(stmt_chk)).scalars().first()
+                if not v_exists:
+                    p_val = 1 if idx < dist["count"] // 2 else (2 if idx < (dist["count"] * 4) // 5 else 3)
+                    new_v = ElectiveCourseVote(
+                        polling_period_id=polling_period.polling_period_id,
+                        user_id=user_voter.user_id,
+                        course_id=dist["code"],
+                        course_code=dist["code"],
+                        course_name=dist["name"],
+                        credits=dist["credits"],
+                        priority=p_val,
+                    )
+                    session.add(new_v)
+        await session.flush()
+        print(f"  + Seeded {len(vote_distributions)} elective courses with realistic student quorum votes")
+
+        # 8. Seed persistent notifications for each role
+        print("\n🌱 8. Checking and seeding Persistent Notifications...")
+        notifications_seed_data = [
+            # Student notifications
+            {
+                "target_role": "student",
+                "title": "Deteksi Bentrok Jadwal Kuliah",
+                "message": "Terdapat bentrok jadwal antara II4042 (Machine Learning) dan II4045 (Data Visualization) pada Selasa 10:00.",
+                "type": "warning",
+                "is_read": False,
+                "action_url": "dashboard",
+            },
+            {
+                "target_role": "student",
+                "title": "Batas Akhir Revisi KRS (PRS)",
+                "message": "Periode perubahan rencana studi semester aktif ditutup pada 30 Agustus 2024 pukul 23:59 WIB.",
+                "type": "deadline",
+                "is_read": False,
+                "action_url": "dashboard",
+            },
+            {
+                "target_role": "student",
+                "title": "Hasil Polling Peminatan MK Pilihan",
+                "message": "Mata kuliah pilihan yang kamu vote (TSD302) telah memenuhi kuorum 42 mahasiswa dan siap membuka 2 kelas.",
+                "type": "info",
+                "is_read": False,
+                "action_url": "course-finder",
+            },
+            {
+                "target_role": "student",
+                "title": "Compass AI: Rekomendasi Tersedia",
+                "message": "Rencana studi optimal untuk Semester 5 dan 6 telah diperbarui berdasarkan target peminatanmu.",
+                "type": "info",
+                "is_read": True,
+                "action_url": "chatbot",
+            },
+            # Lecturer notifications
+            {
+                "target_role": "lecturer",
+                "title": "Pengajuan Rencana Studi Mahasiswa",
+                "message": "5 mahasiswa bimbingan akademik mengajukan draft KRS untuk diverifikasi dan disetujui dosen wali.",
+                "type": "warning",
+                "is_read": False,
+                "action_url": "dashboard",
+            },
+            {
+                "target_role": "lecturer",
+                "title": "Batas Entri RPS & Presensi Perkuliahan",
+                "message": "Entri presensi dan silabus/RPS semester aktif wajib dilengkapi sebelum perkuliahan Week 5.",
+                "type": "deadline",
+                "is_read": False,
+                "action_url": "dashboard",
+            },
+            {
+                "target_role": "lecturer",
+                "title": "Update Kuorum MK Pilihan Anda",
+                "message": "Mata kuliah TSD302 (Pembelajaran Mesin Lanjut) mencapai kuorum 42 peminat (siap buka 2 kelas paralel).",
+                "type": "info",
+                "is_read": False,
+                "action_url": "course-finder",
+            },
+            {
+                "target_role": "lecturer",
+                "title": "Jadwal Mengajar Terkonfirmasi",
+                "message": "Alokasi ruang kuliah TSD201 Kelas A telah ditetapkan di Ruang Kuliah Bersama 3.02.",
+                "type": "info",
+                "is_read": True,
+                "action_url": "dashboard",
+            },
+            # Admin notifications
+            {
+                "target_role": "admin",
+                "title": "Monitoring Polling Pra-KRS",
+                "message": "Periode pemilihan MK Pilihan Semester Genap 2024/2025 aktif: 45 mahasiswa telah submit preferensi peminatan.",
+                "type": "info",
+                "is_read": False,
+                "action_url": "dashboard",
+            },
+            {
+                "target_role": "admin",
+                "title": "Mata Kuliah di Bawah Kuorum",
+                "message": "Mata kuliah TI301 (8 peminat) belum memenuhi batas minimum kuorum 15 mahasiswa.",
+                "type": "warning",
+                "is_read": False,
+                "action_url": "course-finder",
+            },
+            {
+                "target_role": "admin",
+                "title": "Audit Integritas Kurikulum",
+                "message": "Sinkronisasi otomatis katalog 5 prodi dengan SSOT lokal berhasil (195 matkul terverifikasi).",
+                "type": "info",
+                "is_read": True,
+                "action_url": "course-finder",
+            },
+            {
+                "target_role": "admin",
+                "title": "Verifikasi Akun Pengajar Baru",
+                "message": "2 akun dosen baru terdaftar dari Cybercampus dan memerlukan verifikasi penugasan unit prodi.",
+                "type": "deadline",
+                "is_read": True,
+                "action_url": "dashboard",
+            },
+        ]
+
+        for ncfg in notifications_seed_data:
+            stmt_n = select(UserNotification).where(
+                UserNotification.target_role == ncfg["target_role"],
+                UserNotification.title == ncfg["title"],
+            )
+            n_exists = (await session.execute(stmt_n)).scalars().first()
+            if not n_exists:
+                new_notif = UserNotification(
+                    target_role=ncfg["target_role"],
+                    title=ncfg["title"],
+                    message=ncfg["message"],
+                    type=ncfg["type"],
+                    is_read=ncfg["is_read"],
+                    action_url=ncfg["action_url"],
+                )
+                session.add(new_notif)
 
         await session.commit()
+        print(f"  + Seeded {len(notifications_seed_data)} persistent user notifications across all roles")
         print("\n✅ All seed data successfully populated and verified!")
 
 

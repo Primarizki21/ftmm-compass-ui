@@ -5,9 +5,11 @@ import {
   ChevronRight,
   GraduationCap,
   BookOpen,
+  User,
 } from "lucide-react"
 import { cn } from "../../utils"
 import { Course } from "../../data"
+import { type AuthUser } from "../../services/authService"
 import { ALL_COURSES, findCourseByNameOrCode } from "../../courseData"
 import CourseDescriptionView from "./CourseDescriptionView"
 
@@ -18,6 +20,7 @@ export interface CourseQuickModalProps {
   onClose: () => void
   onAddToPlanner: (course: Course) => void
   onOpenDetail: (course: Course) => void
+  currentUser?: AuthUser | null
 }
 
 export default function CourseQuickModal({
@@ -27,6 +30,7 @@ export default function CourseQuickModal({
   onClose,
   onAddToPlanner,
   onOpenDetail,
+  currentUser,
 }: CourseQuickModalProps) {
   if (!course) return null
 
@@ -82,6 +86,10 @@ export default function CourseQuickModal({
               </span>
               <span className="px-2.5 py-1 bg-white/10 rounded-md text-xs font-medium backdrop-blur-sm">
                 {course.parity === "odd" ? "Sem Ganjil" : "Sem Genap"}
+              </span>
+              <span className="px-2.5 py-1 bg-white/10 rounded-md text-xs font-medium backdrop-blur-sm flex items-center gap-1">
+                <User className="w-3 h-3 text-teal" />
+                {course.lecturer || "Dr. Ir. Hendra Kurniawan, S.T., M.T."}
               </span>
               {course.category === "pdb_univ" && (
                 <span className="px-2.5 py-1 bg-purple-500/30 text-purple-200 border border-purple-300/40 rounded-md text-xs font-bold backdrop-blur-sm">
@@ -249,32 +257,44 @@ export default function CourseQuickModal({
         </div>
 
         {/* Modal Actions */}
-        <div className="p-4 border-t border-border grid grid-cols-2 gap-3 flex-shrink-0">
-          <button
-            type="button"
-            onClick={() => onAddToPlanner(course)}
-            disabled={addedCourseIds.has(course.id)}
-            className={cn(
-              "py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 cursor-pointer",
-              addedCourseIds.has(course.id)
-                ? "bg-teal/10 text-teal border border-teal/30 cursor-default"
-                : "bg-navy text-white hover:bg-navy-light",
-            )}
-          >
-            {addedCourseIds.has(course.id) ? (
-              <>
-                <CheckCircle2 className="w-4 h-4" /> Ditambahkan
-              </>
-            ) : (
-              <>
-                <Plus className="w-4 h-4" /> Degree Planner
-              </>
-            )}
-          </button>
+        <div
+          className={cn(
+            "p-4 border-t border-border flex-shrink-0",
+            currentUser?.role === "student"
+              ? "grid grid-cols-2 gap-3"
+              : "flex justify-end",
+          )}
+        >
+          {currentUser?.role === "student" && (
+            <button
+              type="button"
+              onClick={() => onAddToPlanner(course)}
+              disabled={addedCourseIds.has(course.id)}
+              className={cn(
+                "py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 cursor-pointer",
+                addedCourseIds.has(course.id)
+                  ? "bg-teal/10 text-teal border border-teal/30 cursor-default"
+                  : "bg-navy text-white hover:bg-navy-light",
+              )}
+            >
+              {addedCourseIds.has(course.id) ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4" /> Ditambahkan
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4" /> Degree Planner
+                </>
+              )}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => onOpenDetail(course)}
-            className="py-2.5 rounded-lg border border-border text-sm font-medium text-navy hover:border-gold hover:bg-gold/5 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            className={cn(
+              "py-2.5 rounded-lg border border-border text-sm font-medium text-navy hover:border-gold hover:bg-gold/5 transition-all flex items-center justify-center gap-2 cursor-pointer",
+              currentUser?.role === "student" ? "w-full" : "px-6",
+            )}
           >
             <ChevronRight className="w-4 h-4" /> Detail Lengkap
           </button>

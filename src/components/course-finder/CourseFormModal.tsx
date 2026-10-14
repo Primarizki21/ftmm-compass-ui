@@ -28,8 +28,8 @@ export default function CourseFormModal({
   const [term, setTerm] = useState<"ganjil" | "genap">("ganjil")
   const [type, setType] = useState<"Wajib" | "Pilihan">("Pilihan")
   const [desc, setDesc] = useState("")
+  const [lecturer, setLecturer] = useState("Tim Dosen FTMM UNAIR")
   const [prereqInput, setPrereqInput] = useState("")
-
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -43,6 +43,9 @@ export default function CourseFormModal({
       setTerm(initialCourse.parity === "even" ? "genap" : "ganjil")
       setType(initialCourse.type === "Wajib" ? "Wajib" : "Pilihan")
       setDesc(initialCourse.desc || "")
+      setLecturer(
+        initialCourse.lecturer || "Dr. Ir. Hendra Kurniawan, S.T., M.T.",
+      )
       setPrereqInput(initialCourse.prerequisites?.join(", ") || "")
     } else {
       setCode("")
@@ -53,6 +56,7 @@ export default function CourseFormModal({
       setTerm("ganjil")
       setType("Pilihan")
       setDesc("")
+      setLecturer("Tim Dosen FTMM UNAIR")
       setPrereqInput("")
     }
     setErrorMessage(null)
@@ -80,12 +84,15 @@ export default function CourseFormModal({
     try {
       if (isEdit && initialCourse) {
         const payload = {
-          course_name: name,
+          course_code: code.trim().toUpperCase(),
+          course_name: name.trim(),
+          program_name: program,
           credits,
           recommended_semester: semester,
           term,
           course_type: type,
           description: desc,
+          lecturer: lecturer.trim() || "Tim Dosen FTMM UNAIR",
           prerequisites: prereqs,
         }
 
@@ -124,6 +131,7 @@ export default function CourseFormModal({
           term,
           course_type: type,
           description: desc,
+          lecturer: lecturer.trim() || "Tim Dosen FTMM UNAIR",
           prerequisites: prereqs,
         }
 
@@ -222,11 +230,10 @@ export default function CourseFormModal({
                 id="course-code"
                 type="text"
                 required
-                disabled={isEdit}
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
                 placeholder="TSD401"
-                className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm font-mono uppercase text-foreground focus:border-gold focus:ring-1 focus:ring-gold outline-hidden transition-colors disabled:opacity-60"
+                className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm font-mono uppercase text-foreground focus:border-gold focus:ring-1 focus:ring-gold outline-hidden transition-colors"
               />
             </div>
 
@@ -259,10 +266,9 @@ export default function CourseFormModal({
               </label>
               <select
                 id="course-program"
-                disabled={isEdit}
                 value={program}
                 onChange={(e) => setProgram(e.target.value)}
-                className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm text-foreground focus:border-gold focus:ring-1 focus:ring-gold outline-hidden transition-colors disabled:opacity-60"
+                className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm text-foreground focus:border-gold focus:ring-1 focus:ring-gold outline-hidden transition-colors"
               >
                 {availablePrograms
                   .filter((p) => p !== "all")
@@ -374,6 +380,22 @@ export default function CourseFormModal({
               value={prereqInput}
               onChange={(e) => setPrereqInput(e.target.value)}
               placeholder="Contoh: Matematika I, Dasar Pemrograman"
+              className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm text-foreground focus:border-gold focus:ring-1 focus:ring-gold outline-hidden transition-colors"
+            />
+          </div>
+          <div className="space-y-1">
+            <label
+              htmlFor="course-lecturer"
+              className="block text-xs font-semibold text-navy"
+            >
+              Dosen Pengampu / PJMK
+            </label>
+            <input
+              id="course-lecturer"
+              type="text"
+              value={lecturer}
+              onChange={(e) => setLecturer(e.target.value)}
+              placeholder="Contoh: Dr. Ir. Hendra Kurniawan, S.T., M.T."
               className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm text-foreground focus:border-gold focus:ring-1 focus:ring-gold outline-hidden transition-colors"
             />
           </div>

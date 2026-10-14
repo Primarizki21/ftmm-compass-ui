@@ -282,6 +282,7 @@ export default function CourseFinder({
         }}
         onAdd={handleAddToPlanner}
         addedCourseIds={addedCourseIds}
+        currentUser={currentUser}
       />
     )
   }
@@ -561,39 +562,40 @@ export default function CourseFinder({
                         peminat / Min. {pollingPeriod?.min_quorum || 15}
                       </span>
                     </div>
-                    {(() => {
-                      const vote =
-                        myVoteMap[course.id] ||
-                        (course.code ? myVoteMap[course.code] : undefined)
-                      const targetSem = course.semester || 6
-                      return (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleOpenPriorityModal(course)
-                          }}
-                          className={cn(
-                            "px-2 py-1 rounded-md text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-xs",
-                            vote
-                              ? "bg-gold text-navy hover:bg-gold/90"
-                              : "bg-navy text-white hover:bg-navy-light",
-                          )}
-                        >
-                          <Star
+                    {currentUser?.role === "student" &&
+                      (() => {
+                        const vote =
+                          myVoteMap[course.id] ||
+                          (course.code ? myVoteMap[course.code] : undefined)
+                        const targetSem = course.semester || 6
+                        return (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleOpenPriorityModal(course)
+                            }}
                             className={cn(
-                              "w-3 h-3",
-                              vote ? "fill-navy text-navy" : "text-gold",
+                              "px-2 py-1 rounded-md text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-xs",
+                              vote
+                                ? "bg-gold text-navy hover:bg-gold/90"
+                                : "bg-navy text-white hover:bg-navy-light",
                             )}
-                          />
-                          <span>
-                            {vote
-                              ? `★ Di Wishlist (Prioritas ${vote.priority})`
-                              : `☆ Wishlist Sem ${targetSem}`}
-                          </span>
-                        </button>
-                      )
-                    })()}
+                          >
+                            <Star
+                              className={cn(
+                                "w-3 h-3",
+                                vote ? "fill-navy text-navy" : "text-gold",
+                              )}
+                            />
+                            <span>
+                              {vote
+                                ? `★ Di Wishlist (Prioritas ${vote.priority})`
+                                : `☆ Wishlist Sem ${targetSem}`}
+                            </span>
+                          </button>
+                        )
+                      })()}
                   </div>
                 )}
                 <p className="text-xs text-muted line-clamp-2 leading-relaxed">
@@ -641,6 +643,7 @@ export default function CourseFinder({
           setDetailCourse(course)
           setSelectedCourse(null)
         }}
+        currentUser={currentUser}
       />
 
       {/* Priority & Wishlist Selection Modal */}

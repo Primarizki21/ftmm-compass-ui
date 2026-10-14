@@ -109,6 +109,7 @@ export default function App() {
   const handleLoginSuccess = (user: AuthUser) => {
     setCurrentUser(user)
     setIsLoggedIn(true)
+    setActivePage("dashboard")
   }
 
   const handleLogout = () => {
