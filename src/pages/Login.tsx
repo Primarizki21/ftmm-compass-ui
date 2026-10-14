@@ -1,9 +1,7 @@
 import { useState, type FormEvent } from "react"
 import { ArrowRight, Compass, Lock, Mail } from "lucide-react"
 
-// We'll use one of the new images as a background or side illustration
-import bgImage from "../imports/image-4.png"
-import newLogo from "../imports/image-6.png"
+import BrandLogo from "../components/BrandLogo"
 
 interface LoginProps {
   onLogin: () => void
@@ -28,13 +26,10 @@ export default function Login({ onLogin }: LoginProps) {
     <div className="min-h-screen w-full flex bg-background font-sans">
       {/* Left Panel - Branding */}
       <div className="hidden lg:flex w-1/2 bg-navy relative overflow-hidden flex-col justify-between p-12">
-        <div className="absolute inset-0 z-0">
-          <img
-            src={bgImage}
-            alt="University Campus"
-            className="w-full h-full object-cover opacity-20 mix-blend-overlay"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-navy via-navy/80 to-transparent" />
+        <div className="absolute inset-0 z-0 bg-gradient-to-br from-navy-dark via-navy to-navy-light/90">
+          <div className="absolute -top-24 -left-24 w-96 h-96 bg-gold/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-teal/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute inset-0 bg-[radial-gradient(#d7b03d_1px,transparent_1px)] [background-size:24px_24px] opacity-[0.04]" />
         </div>
 
         <div className="relative z-10 flex items-center gap-3">
@@ -61,11 +56,7 @@ export default function Login({ onLogin }: LoginProps) {
             rencana studi, atur jadwal, dan capai target kelulusanmu.
           </p>
           <div className="flex gap-4 items-center">
-            <img
-              src={newLogo}
-              alt="FTMM Logo"
-              className="h-16 object-contain rounded-lg shadow-lg"
-            />
+            <BrandLogo variant="login-hero" />
           </div>
         </div>
       </div>
@@ -74,11 +65,7 @@ export default function Login({ onLogin }: LoginProps) {
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-surface">
         <div className="max-w-md w-full">
           <div className="text-center mb-10">
-            <img
-              src={newLogo}
-              alt="Logo"
-              className="h-24 mx-auto mb-6 rounded-2xl shadow-sm lg:hidden"
-            />
+            <BrandLogo variant="login-form" className="lg:hidden" />
             <h2 className="text-3xl font-heading font-bold text-navy mb-2">
               Selamat Datang
             </h2>

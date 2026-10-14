@@ -1,10 +1,7 @@
 import {
-  Bell,
-  Compass,
   LayoutDashboard,
   LogOut,
   Map,
-  Menu,
   MessageSquare,
   Search,
   User,
@@ -22,7 +19,10 @@ import Chatbot, { DegreePlanPayload } from "./pages/Chatbot"
 import Login from "./pages/Login"
 import ErrorBoundary from "./components/ErrorBoundary"
 
-import mainLogo from "./imports/image-6.png"
+import BrandLogo from "./components/BrandLogo"
+import AnimatedMenuToggle from "./components/AnimatedMenuToggle"
+import NotificationDropdown from "./components/NotificationDropdown"
+import { getCurrentAcademicPeriod } from "./utils/academicCalendar"
 
 type Page = "dashboard" | "course-finder" | "degree-planner" | "chatbot"
 
@@ -41,6 +41,7 @@ export default function App() {
   const [finderInitialCourse, setFinderInitialCourse] = useState<Course | null>(
     null,
   )
+  const academicPeriod = getCurrentAcademicPeriod()
 
   const handleNavigate = (
     page: string,
@@ -103,45 +104,25 @@ export default function App() {
       {/* Sidebar Navigation */}
       <aside
         className={cn(
-          "bg-navy text-white flex flex-col flex-shrink-0 shadow-xl z-20 transition-all duration-300 ease-in-out absolute md:relative h-full",
+          "bg-navy text-white flex flex-col flex-shrink-0 shadow-xl z-20 transition-all duration-300 ease-in-out absolute md:relative h-full overflow-hidden",
           isSidebarOpen
-            ? "w-64 translate-x-0"
-            : "w-64 -translate-x-full md:translate-x-0 md:w-0 overflow-hidden opacity-0",
+            ? "w-64 translate-x-0 opacity-100"
+            : "w-0 -translate-x-full md:translate-x-0 opacity-0 pointer-events-none",
         )}
       >
-        <div className="flex flex-col h-full min-w-[16rem]">
+        <div className="flex flex-col h-full w-64 min-w-[16rem]">
           {/* Mobile Close Button */}
           <button
             onClick={() => setIsSidebarOpen(false)}
-            className="md:hidden absolute top-4 right-4 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+            aria-label="Tutup menu"
+            className="md:hidden absolute top-4 right-4 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors z-10"
           >
             <X className="w-5 h-5" />
           </button>
 
           {/* Logos Section */}
-          <div className="p-6 pb-2">
-            <div className="flex justify-center">
-              <img
-                src={mainLogo}
-                alt="Main Logo"
-                className="h-20 object-contain drop-shadow-md"
-              />
-            </div>
-          </div>
-
-          <div className="px-6 pb-6 pt-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center text-gold border border-gold/30 relative overflow-hidden group flex-shrink-0">
-              <Compass className="w-6 h-6 transition-transform duration-700 group-hover:rotate-180" />
-              <div className="absolute w-[2px] h-4 bg-gold top-1 left-1/2 -translate-x-1/2 rounded-full" />
-            </div>
-            <div>
-              <h1 className="font-heading font-bold text-lg tracking-wide text-gold whitespace-nowrap">
-                FTMM COMPASS
-              </h1>
-              <p className="text-[10px] text-teal-light uppercase tracking-wider font-mono whitespace-nowrap">
-                Academic Advisor
-              </p>
-            </div>
+          <div className="p-5 pb-3">
+            <BrandLogo variant="sidebar" />
           </div>
 
           <nav className="flex-1 px-4 py-6 space-y-2 border-t border-navy-light/50">
@@ -156,7 +137,7 @@ export default function App() {
                     if (window.innerWidth < 768) setIsSidebarOpen(false)
                   }}
                   className={cn(
-                    "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group text-left",
+                    "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors duration-150 group text-left",
                     isActive
                       ? "bg-navy-light border-l-4 border-gold text-white"
                       : "text-muted hover:text-white hover:bg-navy-light/50 border-l-4 border-transparent",
@@ -210,24 +191,23 @@ export default function App() {
         {/* Topbar */}
         <header className="h-16 bg-surface border-b border-border flex items-center justify-between px-4 md:px-8 flex-shrink-0 z-0">
           <div className="flex items-center gap-3">
-            <button
+            <AnimatedMenuToggle
+              isOpen={isSidebarOpen}
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="p-2 text-muted hover:text-navy hover:bg-background rounded-lg transition-colors"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
+            />
             <h2 className="font-heading text-xl md:text-2xl font-bold text-navy capitalize truncate">
               {activePage.replace("-", " ")}
             </h2>
           </div>
           <div className="flex items-center gap-2 md:gap-4">
-            <button className="p-2 text-muted hover:text-navy hover:bg-background rounded-lg transition-colors relative">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-danger rounded-full border border-surface"></span>
-            </button>
+            <NotificationDropdown />
             <div className="text-sm text-right hidden sm:block">
-              <p className="font-medium text-navy">Semester Ganjil 2024/2025</p>
-              <p className="text-xs text-muted font-mono">Week 4</p>
+              <p className="font-medium text-navy">
+                {academicPeriod.termDisplay}
+              </p>
+              <p className="text-xs text-muted font-mono">
+                {academicPeriod.weekDisplay}
+              </p>
             </div>
           </div>
         </header>
