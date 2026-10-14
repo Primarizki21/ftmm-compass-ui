@@ -53,6 +53,20 @@ jobs:
   backend:
     name: Backend Test Suite
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ftmm_compass_dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -68,17 +82,30 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Initialize PostgreSQL baseline schema
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d ftmm_compass_dev -f database/schema_v2_1_rc1.sql
+
       - name: Install backend dependencies
         run: uv sync --directory backend
+
       - name: Static syntax and compilation check
         run: uv run python -m compileall -q backend
 
       - name: Python lint check with Ruff
         run: uvx ruff check --select E9,F821,F822,F823,F401 backend
 
-
       - name: Run backend unit tests
         run: uv run --directory backend python test_backend.py
 
       - name: Run FastAPI API integration tests
+        env:
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/ftmm_compass_dev
         run: uv run --directory backend python test_api_endpoints.py
+
+      - name: Run Pre-KRS Polling API integration tests
+        env:
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/ftmm_compass_dev
+        run: uv run --directory backend python test_polling_api.py
