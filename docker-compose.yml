@@ -33,8 +33,12 @@ services:
     environment:
       - BACKEND_PORT=8001
       - HOST=0.0.0.0
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://postgres:postgres@postgres:5432/ftmm_compass_dev}
       - CHATBOT_SERVICE_URL=${CHATBOT_SERVICE_URL:-http://ftmm-compass-chatbot:8000}
       - CHATBOT_TIMEOUT_SECONDS=${CHATBOT_TIMEOUT_SECONDS:-45.0}
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - default
       - ftmm-network

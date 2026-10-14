@@ -1,7 +1,7 @@
 import os
 import json
 import httpx
-from typing import Any, AsyncGenerator
+from typing import Any, AsyncGenerator, Optional
 from fastapi import FastAPI, APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -32,9 +32,32 @@ from schemas import (
     ElectiveVoteResponse,
     CourseDemandItem,
     DemandAnalyticsResponse,
+    DashboardMeResponse,
+    DashboardScheduleItem,
+    StudentDashboardStats,
+    LecturerDashboardStats,
+    AdminDashboardStats,
 )
 from database import AsyncSessionLocal, get_db
-from models import User, StudentProfile as StudentProfileModel, ElectivePollingPeriod, ElectiveCourseVote
+from models import (
+    User,
+    StudentProfile as StudentProfileModel,
+    ElectivePollingPeriod,
+    ElectiveCourseVote,
+    AcademicPeriod,
+    Course,
+    Curriculum,
+    CurriculumCourse,
+    StudentCurriculumAssignment,
+    StudentCourseRecord,
+    CourseOffering,
+    OfferingComponent,
+    ClassSection,
+    ClassSchedule,
+    Timetable,
+    TimetableItem,
+    StudyProgram,
+)
 from auth import authenticate_user, create_access_token, get_current_user
 from data_loader import (
     get_courses_for_program,

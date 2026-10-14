@@ -19,13 +19,14 @@ import Dashboard from "./pages/Dashboard"
 import CourseFinder from "./pages/CourseFinder"
 import DegreePlanner, { PlacedCourse } from "./pages/DegreePlanner"
 import Chatbot, { DegreePlanPayload } from "./pages/Chatbot"
+import Profile from "./pages/Profile"
 import Login from "./pages/Login"
 import ErrorBoundary from "./components/ErrorBoundary"
 import { authService, type AuthUser } from "./services/authService"
 
 import mainLogo from "./imports/image-6.png"
 
-type Page = "dashboard" | "course-finder" | "degree-planner" | "chatbot"
+type Page = "dashboard" | "course-finder" | "degree-planner" | "chatbot" | "profile"
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() =>
@@ -38,6 +39,7 @@ export default function App() {
   })
   const [activePage, setActivePage] = useState<Page>("dashboard")
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false)
   const [pendingCourses, setPendingCourses] = useState<Course[]>([])
   const [customPlan, setCustomPlan] =
     useState<Record<number, PlacedCourse[]> | null>(null)
@@ -104,6 +106,8 @@ export default function App() {
     authService.logout()
     setCurrentUser(null)
     setIsLoggedIn(false)
+    setIsLogoutModalOpen(false)
+    setActivePage("dashboard")
   }
 
   if (!isLoggedIn) {
@@ -198,26 +202,61 @@ export default function App() {
           </nav>
 
           <div className="p-4 border-t border-navy-light/50">
-            <div className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-navy-light/50 transition-colors text-teal-light hover:text-white">
-              <div className="w-8 h-8 rounded-full bg-teal flex items-center justify-center flex-shrink-0">
-                <User className="w-4 h-4 text-navy-dark" />
-              </div>
-              <div className="flex-1 overflow-hidden">
-                <p className="text-sm font-medium truncate">
-                  {currentUser?.full_name || "Mahasiswa FTMM"}
-                </p>
-                <p className="text-xs text-muted font-mono truncate">
-                  {currentUser?.student_profile?.student_number ||
-                    currentUser?.email ||
-                    currentUser?.role}
-                </p>
-              </div>
+            <div
+              className={cn(
+                "flex items-center gap-2 p-1.5 rounded-xl transition-all",
+                activePage === "profile"
+                  ? "bg-navy-light border border-gold/40 text-white shadow-xs"
+                  : "hover:bg-navy-light/50 text-teal-light hover:text-white border border-transparent",
+              )}
+            >
               <button
                 type="button"
-                onClick={handleLogout}
-                title="Keluar / Logout"
+                onClick={() => {
+                  handleNavigate("profile")
+                  if (window.innerWidth < 768) setIsSidebarOpen(false)
+                }}
+                className="flex items-center gap-3 flex-1 min-w-0 text-left cursor-pointer group p-1 rounded-lg"
+                title="Buka Halaman Profil Pengguna"
+              >
+                <div
+                  className={cn(
+                    "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 font-heading font-bold text-xs transition-transform group-hover:scale-105",
+                    activePage === "profile"
+                      ? "bg-gold text-navy"
+                      : "bg-teal text-navy-dark",
+                  )}
+                >
+                  {currentUser?.full_name ? (
+                    currentUser.full_name
+                      .split(" ")
+                      .filter(Boolean)
+                      .slice(0, 2)
+                      .map((n) => n[0])
+                      .join("")
+                      .toUpperCase()
+                  ) : (
+                    <User className="w-4 h-4" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate text-white group-hover:text-gold transition-colors">
+                    {currentUser?.full_name || "Mahasiswa FTMM"}
+                  </p>
+                  <p className="text-xs text-muted font-mono truncate">
+                    {currentUser?.student_profile?.student_number ||
+                      currentUser?.email ||
+                      currentUser?.role}
+                  </p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsLogoutModalOpen(true)}
+                title="Keluar / Logout dari Sesi"
                 aria-label="Logout"
-                className="p-1 rounded hover:bg-white/10 transition-colors text-muted hover:text-orange flex-shrink-0"
+                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors text-muted hover:text-orange hover:bg-orange/15 flex-shrink-0 cursor-pointer"
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -246,7 +285,11 @@ export default function App() {
               <Menu className="w-5 h-5" />
             </button>
             <h2 className="font-heading text-xl md:text-2xl font-bold text-navy capitalize truncate">
-              {activePage.replace("-", " ")}
+              {activePage === "chatbot"
+                ? "Compass AI"
+                : activePage === "profile"
+                  ? "Profil Pengguna"
+                  : activePage.replace("-", " ")}
             </h2>
           </div>
           <div className="flex items-center gap-2 md:gap-4">
@@ -309,10 +352,68 @@ export default function App() {
               {activePage === "chatbot" && (
                 <Chatbot onApplyPlan={handleApplyPlanFromChatbot} />
               )}
+              {activePage === "profile" && (
+                <Profile
+                  currentUser={currentUser}
+                  onNavigate={handleNavigate}
+                  onRequestLogout={() => setIsLogoutModalOpen(true)}
+                />
+              )}
             </ErrorBoundary>
           </div>
         </div>
       </main>
+
+      {/* Logout Confirmation Modal */}
+      {isLogoutModalOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="logout-dialog-title"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+          onClick={() => setIsLogoutModalOpen(false)}
+        >
+          <div
+            className="bg-surface rounded-2xl border border-border shadow-2xl max-w-sm w-full p-6 space-y-4 animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-12 h-12 rounded-full bg-orange/10 text-orange flex items-center justify-center mx-auto border border-orange/20">
+              <LogOut className="w-6 h-6" />
+            </div>
+
+            <div className="text-center space-y-1">
+              <h3
+                id="logout-dialog-title"
+                className="font-heading font-bold text-lg text-navy"
+              >
+                Konfirmasi Keluar
+              </h3>
+              <p className="text-xs text-muted leading-relaxed">
+                Apakah Anda yakin ingin mengakhiri sesi akademik di FTMM
+                Compass? Anda dapat masuk kembali kapan saja dengan akun
+                Cybercampus UNAIR.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsLogoutModalOpen(false)}
+                className="w-full py-2.5 px-4 rounded-xl border border-border bg-background hover:bg-surface text-foreground font-medium text-xs transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="w-full py-2.5 px-4 rounded-xl bg-orange hover:bg-orange/90 text-white font-medium text-xs transition-colors cursor-pointer shadow-sm"
+              >
+                Ya, Keluar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

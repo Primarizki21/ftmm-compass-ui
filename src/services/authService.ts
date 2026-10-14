@@ -118,4 +118,49 @@ export const authService = {
     const token = this.getStoredToken()
     return token ? { Authorization: `Bearer ${token}` } : {}
   },
+
+  async getMe(): Promise<AuthUser> {
+    const token = this.getStoredToken()
+    if (!token) {
+      throw new Error("Sesi tidak ditemukan")
+    }
+
+    let response: Response
+    try {
+      response = await fetch("/api/v1/auth/me", {
+        headers: {
+          ...this.getAuthHeaders(),
+          Accept: "application/json",
+        },
+      })
+      if (!response.ok && response.status === 404) {
+        response = await fetch("http://127.0.0.1:8001/api/v1/auth/me", {
+          headers: {
+            ...this.getAuthHeaders(),
+            Accept: "application/json",
+          },
+        })
+      }
+    } catch {
+      response = await fetch("http://127.0.0.1:8001/api/v1/auth/me", {
+        headers: {
+          ...this.getAuthHeaders(),
+          Accept: "application/json",
+        },
+      })
+    }
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        this.logout()
+      }
+      throw new Error("Gagal mengambil profil pengguna.")
+    }
+
+    const user: AuthUser = await response.json()
+    if (typeof window !== "undefined" && window.localStorage) {
+      localStorage.setItem(USER_KEY, JSON.stringify(user))
+    }
+    return user
+  },
 }
