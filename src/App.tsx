@@ -189,7 +189,7 @@ export default function App() {
         )}
 
         {/* Topbar */}
-        <header className="h-16 bg-surface border-b border-border flex items-center justify-between px-4 md:px-8 flex-shrink-0 z-0">
+        <header className="h-16 bg-surface border-b border-border flex items-center justify-between px-4 md:px-8 flex-shrink-0 relative z-30">
           <div className="flex items-center gap-3">
             <AnimatedMenuToggle
               isOpen={isSidebarOpen}
