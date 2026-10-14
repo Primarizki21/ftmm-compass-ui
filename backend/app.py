@@ -1,5 +1,6 @@
 import os
 import json
+from contextlib import asynccontextmanager
 import httpx
 from typing import Any, AsyncGenerator, Optional
 from fastapi import FastAPI, APIRouter, Depends, HTTPException, Query, Request, status
@@ -71,11 +72,23 @@ from tools.prerequisite_validator import validate_plan_constraints
 CHATBOT_SERVICE_URL = os.getenv("CHATBOT_SERVICE_URL", "http://127.0.0.1:8000").rstrip("/")
 CHATBOT_TIMEOUT_SECONDS = float(os.getenv("CHATBOT_TIMEOUT_SECONDS", "45.0"))
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    auto_seed = os.getenv("AUTO_SEED", "true").lower() in ("true", "1", "yes")
+    if auto_seed:
+        try:
+            from seed import seed_data
+            await seed_data()
+        except Exception as e:
+            print(f"⚠️ Auto-seed skipped or encountered an error: {e}")
+    yield
+
 
 app = FastAPI(
     title="FTMM Compass AI Study Planner Gateway",
     description="Backend Gateway API connecting FTMM Compass UI with the Hybrid RAG-CAG Chatbot microservice and prerequisite validator.",
     version="1.1.0",
+    lifespan=lifespan,
 )
 
 # Enable CORS for Vite frontend
