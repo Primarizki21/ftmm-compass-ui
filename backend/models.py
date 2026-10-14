@@ -3,11 +3,15 @@ from datetime import datetime
 from typing import Optional
 from sqlalchemy import (
     Boolean,
+    Date,
+    DateTime,
     ForeignKey,
     Integer,
+    Numeric,
     SmallInteger,
     String,
-    DateTime,
+    Text,
+    Time,
     func,
 )
 from sqlalchemy.dialects.postgresql import UUID
@@ -164,3 +168,298 @@ class ElectiveCourseVote(Base):
         "ElectivePollingPeriod",
         back_populates="votes",
     )
+
+
+class AcademicPeriod(Base):
+    __tablename__ = "academic_periods"
+
+    academic_period_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    academic_year_start: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    term: Mapped[str] = mapped_column(String(20), nullable=False)
+    start_date: Mapped[Optional[datetime]] = mapped_column(Date, nullable=True)
+    end_date: Mapped[Optional[datetime]] = mapped_column(Date, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+
+class Course(Base):
+    __tablename__ = "courses"
+
+    course_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    course_code: Mapped[str] = mapped_column(String(30), unique=True, nullable=False)
+    course_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+
+class Curriculum(Base):
+    __tablename__ = "curricula"
+
+    curriculum_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    study_program_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("study_programs.study_program_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    curriculum_name: Mapped[str] = mapped_column(String(150), nullable=False)
+    curriculum_year: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    minimum_graduation_credits: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=144)
+    standard_duration_semesters: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=8)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+
+class CurriculumCourse(Base):
+    __tablename__ = "curriculum_courses"
+
+    curriculum_course_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    curriculum_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("curricula.curriculum_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    course_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("courses.course_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    credits_total: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    recommended_semester: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    term: Mapped[str] = mapped_column(String(20), nullable=False)
+    course_type: Mapped[str] = mapped_column(String(30), nullable=False)
+    course_scope: Mapped[str] = mapped_column(String(30), nullable=False, default="program_studi")
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+    course: Mapped["Course"] = relationship("Course")
+    curriculum: Mapped["Curriculum"] = relationship("Curriculum")
+
+
+class StudentCurriculumAssignment(Base):
+    __tablename__ = "student_curriculum_assignments"
+
+    student_curriculum_assignment_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.user_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    curriculum_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("curricula.curriculum_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    is_current: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+
+class StudentCourseRecord(Base):
+    __tablename__ = "student_course_records"
+
+    student_course_record_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.user_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    student_curriculum_assignment_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("student_curriculum_assignments.student_curriculum_assignment_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    curriculum_course_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("curriculum_courses.curriculum_course_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    academic_period_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("academic_periods.academic_period_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    record_status: Mapped[str] = mapped_column(String(30), nullable=False)
+    final_grade: Mapped[Optional[str]] = mapped_column(String(2), nullable=True)
+
+    curriculum_course: Mapped["CurriculumCourse"] = relationship("CurriculumCourse")
+    academic_period: Mapped["AcademicPeriod"] = relationship("AcademicPeriod")
+
+
+class CourseOffering(Base):
+    __tablename__ = "course_offerings"
+
+    course_offering_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    academic_period_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("academic_periods.academic_period_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    course_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("courses.course_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    offering_code: Mapped[str] = mapped_column(String(40), nullable=False)
+    course: Mapped["Course"] = relationship("Course")
+
+
+class CourseOfferingEligibility(Base):
+    __tablename__ = "course_offering_eligibilities"
+
+    course_offering_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("course_offerings.course_offering_id", ondelete="RESTRICT"),
+        primary_key=True,
+    )
+    curriculum_course_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("curriculum_courses.curriculum_course_id", ondelete="RESTRICT"),
+        primary_key=True,
+    )
+
+
+class OfferingComponent(Base):
+    __tablename__ = "offering_components"
+
+    offering_component_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    course_offering_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("course_offerings.course_offering_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    component_code: Mapped[str] = mapped_column(String(30), nullable=False)
+    component_type: Mapped[str] = mapped_column(String(30), nullable=False, default="lecture")
+    course_offering: Mapped["CourseOffering"] = relationship("CourseOffering")
+
+
+class ClassSection(Base):
+    __tablename__ = "class_sections"
+
+    class_section_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    offering_component_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("offering_components.offering_component_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    section_code: Mapped[str] = mapped_column(String(30), nullable=False)
+    capacity: Mapped[Optional[int]] = mapped_column(SmallInteger, nullable=True)
+    enrollment_status: Mapped[str] = mapped_column(String(30), nullable=False, default="open")
+
+    offering_component: Mapped["OfferingComponent"] = relationship("OfferingComponent")
+
+
+class ClassSchedule(Base):
+    __tablename__ = "class_schedules"
+
+    class_schedule_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    class_section_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("class_sections.class_section_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    day_of_week: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    start_time: Mapped[datetime] = mapped_column(Time, nullable=False)
+    end_time: Mapped[datetime] = mapped_column(Time, nullable=False)
+    room_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+
+    class_section: Mapped["ClassSection"] = relationship("ClassSection")
+
+
+class Timetable(Base):
+    __tablename__ = "timetables"
+
+    timetable_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.user_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    student_curriculum_assignment_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("student_curriculum_assignments.student_curriculum_assignment_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    academic_period_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("academic_periods.academic_period_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    timetable_name: Mapped[str] = mapped_column(String(100), nullable=False, default="Jadwal Utama")
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+
+class TimetableItem(Base):
+    __tablename__ = "timetable_items"
+
+    timetable_item_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    timetable_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("timetables.timetable_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    class_section_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("class_sections.class_section_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+
+    class_section: Mapped["ClassSection"] = relationship("ClassSection")

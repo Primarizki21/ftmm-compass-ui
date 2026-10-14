@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict, Literal, Any
+from typing import List, Optional, Dict, Literal, Any, Union
 from pydantic import BaseModel, Field
 
 
@@ -258,3 +258,66 @@ class DemandAnalyticsResponse(BaseModel):
     period: PollingPeriodResponse
     total_students_voted: int
     items: List[CourseDemandItem] = Field(default_factory=list)
+
+
+class DashboardScheduleItem(BaseModel):
+    id: str
+    course_id: str
+    course_code: str
+    course_name: str
+    credits: int
+    day: str
+    start_time: str
+    end_time: str
+    time: str
+    room: str
+    lecturer: Optional[str] = None
+    class_name: Optional[str] = None
+    enrolled_students: Optional[int] = None
+    color: Optional[str] = "teal"
+
+
+class StudentDashboardStats(BaseModel):
+    type: Literal["student"] = "student"
+    sks_completed: int
+    sks_target: int = 144
+    completion_percentage: float
+    current_semester: int
+    term_name: str
+    courses_planned: int
+    sks_planned: int
+    gpa: float
+    predicate: str
+
+
+class LecturerDashboardStats(BaseModel):
+    type: Literal["lecturer"] = "lecturer"
+    courses_taught: int
+    sks_taught: int
+    total_students: int
+    advisee_students: int
+    active_term: str
+    status: str
+
+
+class AdminDashboardStats(BaseModel):
+    type: Literal["admin"] = "admin"
+    total_active_students: int
+    total_lecturers: int
+    total_courses: int
+    total_study_programs: int
+    active_polling_period: str
+    system_status: str
+
+
+class DashboardMeResponse(BaseModel):
+    user_id: str
+    full_name: str
+    role: str
+    email: str
+    student_number: Optional[str] = None
+    study_program: Optional[str] = None
+    period_name: str
+    academic_week: int = 4
+    stats: Union[StudentDashboardStats, LecturerDashboardStats, AdminDashboardStats]
+    schedule: List[DashboardScheduleItem] = Field(default_factory=list)
