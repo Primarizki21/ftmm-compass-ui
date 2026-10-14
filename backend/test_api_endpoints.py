@@ -1,9 +1,9 @@
-import json
 from unittest.mock import patch, AsyncMock
 import httpx
 from fastapi.testclient import TestClient
 from app import app
 import app as app_module
+import data_loader
 
 client = TestClient(app)
 
@@ -32,6 +32,25 @@ def test_courses_endpoint():
     data = res.json()
     assert data["total_courses"] > 0
     print(f"✓ Courses endpoint OK ({data['total_courses']} courses)")
+
+def test_v1_courses_all_prodis():
+    res = client.get("/api/v1/courses")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["total_courses"] > 0
+    if data_loader.OFFICIAL_CURRICULUM:
+        assert data["total_courses"] >= 300
+    else:
+        assert data["total_courses"] >= 50
+    prodis = set(c.get("program") for c in data.get("courses", []))
+    assert len(prodis) == 5
+
+    res_sem3 = client.get("/api/v1/courses?semester=3")
+    assert res_sem3.status_code == 200
+    data_sem3 = res_sem3.json()
+    prodis_sem3 = set(c.get("program") for c in data_sem3.get("courses", []))
+    assert len(prodis_sem3) == 5
+    print("✓ Canonical v1 Courses all prodis and semester 3 OK")
 
 
 def test_v1_courses_pagination():
@@ -276,11 +295,70 @@ def test_v1_plan_validations_endpoint():
     assert data["is_valid"] is True
     print("✓ Canonical v1 Plan validations endpoint OK")
 
+def test_v1_plan_validations_religion_conflict():
+    res = client.post("/api/v1/plans/validations", json={
+        "program_studi": "Teknologi Sains Data",
+        "semester_saat_ini": 1,
+        "riwayat_matkul_lulus": [],
+        "maks_sks_per_semester": 24,
+        "plan": {
+            1: [
+                {
+                    "id": "AGI101",
+                    "code": "AGI101",
+                    "name": "Agama Islam I",
+                    "credits": 2,
+                    "semester": 1,
+                    "type": "Wajib",
+                    "parity": "odd",
+                    "prerequisites": [],
+                },
+                {
+                    "id": "AGK101",
+                    "code": "AGK101",
+                    "name": "Agama Katolik I",
+                    "credits": 2,
+                    "semester": 1,
+                    "type": "Wajib",
+                    "parity": "odd",
+                    "prerequisites": [],
+                }
+            ]
+        }
+    })
+    assert res.status_code == 200
+    data = res.json()
+    assert data["is_valid"] is False
+    assert any("Pelanggaran kurikulum agama" in e for e in data["errors"])
+    print("✓ Canonical v1 Plan validations religion conflict correctly caught")
+
+def test_courses_fallback_isolation():
+    original_official = data_loader.OFFICIAL_CURRICULUM
+    try:
+        data_loader.OFFICIAL_CURRICULUM = {}
+        with patch.object(app_module, "CHATBOT_SERVICE_URL", "http://127.0.0.1:9999"):
+            res = client.get("/api/v1/courses")
+            assert res.status_code == 200
+            data = res.json()
+            assert data["total_courses"] >= 50
+            prodis = set(c.get("program") for c in data.get("courses", []))
+            assert len(prodis) == 5
+
+            res_prodi = client.get("/api/v1/courses?prodi=Teknologi%20Sains%20Data")
+            assert res_prodi.status_code == 200
+            data_prodi = res_prodi.json()
+            assert data_prodi["total_courses"] > 0
+            assert all(c["program"] == "Teknologi Sains Data" for c in data_prodi.get("courses", []))
+        print("✓ Dual-mode fallback isolation OK (resilient without Ekstrak/ and offline SSOT)")
+    finally:
+        data_loader.OFFICIAL_CURRICULUM = original_official
+
 
 if __name__ == "__main__":
     test_health()
     test_v1_health()
     test_courses_endpoint()
+    test_v1_courses_all_prodis()
     test_v1_courses_pagination()
     test_courses_search_endpoint()
     test_v1_courses_search_endpoint()
@@ -291,5 +369,7 @@ if __name__ == "__main__":
     test_chat_stream_endpoint()
     test_plan_generate_endpoint()
     test_v1_plan_validations_endpoint()
+    test_v1_plan_validations_religion_conflict()
     test_courses_proxy_chatbot_ssot()
+    test_courses_fallback_isolation()
     print("\nAll modernized API endpoint integration tests passed! 🚀")

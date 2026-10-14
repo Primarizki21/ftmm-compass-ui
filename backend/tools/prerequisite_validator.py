@@ -1,4 +1,4 @@
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Set
 from schemas import PlacedCourseModel, PlanValidationResponse
 
 
@@ -12,6 +12,25 @@ def is_course_completed(prereq_name: str, completed_set: Set[str]) -> bool:
         if norm_prereq in normalize_title(c) or normalize_title(c) in norm_prereq:
             return True
     return False
+
+def extract_religion_type(course_name: str, course_code: str | None = None) -> str | None:
+    text = f"{course_code or ''} {course_name}".lower()
+    has_agama = "agama" in text or any(k in text for k in ["agi", "agk", "agp", "agh", "agb", "agc"])
+    if not has_agama:
+        return None
+    if "islam" in text or "agi" in (course_code or "").lower():
+        return "Islam"
+    if "katolik" in text or "agk" in (course_code or "").lower():
+        return "Katolik"
+    if "protestan" in text or "kristen" in text or "agp" in (course_code or "").lower():
+        return "Protestan"
+    if "hindu" in text or "agh" in (course_code or "").lower():
+        return "Hindu"
+    if "buddha" in text or "budha" in text or "agb" in (course_code or "").lower():
+        return "Buddha"
+    if "khonghucu" in text or "konghucu" in text or "agc" in (course_code or "").lower():
+        return "Khonghucu"
+    return "Umum"
 
 
 def validate_plan_constraints(
@@ -84,6 +103,31 @@ def validate_plan_constraints(
             if course.code:
                 completed_so_far.add(course.code)
             completed_so_far.add(course.id)
+
+    # 4. Max 1 Religion Type Constraint
+    religions_found: Dict[str, List[str]] = {}
+    for sem_num, sem_courses in plan.items():
+        for c in sem_courses:
+            rel = extract_religion_type(c.name, c.code)
+            if rel and rel != "Umum":
+                if rel not in religions_found:
+                    religions_found[rel] = []
+                religions_found[rel].append(f"{c.name} (Sem {sem_num})")
+
+    for prev_name in riwayat_matkul_lulus:
+        rel = extract_religion_type(prev_name)
+        if rel and rel != "Umum":
+            if rel not in religions_found:
+                religions_found[rel] = []
+            religions_found[rel].append(f"{prev_name} (Riwayat Lulus)")
+
+    if len(religions_found) > 1:
+        details = ", ".join(
+            f"Agama {r}: {', '.join(items)}" for r, items in sorted(religions_found.items())
+        )
+        errors.append(
+            f"Pelanggaran kurikulum agama: Mahasiswa hanya diperbolehkan mengambil 1 jenis mata kuliah agama. Terdeteksi {len(religions_found)} jenis agama dalam rencana studi: {details}."
+        )
 
     return PlanValidationResponse(
         is_valid=(len(errors) == 0),

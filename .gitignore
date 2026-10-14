@@ -18,6 +18,7 @@ logs/
 .figma/make/*
 !.figma/make/site.json
 .codegraph/
+graphify-out/
 /Ekstrak/
 
 # Python
@@ -40,3 +41,4 @@ KNOWLEDGE_BASE.md
 # Local AI agent instructions & notes
 AGENTS.md
 CLAUDE.md
+.omp/

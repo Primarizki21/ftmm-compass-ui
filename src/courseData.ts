@@ -1,4 +1,4 @@
-import { Course, PrerequisiteNode } from "./data"
+import { Course, CourseCategory, PrerequisiteNode } from "./data"
 
 /**
  * Loads the FTMM curriculum silabus JSONs from /Ekstrak (gitignored, local-only)
@@ -53,14 +53,42 @@ function normalizeType(raw?: string): "Wajib" | "Pilihan" {
   return "Wajib"
 }
 
-function cleanPrereqText(s: string): string {
-  return s
-    .replace(/^diambil\s+bersamaan(\s*\/\s*sudah\s+mengambil)?\s*/i, "")
-    .replace(/^(dan\/atau|atau|dan)\s+/i, "")
+export function cleanPrereqText(s: string): string {
+  let cleaned = s.trim()
+  if (!cleaned || /^(dan|atau|dan\/atau)$/i.test(cleaned)) {
+    return ""
+  }
+
+  // Remove trailing credit requirements attached to course names
+  cleaned = cleaned
+    .replace(
+      /\s+(?:dan|serta)\s+(?:sudah\s+menempuh|menempuh|lulus|sudah\s+mengambil)?\s*(?:minimal|minimum)?\s*\d+\s*sks.*$/i,
+      "",
+    )
+    .replace(/\s+(?:serta|dan)\s*$/i, "")
     .trim()
+
+  // Remove leading co-requisite / pre-requisite boilerplate
+  cleaned = cleaned
+    .replace(
+      /^(?:diambil\s+bersamaan(?:\s*\/\s*sudah\s+mengambil)?|telah\s*\/\s*tengah\s+mengambil|sudah\s*\/\s*sedang\s+mengambil|sudah\s+atau\s+pernah\s+mengambil|pernah\s+mengambil|sudah\s+mengambil)\s+/i,
+      "",
+    )
+    .replace(/^lulus\s+(?!\d|minimum|minimal)/i, "")
+    .replace(/^(?:dan\/atau|atau|dan)\s+/i, "")
+    .replace(/[,;]\s*$/g, "")
+    .trim()
+
+  return cleaned
 }
 
-function toPrereqNodes(raw: unknown): PrerequisiteNode[] {
+export function isAdministrativeRequirement(s: string): boolean {
+  return /^(?:lulus\s+mini|sudah\s+menempuh|menempuh\s+mini|minimal\s+semester|minimal\s+sudah|sudah\s+lulus|\d+\s*sks)/i.test(
+    s.trim(),
+  )
+}
+
+export function toPrereqNodes(raw: unknown): PrerequisiteNode[] {
   if (!Array.isArray(raw)) return []
   const nodes: PrerequisiteNode[] = []
   const seen = new Set<string>()
@@ -71,9 +99,11 @@ function toPrereqNodes(raw: unknown): PrerequisiteNode[] {
     const key = name.toLowerCase()
     if (seen.has(key)) continue
     seen.add(key)
-    // Real silabus prereqs carry no codes: keep id identical to the name so
-    // views that print both (modal list, diagram) render it only once.
-    nodes.push({ id: name, name })
+    nodes.push({
+      id: name,
+      name,
+      isAdministrative: isAdministrativeRequirement(name),
+    })
   }
   return nodes
 }
@@ -86,14 +116,110 @@ function slugify(s: string): string {
     .replace(/(^-|-$)/g, "")
 }
 
+export const PROGRAM_ABBREVIATIONS: Record<string, string> = {
+  "Teknik Industri": "TI",
+  "Teknologi Sains Data": "TSD",
+  "Teknik Robotika dan Kecerdasan Buatan": "TRKB",
+  "Teknik Elektro": "TE",
+  "Rekayasa Nanoteknologi": "RN",
+}
+
+export function normalizeProgramName(raw?: string): string {
+  if (!raw) return ""
+  return raw.replace(/^S1\s+/i, "").trim()
+}
+
+export function getProdiAbbreviation(program?: string): string {
+  if (!program) return ""
+  const normalized = normalizeProgramName(program)
+  return PROGRAM_ABBREVIATIONS[normalized] || normalized
+}
+
+export function classifyCourseCategory(course: {
+  code?: string
+  name: string
+  semester: number
+}): CourseCategory {
+  const code = (course.code || "").toUpperCase().trim()
+  const nl = course.name.toLowerCase().trim()
+  const sem = Number(course.semester) || 1
+
+  // Agama 2 is specifically taught per-prodi in upper semesters (Sem >= 5 or code AGI401, AGI102)
+  if (
+    nl.includes("agama") &&
+    (sem >= 5 ||
+      code.includes("401") ||
+      code.includes("102") ||
+      nl.includes(" ii") ||
+      (nl.includes("2") && !nl.includes("1")))
+  ) {
+    return "prodi"
+  }
+
+  // Semester 1 or 2 foundational courses
+  if (sem <= 2) {
+    // PDB Universitas (MKWU Nasional/Universitas + Dasar Saintek Universitas non-praktikum)
+    if (
+      nl.includes("agama") ||
+      nl.includes("pancasila") ||
+      nl.includes("kewarganegaraan") ||
+      nl.includes("bahasa indonesia") ||
+      nl.includes("pemikiran kritis") ||
+      nl.includes("pengembangan diri") ||
+      nl.includes("kolaborasi keilmuan") ||
+      nl.includes("data dan pustaka") ||
+      nl.includes("biologi dasar") ||
+      nl.includes("kimia dasar") ||
+      nl.includes("fisika dasar") ||
+      nl === "matematika" ||
+      nl === "matematika i" ||
+      nl === "kalkulus i" ||
+      nl === "kalkulus 1" ||
+      [
+        "NOP103",
+        "NOP104",
+        "BAI101",
+        "BA1101",
+        "PHP103",
+        "BHP103",
+        "MNM106",
+        "MNM107",
+        "SIP107",
+        "MAT108",
+        "MAA103",
+        "MA1101",
+        "FID101",
+        "FID103",
+        "KID101",
+        "KID105",
+        "BID101",
+      ].includes(code)
+    ) {
+      return "pdb_univ"
+    }
+
+    // PDB Saintek (Mata kuliah bersama saintek terapan FTMM)
+    if (
+      nl.includes("pengantar teknologi maju") ||
+      nl.includes("teknologi hijau") ||
+      ["TNM101", "TNM102"].includes(code)
+    ) {
+      return "pdb_saintek"
+    }
+  }
+
+  return "prodi"
+}
+
 const coursesByProgram: Record<string, Course[]> = {}
 
 for (const [path, mod] of Object.entries(modules)) {
   const cur = mod?.default ?? {}
   const fileName = path.split("/").pop() ?? path
-  const program =
+  const rawProgram =
     cur.metadata?.program_studi?.trim() ||
     fileName.replace(/^FIX\s*/i, "").replace(/\.json$/i, "")
+  const program = normalizeProgramName(rawProgram)
 
   const seen = new Set<string>()
   const usedIds = new Set<string>()
@@ -125,6 +251,8 @@ for (const [path, mod] of Object.entries(modules)) {
       parity: semester % 2 === 1 ? "odd" : "even",
       prerequisites: toPrereqNodes(m.prasyarat),
       program,
+      prodiAbbr: getProdiAbbreviation(program),
+      category: classifyCourseCategory({ code, name, semester }),
     })
   })
 }
@@ -134,12 +262,110 @@ export const PROGRAMS: string[] = Object.keys(coursesByProgram).sort((a, b) =>
   a.localeCompare(b),
 )
 
-export const COURSES_BY_PROGRAM: Record<string, Course[]> = coursesByProgram
-
 /** Every normalized course across all five programs (~369 entries). */
 export const ALL_COURSES: Course[] = PROGRAMS.flatMap(
   (p) => coursesByProgram[p] ?? [],
 )
+
+/** Finds the best-matching official Course by its name or code, prioritizing the owning program. */
+export function findCourseByNameOrCode(
+  nameOrCode: string,
+  catalog: Course[] = ALL_COURSES,
+  preferredProgram?: string,
+): Course | undefined {
+  if (!nameOrCode || !nameOrCode.trim()) return undefined
+  const q = nameOrCode.trim().toLowerCase()
+  const prefProg = preferredProgram
+    ? normalizeProgramName(preferredProgram)
+    : undefined
+
+  // 1. Exact match on code (e.g. BID101) within preferred program
+  if (prefProg) {
+    const exactCode = catalog.find(
+      (c) => c.program === prefProg && c.code && c.code.toLowerCase() === q,
+    )
+    if (exactCode) return exactCode
+  }
+
+  // 2. Exact match on code across any program
+  const anyCode = catalog.find((c) => c.code && c.code.toLowerCase() === q)
+  if (anyCode) return anyCode
+
+  // 3. Exact match on course name within preferred program
+  if (prefProg) {
+    const exactName = catalog.find(
+      (c) => c.program === prefProg && c.name.toLowerCase() === q,
+    )
+    if (exactName) return exactName
+  }
+
+  // 4. Exact match on course name across any program
+  const anyName = catalog.find((c) => c.name.toLowerCase() === q)
+  if (anyName) return anyName
+
+  // 5. Normalized prefix/fuzzy name match (e.g. "Fisika Dasar 1" vs "Fisika Dasar I")
+  const normalizeRoman = (s: string) =>
+    s.toLowerCase()
+      .replace(/\s+1\b/g, " i")
+      .replace(/\s+2\b/g, " ii")
+      .replace(/\s+3\b/g, " iii")
+      .trim()
+
+  const qNorm = normalizeRoman(q)
+  if (prefProg) {
+    const romanMatch = catalog.find(
+      (c) => c.program === prefProg && normalizeRoman(c.name) === qNorm,
+    )
+    if (romanMatch) return romanMatch
+  }
+
+  return catalog.find((c) => normalizeRoman(c.name) === qNorm)
+}
+
+/** Returns all courses in the catalog that require the specified course. */
+export function findUnlockedCourses(
+  course: Course,
+  catalog: Course[] = ALL_COURSES,
+): Course[] {
+  const courseName = course.name.toLowerCase().trim()
+  const courseCode = course.code ? course.code.toLowerCase().trim() : undefined
+  const prefProg = course.program
+    ? normalizeProgramName(course.program)
+    : undefined
+
+  const normalizeRoman = (s: string) =>
+    s.toLowerCase()
+      .replace(/\s+1\b/g, " i")
+      .replace(/\s+2\b/g, " ii")
+      .replace(/\s+3\b/g, " iii")
+      .trim()
+
+  const targetNorm = normalizeRoman(courseName)
+
+  const matches = catalog.filter((c) => {
+    if (c.id === course.id) return false
+    const prereqs = c.prerequisites || []
+    return prereqs.some((p) => {
+      if (p.isAdministrative) return false
+      const pName = p.name.toLowerCase().trim()
+      const pId = p.id.toLowerCase().trim()
+      if (pName === courseName || (courseCode && pName === courseCode))
+        return true
+      if (courseCode && (pId === courseCode || pName === courseCode))
+        return true
+      if (normalizeRoman(pName) === targetNorm) return true
+      return false
+    })
+  })
+
+  // Sort: courses from the same program first, then by semester
+  return matches.sort((a, b) => {
+    const aSame = a.program === prefProg ? 0 : 1
+    const bSame = b.program === prefProg ? 0 : 1
+    if (aSame !== bSame) return aSame - bSame
+    return a.semester - b.semester
+  })
+}
 
 export interface ApiCourseItem {
   id: string
@@ -174,7 +400,10 @@ export interface ApiCoursesResponse {
 /** Fetches the official course catalog from the backend API with fallback to local cache. */
 export async function fetchCatalog(
   program?: string,
-): Promise<{ courses: Course[] programs?: string[] } | null> {
+): Promise<{
+  courses: Course[]
+  programs?: string[]
+} | null> {
   try {
     const queryParam =
       program && program !== "all"
@@ -194,58 +423,41 @@ export async function fetchCatalog(
         : []
     if (rawList.length === 0) return null
 
-    const courses: Course[] = rawList.map((c) => ({
-      id: c.id || `${slugify(c.program)}:${c.code || slugify(c.name)}`,
-      code: c.code || undefined,
-      name: c.name,
-      credits: Number(c.credits) || 0,
-      semester: Number(c.semester) || 1,
-      type: c.type === "Pilihan" ? "Pilihan" : "Wajib",
-      parity: c.parity === "even" ? "even" : "odd",
-      desc: c.desc || "",
-      program: c.program,
-      prerequisites: (c.prerequisites || []).map((p) => ({ id: p, name: p })),
-    }))
+    const usedIds = new Set<string>()
+    const courses: Course[] = rawList.map((c, i) => {
+      const baseCode = c.code || c.id || `mk-${i + 1}`
+      const normProgram = normalizeProgramName(c.program || "ftmm")
+      let id = `${slugify(normProgram)}:${baseCode}`
+      if (usedIds.has(id)) id += `-${slugify(c.name)}`
+      while (usedIds.has(id)) id += "-x"
+      usedIds.add(id)
+      const semester = Number(c.semester) || 1
+      const code = c.code || c.id || undefined
+      return {
+        id,
+        code,
+        name: c.name,
+        credits: Number(c.credits) || 0,
+        semester,
+        type: c.type === "Pilihan" ? "Pilihan" : "Wajib",
+        parity: c.parity === "even" ? "even" : "odd",
+        desc: c.desc || "",
+        program: normProgram,
+        prodiAbbr: getProdiAbbreviation(normProgram),
+        category: classifyCourseCategory({ code, name: c.name, semester }),
+        prerequisites: toPrereqNodes(c.prerequisites),
+      }
+    })
 
     return {
       courses,
       programs:
-        data.programs && data.programs.length > 0 ? data.programs : undefined,
+        data.programs && data.programs.length > 0
+          ? Array.from(new Set(data.programs.map(normalizeProgramName))).sort(
+              (a, b) => a.localeCompare(b),
+            )
+          : undefined,
     }
-  } catch {
-    return null
-  }
-}
-
-/** Searches course catalog using semantic/keyword course search endpoint. */
-export async function searchCatalog(
-  query: string,
-  program?: string,
-): Promise<Course[] | null> {
-  try {
-    const params = new URLSearchParams({ q: query })
-    if (program && program !== "all") {
-      params.set("prodi", program)
-    }
-    let res = await fetch(`/api/v1/courses/search?${params.toString()}`)
-    if (!res.ok) {
-      res = await fetch(`/api/courses/search?${params.toString()}`)
-    }
-    if (!res.ok) return null
-    const data = (await res.json()) as { results?: ApiCourseItem[] }
-    const results = data.results || []
-    return results.map((c) => ({
-      id: c.id || `${slugify(c.program)}:${c.code || slugify(c.name)}`,
-      code: c.code || undefined,
-      name: c.name,
-      credits: Number(c.credits) || 0,
-      semester: Number(c.semester) || 1,
-      type: c.type === "Pilihan" ? "Pilihan" : "Wajib",
-      parity: c.parity === "even" ? "even" : "odd",
-      desc: c.desc || "",
-      program: c.program,
-      prerequisites: (c.prerequisites || []).map((p) => ({ id: p, name: p })),
-    }))
   } catch {
     return null
   }

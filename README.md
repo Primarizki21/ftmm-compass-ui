@@ -14,44 +14,44 @@ FTMM Compass helps students plan their degree journey across 8 semesters, explor
 └────────────────────────────────────────────────────────────────────────────────┘
 
  ┌──────────────────────────────────────────────────────────────────────────────┐
- │                         Tier 1: Frontend (React 19)                          │
+ │                     Tier 1: Modular Frontend (React 19)                      │
  │                                                                              │
  │   ┌───────────────┐   ┌────────────────┐   ┌─────────────────────────────┐   │
  │   │   Dashboard   │   │  CourseFinder  │   │        DegreePlanner        │   │
- │   │ (Stats & Sched)│  │ (Catalog & DAG)│   │ (8-Sem Roadmap & Drag/Drop) │   │
- │   └───────────────┘   └────────────────┘   └──────────────▲──────────────┘   │
+ │   │ (Stats & Grid)│   │(Detail/Modal/  │   │ (PlannerHeader, SemColumn,  │   │
+ │   └───────────────┘   │ PrereqDiagram) │   │  PickerModal, ElectiveBank) │   │
+ │                       └────────────────┘   └──────────────▲──────────────┘   │
  │                                                           │                  │
  │                                      [Apply AI Plan] ─────┘                  │
  │                                                           │                  │
  │                                            ┌──────────────┴──────────────┐   │
  │                                            │      Compass AI Chatbot     │   │
- │                                            │  (Engine Badges & Latency)  │   │
+ │                                            │ (SSE Stream & Action Cards) │   │
  │                                            └──────────────▲──────────────┘   │
  └───────────────────────────────────────────────────────────┼──────────────────┘
                                                              │
-                                       Vite Dynamic Proxy (/api/* via .backend-port)
+                               Vite Dynamic Proxy (/api/v1/* & /api/* via .backend-port)
                                                              │
  ┌───────────────────────────────────────────────────────────▼──────────────────┐
  │                     Tier 2: Backend Gateway Service (FastAPI)                │
  │                                                                              │
  │   ┌──────────────────────────────────────────────────────────────────────┐   │
- │   │         Gateway Proxy Controller & Resilient Fallback Engine         │   │
- │   │       (Probes Microservice; Falls Back to Local Agent if Offline)     │   │
+ │   │      Dual-Router Gateway (/api/v1 & /api) + Resilient Fallback       │   │
+ │   │       (Probes Microservice; Falls Back to Local Tools if Offline)    │   │
  │   └───────────────────────┬──────────────────────────────┬───────────────┘   │
  │                           │                              │                   │
- │             [HTTP Forward /api/chat]        [Local Fallback Agent]           │
+ │        [HTTP / SSE Forward /api/v1/chat]       [Local Deterministic Engine]  │
  │                           │                              │                   │
  │                           ▼                              ▼                   │
  │ ┌──────────────────────────────────┐   ┌───────────────────────────────────┐ │
  │ │ Tier 3: AI Microservice (Docker) │   │     Deterministic Tools Layer     │ │
  │ │ • Repo: ftmm-compass-chatbot     │   │ • Prerequisite DAG Validator      │ │
  │ │ • Port: 8000 (Hybrid RAG-CAG)    │   │ • Semester Parity Validator       │ │
- │ │ • Ollama: qwen2.5:3b (Port 11434)│   │ • Curriculum Course Loader        │ │
+ │ │ • Ollama: qwen2.5:3b (Port 11434)│   │ • 5-Prodi FTMM Curriculum Loader  │ │
  │ │ • FAISS Cosine Vector Retriever  │   │ • 8-Semester Plan Synthesizer     │ │
  │ └──────────────────────────────────┘   └───────────────────────────────────┘ │
  └──────────────────────────────────────────────────────────────────────────────┘
 ```
-
 ---
 
 ## Key Features
@@ -263,12 +263,15 @@ pnpm format
 ftmm-compass-ui/
 ├── .github/workflows/ci.yml       # Automated CI pipeline (Node 22 + Python 3.11)
 ├── AI_PLANNER_PIPELINE.md         # Dokumentasi detail arsitektur Study Planner Agent
-├── backend/                       # Python FastAPI Backend
+├── DESIGN.md                      # Spesifikasi sistem desain & token visual FTMM
+├── Dockerfile.frontend            # Container image definition untuk React + Vite
+├── Dockerfile.backend             # Multi-stage container image untuk FastAPI (uv)
+├── docker-compose.yml             # Orkestrasi multi-container (ftmm-network)
+├── backend/                       # Python FastAPI Backend Gateway
 │   ├── README.md                  # Dokumentasi API, setup uv, & arsitektur backend
-│   ├── app.py                     # API server & endpoint routes (/api/chat, /api/courses, etc.)
-│   ├── agent.py                   # Slot-filling conversational agent & Ollama controller
-│   ├── schemas.py                 # Pydantic data models & payload contracts
-│   ├── data_loader.py             # Loader kurikulum resmi FTMM & pemetaan prasyarat
+│   ├── app.py                     # Dual-tier API gateway (/api/v1/* & /api/*)
+│   ├── schemas.py                 # Pydantic v2 data models & payload contracts
+│   ├── data_loader.py             # Fallback katalog resmi 5 Prodi FTMM & PRODI_ALIASES
 │   ├── pyproject.toml             # Konfigurasi dependensi uv (Astral)
 │   ├── uv.lock                    # Deterministic lockfile backend
 │   ├── requirements.txt           # Export dependensi pip standar
@@ -276,29 +279,50 @@ ftmm-compass-ui/
 │   ├── tools/
 │   │   ├── prerequisite_validator.py  # Deterministic DAG, parity, & SKS validator
 │   │   └── planner.py             # Study plan synthesis & elective scoring engine
-│   ├── test_backend.py            # Unit tests for tools & agent dialog
-│   └── test_api_endpoints.py      # Integration tests for FastAPI endpoints
-├── src/                           # React Frontend
-│   ├── App.tsx                    # Top-level state & planner payload wiring
+│   ├── test_backend.py            # Unit tests untuk 5 prodi loader, validator, & planner
+│   └── test_api_endpoints.py      # Integration tests untuk seluruh rute FastAPI
+├── src/                           # React 19 + TypeScript + Tailwind v4 SPA
+│   ├── App.tsx                    # Top-level state hub & planner payload wiring
 │   ├── main.tsx                   # React DOM entrypoint
-│   ├── data.ts                    # Core TypeScript models & mock schedules
-│   ├── courseData.ts              # Catalog normalizer
-│   ├── index.css                  # Tailwind v4 @theme design tokens
-│   ├── utils.ts                   # cn() helper
+│   ├── data.ts                    # Core TypeScript models, TIMETABLE_DAYS, & SCHEDULE
+│   ├── courseData.ts              # Reactive catalog fetcher (fetchCatalog) & normalizer
+│   ├── index.css                  # Tailwind v4 @theme design tokens (Navy, Gold, Teal)
+│   ├── utils.ts                   # cn() class merger helper
 │   ├── pages/
-│   │   ├── Login.tsx              # Simulated authentication page
-│   │   ├── Dashboard.tsx          # Academic stats & weekly timetable
-│   │   ├── CourseFinder.tsx       # Course search & SVG prerequisite diagram
-│   │   ├── DegreePlanner.tsx      # Interactive 8-semester roadmap
-│   │   └── Chatbot.tsx            # Compass AI UI with interactive Action Cards
+│   │   ├── Login.tsx              # Simulated Cybercampus SSO authentication page
+│   │   ├── Dashboard.tsx          # Academic stats & weekly timetable widget
+│   │   ├── CourseFinder.tsx       # Course catalog explorer & filter
+│   │   ├── DegreePlanner.tsx      # Interactive 8-semester drag-and-drop roadmap
+│   │   └── Chatbot.tsx            # Compass AI conversational planner (SSE + Fallback)
 │   └── components/
-│       └── TimetableGrid.tsx      # Weekly timetable grid component
-├── RANCANGAN DIAGRAM AWAL.sql     # PostgreSQL 16 baseline schema
-└── SCHEMA_REVIEW.md               # Database decision records
+│       ├── TimetableGrid.tsx      # Shared weekly timetable grid & conflict detector
+│       ├── MarkdownRenderer.tsx   # GFM markdown renderer for chat messages
+│       ├── course-finder/
+│       │   ├── CourseDetailView.tsx     # Full course syllabus & workload view
+│       │   ├── CourseQuickModal.tsx     # Quick preview modal
+│       │   └── PrerequisiteDiagram.tsx  # SVG DAG prerequisite flow visualizer
+│       ├── degree-planner/
+│       │   ├── PlannerHeader.tsx        # AI banner, legend, & drag hints
+│       │   ├── SemesterColumn.tsx       # Semester drop column, CourseCard, & ElectiveBank
+│       │   ├── CoursePickerModal.tsx    # Manual course addition modal
+│       │   └── types.ts                 # Planner types & parity/lock rules (canDrop)
+│       └── chatbot/
+│           ├── DegreePlanActionCard.tsx # Interactive card to apply AI plan to planner
+│           └── chatService.ts           # Chat types, endpoints, & error sanitizer
+├── database/                      # Canonical Database Baseline V2.1 RC1
+│   ├── schema_v2_1_rc1.sql        # PostgreSQL 16+ DDL (36 tables, 26 functions, 44 triggers)
+│   ├── schema_v2_1_rc1.dbml       # DBML diagram definition
+│   └── README.md                  # Ringkasan paket skema database
+├── docs/database/                 # Dokumentasi & Audit Skema Database V2.1 RC1
+│   ├── DATABASE_SCHEMA_V2_1_RC1.md    # Spesifikasi arsitektur 36 tabel & rule tree
+│   ├── SCHEMA_VALIDATION_V2_1_RC1.md  # Laporan 97/97 static release audit checks
+│   └── CHANGELOG_V2_TO_V2_1_RC1.md    # Catatan migrasi dari v2 ke v2.1 RC1
+├── RANCANGAN DIAGRAM AWAL.sql     # Arsip baseline awal PostgreSQL 16 (v2)
+└── SCHEMA_REVIEW.md               # Arsip catatan tinjauan skema v2
 ```
 
 ---
 
-## Database Baseline — v2
+## Database Baseline — V2.1 RC1
 
-`RANCANGAN DIAGRAM AWAL.sql` adalah baseline PostgreSQL 16 untuk arsitektur basis data akademik FTMM masa depan. Dokumen tinjauan keputusan database dapat dibaca di [`SCHEMA_REVIEW.md`](./SCHEMA_REVIEW.md).
+`database/schema_v2_1_rc1.sql` adalah canonical baseline PostgreSQL 16+ untuk arsitektur basis data akademik FTMM (**36 tabel, 26 fungsi PL/pgSQL, 44 trigger, 2 read views**, dan lulus **97/97 static audit checks**). Dokumentasi lengkap keputusan desain tersedia di [`docs/database/DATABASE_SCHEMA_V2_1_RC1.md`](./docs/database/DATABASE_SCHEMA_V2_1_RC1.md) dan laporan validasinya di [`docs/database/SCHEMA_VALIDATION_V2_1_RC1.md`](./docs/database/SCHEMA_VALIDATION_V2_1_RC1.md).

@@ -1,6 +1,5 @@
-import React, { useState } from "react"
+import { useState, type FormEvent } from "react"
 import { ArrowRight, Compass, Lock, Mail } from "lucide-react"
-import { cn } from "../utils"
 
 // We'll use one of the new images as a background or side illustration
 import bgImage from "../imports/image-4.png"
@@ -15,7 +14,7 @@ export default function Login({ onLogin }: LoginProps) {
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = (e: FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     // Simulate API call

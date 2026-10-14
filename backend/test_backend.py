@@ -9,13 +9,19 @@ from tools.planner import generate_study_plan
 
 def test_data_loader():
     print("Testing data loader...")
-    courses = get_courses_for_program("Teknologi Sains Data")
-    assert len(courses) > 0, "TSD catalog should not be empty"
-    
-    rpl_courses = get_courses_for_program("rpl")
-    assert len(rpl_courses) > 0, "RPL catalog should not be empty"
-    print(f"✓ Data loader OK ({len(courses)} TSD courses, {len(rpl_courses)} RPL courses)")
-
+    for alias, expected_name in [
+        ("Teknologi Sains Data", "Teknologi Sains Data"),
+        ("trkb", "Teknik Robotika dan Kecerdasan Buatan"),
+        ("rn", "Rekayasa Nanoteknologi"),
+        ("s1 rekayasa nanoteknologi", "Rekayasa Nanoteknologi"),
+        ("ti", "Teknik Industri"),
+        ("te", "Teknik Elektro"),
+    ]:
+        assert normalize_prodi(alias) == expected_name
+        courses = get_courses_for_program(alias)
+        assert len(courses) > 0, f"{expected_name} catalog should not be empty"
+        assert all(c.program == expected_name for c in courses)
+    print("✓ Data loader OK across all 5 official FTMM study programs")
 
 def test_prerequisite_validator():
     print("Testing prerequisite validator...")
@@ -66,6 +72,40 @@ def test_prerequisite_validator():
     assert not res_prereq.is_valid, "Expected missing prerequisite to fail"
     assert any("Prasyarat tidak terpenuhi" in e for e in res_prereq.errors)
     print("✓ Missing prerequisite correctly detected")
+
+    # 4. SKS limit violation test (> maks_sks_per_semester)
+    sks_overload_plan = {
+        1: [
+            PlacedCourseModel(id="M1", code="C1", name="Matkul 1", credits=10, semester=1, type="Wajib", parity="odd"),
+            PlacedCourseModel(id="M2", code="C2", name="Matkul 2", credits=10, semester=1, type="Wajib", parity="odd"),
+            PlacedCourseModel(id="M3", code="C3", name="Matkul 3", credits=6, semester=1, type="Wajib", parity="odd"),
+        ]
+    }
+    res_sks = validate_plan_constraints(sks_overload_plan, [], maks_sks_per_semester=24)
+    assert not res_sks.is_valid, "Expected SKS limit violation to fail"
+    assert any("melebihi batas maksimum" in e for e in res_sks.errors)
+    print("✓ SKS limit overload correctly detected")
+
+    # 5. Multi-religion conflict test
+    religion_conflict_plan = {
+        1: [
+            PlacedCourseModel(id="REL1", code="KU1001", name="Pendidikan Agama Islam", credits=2, semester=1, type="Wajib", parity="odd"),
+            PlacedCourseModel(id="REL2", code="KU1003", name="Pendidikan Agama Kristen Protestan", credits=2, semester=1, type="Wajib", parity="odd"),
+        ]
+    }
+    res_rel = validate_plan_constraints(religion_conflict_plan, [])
+    assert not res_rel.is_valid, "Expected multi-religion plan to fail"
+    assert any("Pelanggaran kurikulum agama" in e for e in res_rel.errors)
+    print("✓ Multi-religion conflict correctly detected")
+
+    # 6. Duplicate course warning test
+    duplicate_plan = {
+        1: [PlacedCourseModel(id="DUP1", code="MA1101", name="Matematika I", credits=4, semester=1, type="Wajib", parity="odd")],
+        3: [PlacedCourseModel(id="DUP1", code="MA1101", name="Matematika I", credits=4, semester=3, type="Wajib", parity="odd")],
+    }
+    res_dup = validate_plan_constraints(duplicate_plan, [])
+    assert any("terdaftar ganda" in w for w in res_dup.warnings)
+    print("✓ Duplicate course warning correctly detected")
 
 
 def test_study_planner():

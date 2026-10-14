@@ -18,14 +18,15 @@ from schemas import (
     PlanValidationResponse,
     HealthResponse,
     OllamaHealthDetail,
-    CourseCatalogResponse,
-    PaginatedCourseResponse,
-    PaginationMeta,
-    PaginationLinks,
     CourseSearchResponse,
     CourseSearchItem,
 )
-from data_loader import get_courses_for_program, normalize_prodi, FTMM_CURRICULUM
+from data_loader import (
+    get_courses_for_program,
+    get_all_courses,
+    get_available_programs,
+    normalize_prodi,
+)
 from tools.planner import generate_study_plan
 from tools.prerequisite_validator import validate_plan_constraints
 
@@ -289,28 +290,50 @@ async def handle_list_courses(
             resp = await client.get(f"{CHATBOT_SERVICE_URL}/api/courses", params=params)
             if resp.status_code == 200:
                 data = resp.json()
+                raw_programs = [
+                    p.replace("S1 ", "").strip() if isinstance(p, str) else p
+                    for p in data.get("programs", [])
+                ]
+                clean_prodi = (
+                    data.get("program_studi", "").replace("S1 ", "").strip()
+                    if data.get("program_studi")
+                    else norm_prodi
+                )
+                raw_courses = data.get("courses", [])
+                for c in raw_courses:
+                    if isinstance(c, dict) and "program" in c and isinstance(c["program"], str):
+                        c["program"] = c["program"].replace("S1 ", "").strip()
+
                 # If paginated shape
                 if "meta" in data and "data" in data:
+                    raw_paged = data.get("data", [])
+                    for c in raw_paged:
+                        if isinstance(c, dict) and "program" in c and isinstance(c["program"], str):
+                            c["program"] = c["program"].replace("S1 ", "").strip()
                     return {
                         "source": "chatbot_ssot",
-                        "data": data.get("data", []),
+                        "data": raw_paged,
                         "meta": data.get("meta"),
                         "links": data.get("links"),
-                        "program_studi": data.get("program_studi") or norm_prodi,
+                        "program_studi": clean_prodi or norm_prodi,
                     }
                 return {
                     "source": "chatbot_ssot",
-                    "program_studi": data.get("program_studi") or norm_prodi or "Semua Program Studi",
-                    "total_courses": data.get("total_courses", len(data.get("courses", []))),
-                    "programs": data.get("programs", []),
-                    "courses": data.get("courses", []),
+                    "program_studi": clean_prodi or norm_prodi or "Semua Program Studi",
+                    "total_courses": data.get("total_courses", len(raw_courses)),
+                    "programs": raw_programs,
+                    "courses": raw_courses,
                 }
     except Exception:
         pass
 
     # 2. Resilient fallback to local dataset
-    active_prodi = norm_prodi or "Teknologi Sains Data"
-    courses = get_courses_for_program(active_prodi)
+    if not norm_prodi or norm_prodi.lower() in ("all", "semua"):
+        courses = get_all_courses()
+        active_prodi = "Semua Program Studi"
+    else:
+        active_prodi = norm_prodi
+        courses = get_courses_for_program(active_prodi)
 
     if semester is not None:
         courses = [c for c in courses if c.semester == semester]
@@ -361,7 +384,7 @@ async def handle_list_courses(
         "source": "local_fallback",
         "program_studi": active_prodi,
         "total_courses": len(courses),
-        "programs": list(FTMM_CURRICULUM.keys()),
+        "programs": get_available_programs(),
         "courses": [c.model_dump() for c in courses],
     }
 
@@ -395,7 +418,10 @@ async def handle_search_courses(
         pass
 
     # Local fallback
-    courses = get_courses_for_program(norm_prodi or "Teknologi Sains Data")
+    if norm_prodi and norm_prodi.lower() not in ("all", "semua"):
+        courses = get_courses_for_program(norm_prodi)
+    else:
+        courses = get_all_courses()
     q_lower = q.lower().strip()
     hits: list[CourseSearchItem] = []
     for c in courses:
@@ -563,7 +589,16 @@ async def handle_chat_stream(request: ChatRequest) -> StreamingResponse:
 
 
 async def handle_validate_plan(request: PlanValidationRequest) -> PlanValidationResponse:
-    # Try forward to Chatbot microservice SSOT
+    # 1. Deterministic local validation (parity, DAG, SKS, religion limits)
+    local_val = validate_plan_constraints(
+        plan=request.plan,
+        riwayat_matkul_lulus=request.riwayat_matkul_lulus,
+        maks_sks_per_semester=request.maks_sks_per_semester,
+    )
+    if not local_val.is_valid:
+        return local_val
+
+    # 2. Forward to Chatbot microservice SSOT for supplemental checks if available
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
             payload = {

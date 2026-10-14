@@ -1,127 +1,33 @@
-import React, { useState, useEffect } from "react"
-import {
-  GripVertical,
-  CheckCircle2,
-  Clock,
-  AlertTriangle,
-  BookOpen,
-  Lock,
-  X,
-  Calendar,
-  Sparkles,
-  RotateCcw,
-} from "lucide-react"
-import { Course, SCHEDULE } from "../data"
+import { useState, useEffect, useMemo } from "react"
+import { BookOpen, Calendar } from "lucide-react"
+import { cn } from "../utils"
+import { Course } from "../data"
+import { ALL_COURSES, PROGRAMS, fetchCatalog } from "../courseData"
 import TimetableGrid from "../components/TimetableGrid"
+import {
+  PlacedCourse,
+  SEMESTERS,
+  TIMETABLE_DAYS,
+  INITIAL_PLAN,
+  SemesterState,
+  Tab,
+  DegreePlannerProps,
+  canDrop,
+  getCourseReligion,
+} from "../components/degree-planner/types"
+import PlannerHeader from "../components/degree-planner/PlannerHeader"
+import {
+  SemesterColumn,
+  ElectiveCourseBank,
+} from "../components/degree-planner/SemesterColumn"
+import CoursePickerModal from "../components/degree-planner/CoursePickerModal"
+import CourseInspectModal from "../components/degree-planner/CourseInspectModal"
+import ClassSelectorPanel, {
+  TimetableConflict,
+} from "../components/degree-planner/ClassSelectorPanel"
+import { getOfferingForCourse, ScheduleItem } from "../data"
 
-const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8]
-const TIMETABLE_DAYS = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"]
-
-interface PlacedCourse extends Course {
-  status: "completed" | "planned" | "wishlist"
-}
-
-const INITIAL_PLAN: Record<number, PlacedCourse[]> = {
-  1: [
-    {
-      id: "MA1101",
-      name: "Matematika I",
-      credits: 4,
-      semester: 1,
-      type: "Wajib",
-      desc: "",
-      parity: "odd",
-      status: "completed",
-    },
-    {
-      id: "FI1101",
-      name: "Fisika Dasar I",
-      credits: 4,
-      semester: 1,
-      type: "Wajib",
-      desc: "",
-      parity: "odd",
-      status: "completed",
-    },
-  ],
-  2: [
-    {
-      id: "MA1201",
-      name: "Matematika II",
-      credits: 4,
-      semester: 2,
-      type: "Wajib",
-      desc: "",
-      parity: "even",
-      status: "completed",
-    },
-    {
-      id: "IF1210",
-      name: "Dasar Pemrograman",
-      credits: 3,
-      semester: 2,
-      type: "Wajib",
-      desc: "",
-      parity: "even",
-      status: "completed",
-    },
-  ],
-  5: [
-    {
-      id: "II4042",
-      name: "Machine Learning",
-      credits: 3,
-      semester: 5,
-      type: "Wajib",
-      desc: "",
-      parity: "odd",
-      status: "planned",
-    },
-    {
-      id: "II4045",
-      name: "Data Visualization",
-      credits: 3,
-      semester: 5,
-      type: "Pilihan",
-      desc: "",
-      parity: "odd",
-      status: "planned",
-    },
-  ],
-  6: [
-    {
-      id: "II4050",
-      name: "Deep Learning",
-      credits: 3,
-      semester: 6,
-      type: "Pilihan",
-      desc: "",
-      parity: "even",
-      status: "wishlist",
-    },
-  ],
-}
-
-// A course is locked if it's Wajib or already completed
-const isLocked = (c: PlacedCourse) =>
-  c.type === "Wajib" || c.status === "completed"
-
-interface DegreePlannerProps {
-  pendingCourses: Course[]
-  setPendingCourses: React.Dispatch<React.SetStateAction<Course[]>>
-  customPlan?: Record<number, PlacedCourse[]> | null
-  appliedSummary?: {
-    program_studi: string
-    total_credits: number
-    target_semester: number
-    focus_tracks: string[]
-    note?: string
-  } | null
-  onResetPlan?: () => void
-}
-
-type SemesterState = "idle" | "valid-hover" | "invalid" | "invalid-hover"
-type Tab = "roadmap" | "timetable"
+export type { PlacedCourse } from "../components/degree-planner/types"
 
 export default function DegreePlanner({
   pendingCourses,
@@ -129,22 +35,126 @@ export default function DegreePlanner({
   customPlan,
   appliedSummary,
   onResetPlan,
+  onNavigate,
+  activeSchedule: _activeSchedule,
+  onUpdateSchedule,
+  initialTab,
 }: DegreePlannerProps) {
-  const [activeTab, setActiveTab] = useState<Tab>("roadmap")
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab || "roadmap")
+
+  useEffect(() => {
+    setActiveTab(initialTab || "roadmap")
+  }, [initialTab])
   const [plan, setPlan] = useState<Record<number, PlacedCourse[]>>(
     customPlan || INITIAL_PLAN,
   )
 
   useEffect(() => {
-    if (customPlan) {
-      setPlan(customPlan)
-    }
+    setPlan(customPlan || INITIAL_PLAN)
   }, [customPlan])
+
+  const [pickerSem, setPickerSem] = useState<number | null>(null)
+  const [pickerSearch, setPickerSearch] = useState("")
+  const [pickerProgram, setPickerProgram] = useState<string>("all")
+  const [pickerType, setPickerType] = useState<"all" | "Pilihan" | "Wajib">(
+    "all",
+  )
+  const [pickerStatus, setPickerStatus] = useState<"planned" | "wishlist">(
+    "planned",
+  )
+  const [catalog, setCatalog] = useState<Course[]>(ALL_COURSES)
+  const [availablePrograms, setAvailablePrograms] = useState<string[]>(PROGRAMS)
+  const [inspectCourse, setInspectCourse] = useState<{
+    course: PlacedCourse
+    sem: number
+  } | null>(null)
+  const [activeTimetableSem, setActiveTimetableSem] = useState<number>(5)
+  const [selectedSections, setSelectedSections] =
+    useState<Record<string, string>>({
+      II4042: "II4042-A",
+      II4045: "II4045-A",
+      KU2001: "KU2001-A",
+      II4050: "II4050-A",
+    })
+  useEffect(() => {
+    let isMounted = true
+    fetchCatalog("all").then((res) => {
+      if (!isMounted || !res) return
+      if (res.courses?.length) {
+        const prodisInRes = new Set(
+          res.courses.map((c) => c.program).filter(Boolean),
+        )
+        if (prodisInRes.size >= 5) {
+          setCatalog(res.courses)
+        } else {
+          const fetchedIds = new Set(res.courses.map((c) => c.id))
+          const missing = ALL_COURSES.filter((c) => !fetchedIds.has(c.id))
+          setCatalog([...res.courses, ...missing])
+        }
+      }
+      if (res.programs && res.programs.length > 0) {
+        setAvailablePrograms(res.programs)
+      } else {
+        setAvailablePrograms(PROGRAMS)
+      }
+    })
+    return () => {
+      isMounted = false
+    }
+  }, [])
+  const activeReligion = useMemo(() => {
+    for (const courses of Object.values(plan)) {
+      for (const c of courses) {
+        const rel = getCourseReligion(c)
+        if (rel && rel !== "Umum") return rel
+      }
+    }
+    return null
+  }, [plan])
+
+  // Map course ID to semester where it is currently placed
+  const placedMap = useMemo(() => {
+    const map = new Map<string, number>()
+    Object.entries(plan).forEach(([semStr, list]) => {
+      list.forEach((c) => map.set(c.id, Number(semStr)))
+    })
+    return map
+  }, [plan])
+
+  // Close modal on Escape
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPickerSem(null)
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [])
+
+  const handleAddCourseFromModal = (course: Course) => {
+    if (pickerSem === null) return
+    const finalStatus = course.type === "Wajib" ? "planned" : pickerStatus
+    const newCourse: PlacedCourse = {
+      ...course,
+      semester: pickerSem,
+      status: finalStatus,
+    }
+    setPlan((prev) => ({
+      ...prev,
+      [pickerSem]: [...(prev[pickerSem] || []), newCourse],
+    }))
+    setPendingCourses((prev) => prev.filter((c) => c.id !== course.id))
+  }
+
   const [dragging, setDragging] = useState<{
     course: PlacedCourse
     fromSem: number | "bank"
+    fromIndex?: number
   } | null>(null)
   const [hoverSem, setHoverSem] = useState<number | null>(null)
+  const [dropTarget, setDropTarget] = useState<{
+    sem: number
+    index: number
+  } | null>(null)
 
   // Auto-place Wajib courses into their designated semester; Pilihan stays in bank
   useEffect(() => {
@@ -163,19 +173,11 @@ export default function DegreePlanner({
       return next
     })
     setPendingCourses((prev) => prev.filter((c) => c.type !== "Wajib"))
-  }, [pendingCourses])
-
-  const isOdd = (sem: number) => sem % 2 === 1
-
-  const canDrop = (course: Course, sem: number): boolean => {
-    if (course.parity === "odd" && !isOdd(sem)) return false
-    if (course.parity === "even" && isOdd(sem)) return false
-    return true
-  }
+  }, [pendingCourses, setPendingCourses])
 
   const semState = (sem: number): SemesterState => {
     if (!dragging) return "idle"
-    const valid = canDrop(dragging.course, sem)
+    const valid = canDrop(dragging.course, sem, dragging.fromSem)
     const hovering = hoverSem === sem
     if (!valid) return hovering ? "invalid-hover" : "invalid"
     return hovering ? "valid-hover" : "idle"
@@ -185,14 +187,39 @@ export default function DegreePlanner({
     e: React.DragEvent,
     course: PlacedCourse,
     from: number | "bank",
+    fromIndex?: number,
   ) => {
-    setDragging({ course, fromSem: from })
+    setDragging({ course, fromSem: from, fromIndex })
     e.dataTransfer.effectAllowed = "move"
+    try {
+      e.dataTransfer.setData("text/plain", course.id)
+    } catch {}
+  }
+
+  const handleCardDragOver = (e: React.DragEvent, sem: number, idx: number) => {
+    if (!dragging) return
+    if (!canDrop(dragging.course, sem, dragging.fromSem)) return
+    e.preventDefault()
+    e.stopPropagation()
+    e.dataTransfer.dropEffect = "move"
+    const rect = e.currentTarget.getBoundingClientRect()
+    const insertAfter = e.clientY > rect.top + rect.height / 2
+    setHoverSem(sem)
+    setDropTarget({ sem, index: insertAfter ? idx + 1 : idx })
+  }
+
+  const handleCardDrop = (e: React.DragEvent, sem: number, idx: number) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const rect = e.currentTarget.getBoundingClientRect()
+    const insertAfter = e.clientY > rect.top + rect.height / 2
+    const targetIdx = insertAfter ? idx + 1 : idx
+    handleDrop(e, sem, targetIdx)
   }
 
   const handleDragOver = (e: React.DragEvent, sem: number) => {
     if (!dragging) return
-    if (canDrop(dragging.course, sem)) {
+    if (canDrop(dragging.course, sem, dragging.fromSem)) {
       e.preventDefault()
       e.dataTransfer.dropEffect = "move"
     }
@@ -202,36 +229,92 @@ export default function DegreePlanner({
   const handleDragLeave = (e: React.DragEvent) => {
     if (!e.currentTarget.contains(e.relatedTarget as Node)) {
       setHoverSem(null)
+      setDropTarget(null)
     }
   }
 
-  const handleDrop = (e: React.DragEvent, sem: number) => {
+  const handleDrop = (
+    e: React.DragEvent,
+    sem: number,
+    explicitTargetIndex?: number,
+  ) => {
     e.preventDefault()
-    if (!dragging || !canDrop(dragging.course, sem)) return
+    if (!dragging || !canDrop(dragging.course, sem, dragging.fromSem)) return
 
-    const { course, fromSem } = dragging
+    const { course, fromSem, fromIndex } = dragging
+    const targetIdx =
+      explicitTargetIndex !== undefined
+        ? explicitTargetIndex
+        : dropTarget?.sem === sem
+          ? dropTarget.index
+          : plan[sem]?.length || 0
 
-    if (fromSem === "bank") {
+    if (fromSem === sem) {
+      // Intra-semester reordering (atas-bawah)
+      setPlan((prev) => {
+        const currentList = [...(prev[sem] || [])]
+        const fromIdx =
+          fromIndex !== undefined
+            ? fromIndex
+            : currentList.findIndex((c) => c.id === course.id)
+        if (fromIdx === -1) return prev
+        const [removed] = currentList.splice(fromIdx, 1)
+        let insertAt =
+          explicitTargetIndex !== undefined
+            ? explicitTargetIndex
+            : dropTarget?.sem === sem
+              ? dropTarget.index
+              : currentList.length
+        if (insertAt > fromIdx) {
+          insertAt -= 1
+        }
+        insertAt = Math.max(0, Math.min(insertAt, currentList.length))
+        currentList.splice(insertAt, 0, removed)
+        return { ...prev, [sem]: currentList }
+      })
+    } else if (fromSem === "bank") {
+      // Drop from Bank Matkul Pilihan
       setPendingCourses((prev) => prev.filter((c) => c.id !== course.id))
+      setPlan((prev) => {
+        const currentList = [...(prev[sem] || [])]
+        const insertAt = Math.max(0, Math.min(targetIdx, currentList.length))
+        currentList.splice(insertAt, 0, {
+          ...course,
+          semester: sem,
+          status: course.status || "planned",
+        })
+        return { ...prev, [sem]: currentList }
+      })
     } else {
-      setPlan((prev) => ({
-        ...prev,
-        [fromSem]: (prev[fromSem] || []).filter((c) => c.id !== course.id),
-      }))
+      // Cross-semester move (Pilihan)
+      setPlan((prev) => {
+        const sourceList = (prev[fromSem] || []).filter(
+          (c) => c.id !== course.id,
+        )
+        const targetList = [...(prev[sem] || [])]
+        const insertAt = Math.max(0, Math.min(targetIdx, targetList.length))
+        targetList.splice(insertAt, 0, {
+          ...course,
+          semester: sem,
+          status: course.status || "planned",
+        })
+        return {
+          ...prev,
+          [fromSem]: sourceList,
+          [sem]: targetList,
+        }
+      })
     }
-
-    setPlan((prev) => ({
-      ...prev,
-      [sem]: [...(prev[sem] || []), { ...course, status: "planned" }],
-    }))
 
     setDragging(null)
     setHoverSem(null)
+    setDropTarget(null)
   }
 
   const handleDragEnd = () => {
     setDragging(null)
     setHoverSem(null)
+    setDropTarget(null)
   }
 
   const deleteCourse = (courseId: string, sem: number) => {
@@ -241,7 +324,130 @@ export default function DegreePlanner({
     }))
   }
 
-  const pilihanPending = pendingCourses.filter((c) => c.type === "Pilihan")
+  const handleToggleStatus = (
+    courseId: string,
+    sem: number,
+    newStatus: "planned" | "wishlist",
+  ) => {
+    setPlan((prev) => ({
+      ...prev,
+      [sem]: (prev[sem] || []).map((c) =>
+        c.id === courseId ? { ...c, status: newStatus } : c,
+      ),
+    }))
+    if (inspectCourse && inspectCourse.course.id === courseId) {
+      setInspectCourse((prev) =>
+        prev
+          ? {
+              ...prev,
+              course: { ...prev.course, status: newStatus },
+            }
+          : null,
+      )
+    }
+  }
+
+  // Active semester courses for timetable view
+  const currentTimetableCourses = useMemo(
+    () => plan[activeTimetableSem] || [],
+    [plan, activeTimetableSem],
+  )
+
+  // Derive dynamic schedule items & detect conflicts
+  const { dynamicSchedule, conflicts } = useMemo(() => {
+    const COLOR_PALETTE = [
+      "bg-teal/20 text-navy border-teal/50",
+      "bg-gold/20 text-navy border-gold/50",
+      "bg-navy/10 text-navy border-navy/30",
+      "bg-purple-100 text-purple-900 border-purple-300",
+      "bg-blue-100 text-blue-900 border-blue-300",
+      "bg-emerald-100 text-emerald-900 border-emerald-300",
+    ]
+
+    const items: ScheduleItem[] = []
+    currentTimetableCourses.forEach((c, index) => {
+      const offering = getOfferingForCourse(c)
+      const chosenSectionId = selectedSections[c.id]
+      const section =
+        offering.sections.find((s) => s.sectionId === chosenSectionId) ||
+        offering.sections[0]
+
+      if (section) {
+        items.push({
+          id: `${c.id}-${section.sectionId}`,
+          course: c.name,
+          code: c.code || c.id,
+          sectionCode: section.sectionCode,
+          day: section.schedule.day,
+          start: section.schedule.start,
+          duration: section.schedule.duration,
+          color: COLOR_PALETTE[index % COLOR_PALETTE.length],
+          room: section.schedule.room,
+          lecturer: section.lecturer,
+        })
+      }
+    })
+
+    // Detect overlapping slots
+    const foundConflicts: TimetableConflict[] = []
+    for (let i = 0; i < items.length; i++) {
+      for (let j = i + 1; j < items.length; j++) {
+        const a = items[i]
+        const b = items[j]
+        const aEnd = a.start + a.duration
+        const bEnd = b.start + b.duration
+
+        if (a.day === b.day && a.start < bEnd && b.start < aEnd) {
+          a.conflict = true
+          b.conflict = true
+          foundConflicts.push({
+            courseA: a.course,
+            codeA: a.code,
+            sectionA: a.sectionCode || "Kelas",
+            courseB: b.course,
+            codeB: b.code,
+            sectionB: b.sectionCode || "Kelas",
+            day: a.day,
+            start: Math.max(a.start, b.start),
+            end: Math.min(aEnd, bEnd),
+          })
+        }
+      }
+    }
+
+    return { dynamicSchedule: items, conflicts: foundConflicts }
+  }, [currentTimetableCourses, selectedSections])
+
+  // Sync timetable schedule with parent state
+  useEffect(() => {
+    if (onUpdateSchedule) {
+      onUpdateSchedule(dynamicSchedule)
+    }
+  }, [dynamicSchedule, onUpdateSchedule])
+
+  const handleSelectSection = (courseId: string, sectionId: string) => {
+    setSelectedSections((prev) => ({
+      ...prev,
+      [courseId]: sectionId,
+    }))
+  }
+
+  // Auto-resolve conflicts by picking conflict-free section alternatives
+  const handleAutoResolveConflicts = () => {
+    const updated = { ...selectedSections }
+    currentTimetableCourses.forEach((c) => {
+      const offering = getOfferingForCourse(c)
+      if (offering.sections.length > 1) {
+        const alternate = offering.sections.find(
+          (s) => s.sectionId !== updated[c.id],
+        )
+        if (alternate) {
+          updated[c.id] = alternate.sectionId
+        }
+      }
+    })
+    setSelectedSections(updated)
+  }
 
   return (
     <div className="h-full flex flex-col animate-in fade-in duration-500">
@@ -257,7 +463,7 @@ export default function DegreePlanner({
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer",
                 activeTab === tab.key
                   ? "bg-navy text-white shadow-sm"
                   : "text-muted hover:text-navy",
@@ -273,368 +479,166 @@ export default function DegreePlanner({
       {/* ─── TAB: Roadmap Studi ─── */}
       {activeTab === "roadmap" && (
         <>
-          {/* AI Generated Plan Banner */}
-          {appliedSummary && (
-            <div className="mb-4 p-4 bg-teal/15 border border-teal/40 rounded-xl flex items-center justify-between gap-4 animate-in fade-in duration-300">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-navy text-gold rounded-lg shadow-sm">
-                  <Sparkles className="w-5 h-5 text-gold" />
-                </div>
-                <div>
-                  <h4 className="font-heading font-bold text-sm text-navy flex items-center gap-2">
-                    Rencana Studi Personalisasi Compass AI
-                    <span className="text-[10px] font-mono px-2 py-0.5 bg-navy text-white rounded-full">
-                      {appliedSummary.program_studi}
-                    </span>
-                  </h4>
-                  <p className="text-xs text-muted">
-                    Target Lulus:{" "}
-                    <strong>Semester {appliedSummary.target_semester}</strong> •
-                    Total Beban:{" "}
-                    <strong>{appliedSummary.total_credits} SKS</strong> • Fokus:{" "}
-                    <strong>{appliedSummary.focus_tracks.join(", ")}</strong>
-                  </p>
-                </div>
-              </div>
-              {onResetPlan && (
-                <button
-                  onClick={onResetPlan}
-                  className="px-3 py-1.5 text-xs font-medium text-navy hover:bg-navy/10 rounded-lg transition-colors flex items-center gap-1.5 border border-navy/20"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  Reset Default
-                </button>
-              )}
-            </div>
-          )}
-
-          <div className="mb-4 flex justify-between items-end flex-shrink-0">
-            <div>
-              <h3 className="font-heading font-bold text-lg text-navy mb-1">
-                Rencana Studi (Roadmap)
-              </h3>
-              <p className="text-sm text-muted">
-                Matkul <span className="font-medium text-navy">Wajib</span>{" "}
-                otomatis terkunci di semesternya. Matkul{" "}
-                <span className="font-medium text-navy">Pilihan</span> dapat
-                dipindah-pindah.
-              </p>
-            </div>
-            <div className="flex gap-4">
-              {[
-                {
-                  el: <div className="w-3 h-3 rounded-full bg-teal" />,
-                  label: "Selesai",
-                },
-                {
-                  el: <div className="w-3 h-3 rounded-full bg-gold" />,
-                  label: "Direncanakan",
-                },
-                {
-                  el: (
-                    <div className="w-3 h-3 rounded-full border-2 border-dashed border-muted" />
-                  ),
-                  label: "Wishlist",
-                },
-                {
-                  el: <Lock className="w-3 h-3 text-muted" />,
-                  label: "Terkunci",
-                },
-              ].map((l) => (
-                <div
-                  key={l.label}
-                  className="flex items-center gap-1.5 text-xs"
-                >
-                  {l.el}
-                  <span className="text-muted">{l.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Drag hint */}
-          {dragging && (
-            <div className="mb-3 p-3 bg-navy/5 border border-navy/15 rounded-lg flex items-center gap-3 text-sm flex-shrink-0 animate-in fade-in duration-150">
-              <GripVertical className="w-4 h-4 text-navy/40" />
-              <span className="text-navy">
-                <strong>{dragging.course.name}</strong> — hanya bisa di semester{" "}
-                <strong className="text-navy">
-                  {dragging.course.parity === "odd"
-                    ? "ganjil (1, 3, 5, 7)"
-                    : "genap (2, 4, 6, 8)"}
-                </strong>
-              </span>
-            </div>
-          )}
+          <PlannerHeader
+            appliedSummary={appliedSummary}
+            onResetPlan={onResetPlan}
+            dragging={dragging}
+          />
 
           {/* Semester Columns */}
           <div className="flex-1 overflow-x-auto pb-1 min-h-0">
             <div className="flex gap-4 min-w-max h-full">
-              {SEMESTERS.map((sem) => {
-                const courses = plan[sem] || []
-                const totalSKS = courses.reduce((acc, c) => acc + c.credits, 0)
-                const state = semState(sem)
-                const odd = isOdd(sem)
-
-                return (
-                  <div
-                    key={sem}
-                    className={cn(
-                      "w-[256px] rounded-xl flex flex-col flex-shrink-0 border transition-all duration-150",
-                      state === "idle" && "bg-background border-border",
-                      state === "valid-hover" &&
-                        "bg-teal/5 border-teal ring-2 ring-teal/25 shadow-lg",
-                      state === "invalid" &&
-                        "bg-foreground/3 border-border/70 opacity-55",
-                      state === "invalid-hover" &&
-                        "bg-danger/5 border-danger/40",
-                    )}
-                    onDragOver={(e) => handleDragOver(e, sem)}
-                    onDrop={(e) => handleDrop(e, sem)}
-                    onDragLeave={handleDragLeave}
-                  >
-                    {/* Header */}
-                    <div
-                      className={cn(
-                        "p-3 border-b rounded-t-xl flex justify-between items-center transition-colors",
-                        state === "valid-hover"
-                          ? "bg-teal/10 border-teal/30"
-                          : "bg-surface border-border",
-                      )}
-                    >
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-heading font-bold text-navy text-sm">
-                          Semester {sem}
-                        </h4>
-                        <span
-                          className={cn(
-                            "text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full",
-                            odd
-                              ? "bg-teal/10 text-navy"
-                              : "bg-gold/10 text-navy",
-                          )}
-                        >
-                          {odd ? "Ganjil" : "Genap"}
-                        </span>
-                      </div>
-                      <span className="text-[10px] font-mono font-bold text-muted bg-background px-2 py-0.5 rounded">
-                        {totalSKS} SKS
-                      </span>
-                    </div>
-
-                    {/* Invalid warning */}
-                    {(state === "invalid" || state === "invalid-hover") &&
-                      dragging && (
-                        <div
-                          className={cn(
-                            "mx-2 mt-2 p-2 rounded-lg flex items-center gap-1.5 text-[11px] font-medium",
-                            state === "invalid-hover"
-                              ? "bg-danger/10 text-danger border border-danger/25"
-                              : "bg-muted/8 text-muted",
-                          )}
-                        >
-                          <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
-                          Hanya semester{" "}
-                          {dragging.course.parity === "odd"
-                            ? "ganjil"
-                            : "genap"}
-                        </div>
-                      )}
-
-                    {/* Course cards */}
-                    <div className="flex-1 p-3 space-y-2 overflow-y-auto min-h-[200px]">
-                      {courses.map((course) => {
-                        const locked = isLocked(course)
-                        return (
-                          <div
-                            key={course.id}
-                            draggable={!locked}
-                            onDragStart={
-                              !locked
-                                ? (e) => handleDragStart(e, course, sem)
-                                : undefined
-                            }
-                            onDragEnd={!locked ? handleDragEnd : undefined}
-                            className={cn(
-                              "p-3 rounded-lg border bg-surface flex gap-2 group transition-shadow hover:shadow-md select-none relative",
-                              locked
-                                ? "cursor-default"
-                                : "cursor-move hover:cursor-move",
-                              course.status === "completed" &&
-                                "border-teal-light/50",
-                              course.status === "planned" &&
-                                !locked &&
-                                "border-gold/50",
-                              course.status === "planned" &&
-                                locked &&
-                                "border-navy/20",
-                              course.status === "wishlist" &&
-                                "border-dashed border-border",
-                            )}
-                          >
-                            {/* Left icon: grip for draggable, lock for locked */}
-                            <div className="flex-shrink-0 mt-0.5 w-4">
-                              {locked ? (
-                                <Lock className="w-3.5 h-3.5 text-muted/50" />
-                              ) : (
-                                <GripVertical className="w-4 h-4 text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
-                              )}
-                            </div>
-
-                            <div className="flex-1 min-w-0">
-                              <div className="flex justify-between items-start mb-1">
-                                <span className="font-mono text-[10px] font-bold text-navy leading-none">
-                                  {course.id}
-                                </span>
-                                {course.status === "completed" && (
-                                  <CheckCircle2 className="w-3.5 h-3.5 text-teal flex-shrink-0" />
-                                )}
-                                {course.status === "planned" && locked && (
-                                  <Lock className="w-3 h-3 text-muted/60 flex-shrink-0" />
-                                )}
-                                {course.status === "planned" && !locked && (
-                                  <Clock className="w-3.5 h-3.5 text-gold flex-shrink-0" />
-                                )}
-                              </div>
-                              <h5 className="font-medium text-xs leading-tight text-foreground">
-                                {course.name}
-                              </h5>
-                              <div className="flex items-center gap-2 mt-1.5">
-                                <span className="text-[10px] text-muted">
-                                  {course.credits} SKS
-                                </span>
-                                <span
-                                  className={cn(
-                                    "text-[8px] font-bold uppercase tracking-wide px-1 py-0.5 rounded",
-                                    course.type === "Wajib"
-                                      ? "bg-navy/8 text-navy"
-                                      : "bg-gold/10 text-navy",
-                                  )}
-                                >
-                                  {course.type}
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Delete button — only for non-locked courses */}
-                            {!locked && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  deleteCourse(course.id, sem)
-                                }}
-                                className="absolute top-2 right-2 w-5 h-5 flex items-center justify-center rounded-full bg-background border border-border text-muted hover:bg-danger/10 hover:text-danger hover:border-danger/30 opacity-0 group-hover:opacity-100 transition-all"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                            )}
-                          </div>
-                        )
-                      })}
-
-                      {courses.length === 0 && (
-                        <div
-                          className={cn(
-                            "h-[160px] flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-3 text-center transition-colors",
-                            state === "valid-hover"
-                              ? "border-teal/50 bg-teal/5 text-navy"
-                              : "border-border text-muted",
-                          )}
-                        >
-                          <p className="text-xs">
-                            {state === "valid-hover"
-                              ? "Lepaskan di sini"
-                              : "Tarik matkul ke sini"}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="p-3 border-t border-border bg-surface rounded-b-xl flex-shrink-0">
-                      <button className="w-full py-1.5 text-xs font-medium text-navy bg-navy/5 hover:bg-navy/10 rounded border border-dashed border-navy/20 transition-colors">
-                        + Tambah Manual
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
+              {SEMESTERS.map((sem) => (
+                <SemesterColumn
+                  key={sem}
+                  sem={sem}
+                  courses={plan[sem] || []}
+                  state={semState(sem)}
+                  dragging={dragging}
+                  dropTarget={dropTarget}
+                  onDragOverColumn={handleDragOver}
+                  onDropColumn={handleDrop}
+                  onDragLeaveColumn={handleDragLeave}
+                  onCardDragStart={handleDragStart}
+                  onCardDragOver={handleCardDragOver}
+                  onCardDrop={handleCardDrop}
+                  onDragEnd={handleDragEnd}
+                  onDeleteCourse={deleteCourse}
+                  onOpenManualPicker={(s) => {
+                    setPickerSem(s)
+                    setPickerSearch("")
+                  }}
+                  onSelectCourse={(c) => setInspectCourse({ course: c, sem })}
+                />
+              ))}
             </div>
           </div>
 
           {/* Course Bank — only Pilihan */}
-          {pilihanPending.length > 0 && (
-            <div className="border-t border-border pt-4 mt-3 flex-shrink-0">
-              <div className="flex items-center gap-3 mb-3">
-                <BookOpen className="w-4 h-4 text-navy" />
-                <h4 className="font-heading font-bold text-sm text-navy">
-                  Bank Matkul Pilihan
-                </h4>
-                <span className="text-xs font-mono text-muted bg-background border border-border px-2 py-0.5 rounded">
-                  {pilihanPending.length} matkul
-                </span>
-                <p className="text-xs text-muted">
-                  — Tarik ke semester yang sesuai
-                </p>
-              </div>
-              <div className="flex gap-3 overflow-x-auto pb-2">
-                {pilihanPending.map((course) => (
-                  <div
-                    key={course.id}
-                    draggable
-                    onDragStart={(e) =>
-                      handleDragStart(
-                        e,
-                        { ...course, status: "planned" } as PlacedCourse,
-                        "bank",
-                      )
-                    }
-                    onDragEnd={handleDragEnd}
-                    className="bg-surface rounded-xl border border-gold/40 p-3 cursor-move flex-shrink-0 w-[196px] group hover:shadow-md hover:border-gold transition-all select-none"
-                  >
-                    <div className="flex items-start justify-between mb-1">
-                      <span className="font-mono text-[10px] font-bold text-teal">
-                        {course.id}
-                      </span>
-                      <GripVertical className="w-3.5 h-3.5 text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                    <h5 className="font-medium text-xs text-navy leading-tight">
-                      {course.name}
-                    </h5>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="text-[10px] text-muted">
-                        {course.credits} SKS
-                      </span>
-                      <span
-                        className={cn(
-                          "text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full ml-auto",
-                          course.parity === "odd"
-                            ? "bg-teal/10 text-navy"
-                            : "bg-gold/10 text-navy",
-                        )}
-                      >
-                        {course.parity === "odd" ? "Ganjil" : "Genap"}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <ElectiveCourseBank
+            pendingCourses={pendingCourses}
+            onDragStartBank={(e, course) => handleDragStart(e, course, "bank")}
+            onDragEnd={handleDragEnd}
+            onSelectCourse={(c) =>
+              setInspectCourse({ course: c, sem: c.semester || 5 })
+            }
+          />
+
+          {/* Modal Pop-up: Tambah Manual */}
+          <CoursePickerModal
+            pickerSem={pickerSem}
+            pickerSearch={pickerSearch}
+            setPickerSearch={setPickerSearch}
+            pickerProgram={pickerProgram}
+            setPickerProgram={setPickerProgram}
+            pickerType={pickerType}
+            setPickerType={setPickerType}
+            pickerStatus={pickerStatus}
+            setPickerStatus={setPickerStatus}
+            availablePrograms={availablePrograms}
+            catalog={catalog}
+            placedMap={placedMap}
+            onClose={() => setPickerSem(null)}
+            onAddCourse={handleAddCourseFromModal}
+            currentSemesterCourses={
+              pickerSem !== null ? plan[pickerSem] || [] : []
+            }
+            activeReligion={activeReligion}
+          />
+
+          {/* Modal Pop-up: Inspeksi Silabus & Prasyarat In-Situ */}
+          <CourseInspectModal
+            course={inspectCourse ? inspectCourse.course : null}
+            currentSem={inspectCourse ? inspectCourse.sem : 1}
+            allPlan={plan}
+            onClose={() => setInspectCourse(null)}
+            onToggleStatus={handleToggleStatus}
+            onDeleteCourse={deleteCourse}
+            onOpenInCourseFinder={(c) => {
+              onNavigate?.("course-finder", { course: c })
+            }}
+          />
         </>
       )}
 
       {/* ─── TAB: Jadwal Aktif ─── */}
       {activeTab === "timetable" && (
         <div className="flex-1 flex flex-col min-h-0">
-          <div className="mb-4 flex justify-between items-end flex-shrink-0">
+          {/* Timetable Header & Semester Picker */}
+          <div className="mb-4 flex flex-wrap justify-between items-center gap-3 flex-shrink-0">
             <div>
-              <h3 className="font-heading font-bold text-lg text-navy">
-                Jadwal Mingguan
-              </h3>
-              <p className="text-sm text-muted">Semester Ganjil 2024/2025</p>
+              <div className="flex items-center gap-2">
+                <h3 className="font-heading font-bold text-lg text-navy">
+                  Jadwal Kuliah Aktif
+                </h3>
+                <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-gold/15 text-navy border border-gold/30">
+                  Semester Ganjil 2024/2025
+                </span>
+              </div>
+              <p className="text-xs text-muted mt-0.5">
+                Konfigurasikan kelas perkuliahan mahasiswa untuk melihat jadwal
+                mingguan dan menyelesaikan bentrok waktu.
+              </p>
+            </div>
+
+            {/* Semester Switcher */}
+            <div className="flex items-center gap-1.5 bg-background p-1 rounded-xl border border-border">
+              <span className="text-xs text-muted font-medium px-2">
+                Tampilkan Semester:
+              </span>
+              {SEMESTERS.map((sem) => {
+                const count = (plan[sem] || []).length
+                const isActive = activeTimetableSem === sem
+                return (
+                  <button
+                    key={sem}
+                    type="button"
+                    onClick={() => setActiveTimetableSem(sem)}
+                    className={cn(
+                      "px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1",
+                      isActive
+                        ? "bg-navy text-white shadow-2xs"
+                        : "text-muted hover:text-navy hover:bg-navy/5",
+                    )}
+                  >
+                    <span>Sem {sem}</span>
+                    {count > 0 && (
+                      <span
+                        className={cn(
+                          "text-[9px] font-mono px-1 rounded-full",
+                          isActive
+                            ? "bg-white/20 text-white"
+                            : "bg-surface text-muted border border-border",
+                        )}
+                      >
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
             </div>
           </div>
-          <TimetableGrid schedule={SCHEDULE} days={TIMETABLE_DAYS} />
+
+          {/* Timetable Body: Left Class Selector & Right Grid */}
+          <div className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-4 min-h-0 overflow-y-auto lg:overflow-hidden pb-1">
+            {/* Left Column: Class Selector Panel (4 cols on desktop) */}
+            <div className="lg:col-span-4 min-h-[380px] lg:h-full min-h-0 flex flex-col">
+              <ClassSelectorPanel
+                activeSemester={activeTimetableSem}
+                semesterCourses={currentTimetableCourses}
+                selectedSections={selectedSections}
+                onSelectSection={handleSelectSection}
+                conflicts={conflicts}
+                onAutoResolveConflicts={handleAutoResolveConflicts}
+              />
+            </div>
+
+            {/* Right Column: Timetable Grid (8 cols on desktop) */}
+            <div className="lg:col-span-8 flex flex-col min-h-0 h-full">
+              <TimetableGrid schedule={dynamicSchedule} days={TIMETABLE_DAYS} />
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -1,4 +1,3 @@
-import React from "react"
 import {
   BookOpen,
   Clock,
@@ -8,17 +7,16 @@ import {
   AlertTriangle,
   ChevronRight,
 } from "lucide-react"
-import { SCHEDULE } from "../data"
+import { SCHEDULE, TIMETABLE_DAYS, ScheduleItem } from "../data"
 import TimetableGrid from "../components/TimetableGrid"
-
-const DAYS = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"]
-
 interface DashboardProps {
-  onNavigate: (page: any) => void
+  onNavigate: (page: string) => void
+  schedule?: ScheduleItem[]
 }
 
-export default function Dashboard({ onNavigate }: DashboardProps) {
-  const hasConflict = SCHEDULE.some((s) => s.conflict)
+export default function Dashboard({ onNavigate, schedule }: DashboardProps) {
+  const activeSchedule = schedule || SCHEDULE
+  const hasConflict = activeSchedule.some((s) => s.conflict)
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -122,8 +120,8 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         </div>
 
         <TimetableGrid
-          schedule={SCHEDULE}
-          days={DAYS}
+          schedule={activeSchedule}
+          days={TIMETABLE_DAYS}
           compact
           onNavigate={onNavigate}
         />

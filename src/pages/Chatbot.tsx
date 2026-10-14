@@ -1,90 +1,27 @@
-import React, { useState, useRef, useEffect } from "react"
-import {
-  Send,
-  Sparkles,
-  BookOpen,
-  Map,
-  ArrowRight,
-  CheckCircle2,
-  Check,
-  Calendar,
-  Layers,
-  GraduationCap,
-  RotateCcw,
-} from "lucide-react"
+import { useState, useRef, useEffect } from "react"
+import { Send, Bot, Sparkles, AlertCircle } from "lucide-react"
 import { cn } from "../utils"
 import MarkdownRenderer from "../components/MarkdownRenderer"
+import {
+  StudentProfileState,
+  DegreePlanPayload,
+  ChatMessage,
+  BACKEND_API_URL,
+  BACKEND_STREAM_URL,
+  sanitizeErrorMessage,
+  QUICK_PROMPTS,
+} from "../components/chatbot/chatService"
+import DegreePlanActionCard from "../components/chatbot/DegreePlanActionCard"
 
-export interface StudentProfileState {
-  program_studi?: string | null
-  semester_saat_ini?: number | null
-  riwayat_matkul_lulus?: string[]
-  minat_fokus?: string[]
-  target_kelulusan_semester?: number
-  maks_sks_per_semester?: number
-  is_confirmed_by_user?: boolean
-}
+export type { DegreePlanPayload } from "../components/chatbot/chatService"
 
-export interface DegreePlanCourseItem {
-  id?: string
+interface ApiChatErrorDetail {
   code?: string
-  name: string
-  credits?: number
-  semester?: number
-  type?: string
-  parity?: string
-  status?: string
-}
-
-export interface DegreePlanPayload {
-  action: "APPLY_DEGREE_PLAN"
-  summary: {
-    program_studi: string
-    current_semester: number
-    target_semester: number
-    total_credits: number
-    focus_tracks: string[]
-    note?: string
-  }
-  plan: Record<number, DegreePlanCourseItem[]>
-}
-
-export interface ChatMessage {
-  id: string
-  role: "user" | "assistant"
-  content: string
-  plan_payload?: DegreePlanPayload | null
-  action_type?: string
-  applied?: boolean
-  routing_mode?: string
-  latency_ms?: number
+  message?: string
 }
 
 interface ChatbotProps {
   onApplyPlan?: (payload: DegreePlanPayload) => void
-}
-const BACKEND_API_URL = import.meta.env.VITE_BACKEND_API_URL || "/api/v1/chat"
-const BACKEND_STREAM_URL =
-  import.meta.env.VITE_BACKEND_STREAM_URL || "/api/v1/chat/stream"
-
-function sanitizeErrorMessage(raw?: string | null): string {
-  if (!raw) return ""
-  if (raw.includes("{") && raw.includes("}")) {
-    try {
-      const jsonMatch = raw.match(/\{[\s\S]*\}/)
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]) as {
-          error?: { message?: string }
-          detail?: string
-          message?: string
-        }
-        if (parsed.error?.message) return parsed.error.message
-        if (parsed.message) return parsed.message
-        if (parsed.detail) return parsed.detail
-      }
-    } catch {}
-  }
-  return raw
 }
 
 export default function Chatbot({ onApplyPlan }: ChatbotProps) {
@@ -195,7 +132,7 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
                 token?: string
                 done?: boolean
                 reply?: string
-                error?: { code?: string message?: string }
+                error?: ApiChatErrorDetail
                 updated_profile?: StudentProfileState
                 plan_payload?: DegreePlanPayload
                 action_type?: string
@@ -295,7 +232,7 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
         )
       } else {
         const errorData = (await fallbackRes.json().catch(() => null)) as {
-          error?: { code?: string message?: string }
+          error?: ApiChatErrorDetail
           detail?: string
         } | null
         const detail =
@@ -320,7 +257,7 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
           ),
         )
       }
-    } catch (err) {
+    } catch {
       setMessages((prev) =>
         prev.map((m) =>
           m.id === assistantMsgId
@@ -354,39 +291,34 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
       <div className="p-4 border-b border-border bg-navy text-white flex justify-between items-center relative overflow-hidden flex-shrink-0">
         <div className="absolute -right-10 -top-10 w-40 h-40 bg-gold/20 rounded-full blur-3xl" />
         <div className="flex items-center gap-3 relative z-10">
-          <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-sm border border-white/20">
-            <Sparkles className="w-5 h-5 text-gold" />
+          <div className="w-10 h-10 rounded-full bg-gold/20 flex items-center justify-center text-gold border border-gold/40">
+            <Bot className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="font-heading font-bold text-lg flex items-center gap-2">
-              Compass AI
-              <span className="text-[10px] font-mono px-2 py-0.5 bg-teal/20 text-teal-light rounded-full border border-teal/30">
-                Agentic Planner
-              </span>
+            <h3 className="font-heading font-bold text-base flex items-center gap-2">
+              FTMM Compass AI
+              <Sparkles className="w-4 h-4 text-gold" />
             </h3>
-            <p className="text-xs text-teal-light font-mono flex items-center gap-1.5">
-              <span
-                className={cn(
-                  "w-2 h-2 rounded-full",
-                  backendStatus?.chatbot_service_online
-                    ? "bg-teal animate-pulse"
-                    : "bg-orange",
-                )}
-              />
-              {backendStatus?.chatbot_service_online
-                ? `Online • Hybrid RAG-CAG (${backendStatus.chatbot_model || "Qwen2.5"})`
-                : "Chatbot Offline • Start Docker Service"}
+            <p className="text-xs text-teal-light font-mono">
+              Academic Advisor & Study Planner Engine
             </p>
           </div>
         </div>
-        {profile.program_studi && (
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-white/10 rounded-lg text-xs font-mono">
-            <GraduationCap className="w-3.5 h-3.5 text-gold" />
-            <span>
-              {profile.program_studi} (Sem {profile.semester_saat_ini || 1})
-            </span>
-          </div>
-        )}
+        <div className="flex items-center gap-2 relative z-10">
+          <span
+            className={cn(
+              "w-2 h-2 rounded-full",
+              backendStatus?.chatbot_service_online
+                ? "bg-teal animate-pulse"
+                : "bg-warning animate-pulse",
+            )}
+          />
+          <span className="text-xs font-mono text-white/80">
+            {backendStatus?.chatbot_service_online
+              ? `Live • ${backendStatus.chatbot_model || "Hybrid Engine"}`
+              : "Rule Engine Fallback"}
+          </span>
+        </div>
       </div>
 
       {/* Chat Area */}
@@ -404,12 +336,13 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
                 "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 shadow-sm font-bold text-xs",
                 msg.role === "user"
                   ? "bg-teal text-navy-dark"
-                  : "bg-navy text-white",
+                  : "bg-navy text-gold border border-gold/30",
               )}
             >
-              {msg.role === "user" ? "U" : "AI"}
+              {msg.role === "user" ? "ME" : "AI"}
             </div>
-            <div className="flex flex-col gap-2 flex-1">
+
+            <div className="flex flex-col gap-2 max-w-full">
               <div
                 className={cn(
                   "p-4 rounded-2xl text-sm leading-relaxed shadow-sm",
@@ -418,19 +351,23 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
                     : "bg-surface border border-border text-foreground rounded-tl-none",
                 )}
               >
-                <MarkdownRenderer content={msg.content} role={msg.role} />
+                <MarkdownRenderer
+                  content={msg.content}
+                  role={msg.role === "user" ? "user" : "assistant"}
+                />
               </div>
+
               {msg.role === "assistant" &&
                 (msg.routing_mode || msg.latency_ms !== undefined) && (
-                  <div className="flex items-center gap-2 px-1 text-[11px] text-muted font-mono">
+                  <div className="flex items-center gap-2 text-[10px] text-muted font-mono px-1">
                     {msg.routing_mode && (
-                      <span className="px-1.5 py-0.5 rounded bg-navy/10 text-navy font-semibold text-[10px]">
-                        Engine: {msg.routing_mode}
+                      <span className="bg-navy/5 px-1.5 py-0.5 rounded border border-navy/10 text-navy font-bold">
+                        Mode: {msg.routing_mode}
                       </span>
                     )}
                     {msg.latency_ms !== undefined && (
-                      <span>
-                        Inferensi: {(msg.latency_ms / 1000).toFixed(2)}s
+                      <span className="text-muted">
+                        Latency: {Math.round(msg.latency_ms)}ms
                       </span>
                     )}
                   </div>
@@ -438,86 +375,12 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
 
               {/* Interactive Degree Plan Action Card */}
               {msg.plan_payload && (
-                <div className="bg-surface border-2 border-gold/40 rounded-2xl p-5 shadow-md flex flex-col gap-4 animate-in zoom-in-95 duration-300">
-                  <div className="flex items-center justify-between border-b border-border/70 pb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 bg-gold/20 text-navy rounded-lg">
-                        <GraduationCap className="w-5 h-5 text-gold-dark" />
-                      </div>
-                      <div>
-                        <h4 className="font-heading font-bold text-sm text-navy">
-                          {msg.plan_payload.summary.program_studi}
-                        </h4>
-                        <p className="text-xs text-muted">
-                          Rekomendasi Rencana Studi Personal
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-xs px-2.5 py-1 bg-teal/20 text-navy font-semibold rounded-full border border-teal/30 flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-teal-dark" />
-                      DAG Validated
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2 bg-background/60 p-3 rounded-xl border border-border/50 text-xs">
-                    <div>
-                      <span className="text-muted block text-[10px]">
-                        Target Lulus
-                      </span>
-                      <span className="font-bold text-navy">
-                        Sem {msg.plan_payload.summary.target_semester}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-muted block text-[10px]">
-                        Total Beban
-                      </span>
-                      <span className="font-bold text-navy">
-                        {msg.plan_payload.summary.total_credits} SKS
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-muted block text-[10px]">
-                        Fokus Utama
-                      </span>
-                      <span
-                        className="font-bold text-navy truncate block"
-                        title={msg.plan_payload.summary.focus_tracks.join(", ")}
-                      >
-                        {msg.plan_payload.summary.focus_tracks[0] || "General"}
-                      </span>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() =>
-                      handleApplyPlanToVisualRoadmap(
-                        msg.id,
-                        msg.plan_payload as DegreePlanPayload,
-                      )
-                    }
-                    disabled={appliedPlanId === msg.id}
-                    className={cn(
-                      "w-full py-3 px-4 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-all shadow-sm",
-                      appliedPlanId === msg.id
-                        ? "bg-teal/20 text-navy border border-teal/40 cursor-default"
-                        : "bg-navy text-white hover:bg-navy-light active:scale-[0.99]",
-                    )}
-                  >
-                    {appliedPlanId === msg.id ? (
-                      <>
-                        <Check className="w-4 h-4 text-navy font-bold" />
-                        Rencana Berhasil Diterapkan ke Degree Planner
-                      </>
-                    ) : (
-                      <>
-                        <Map className="w-4 h-4 text-gold" />
-                        Terapkan Rencana Ini ke Degree Planner
-                        <ArrowRight className="w-4 h-4 ml-auto" />
-                      </>
-                    )}
-                  </button>
-                </div>
+                <DegreePlanActionCard
+                  messageId={msg.id}
+                  payload={msg.plan_payload}
+                  isApplied={appliedPlanId === msg.id}
+                  onApplyPlan={handleApplyPlanToVisualRoadmap}
+                />
               )}
             </div>
           </div>
@@ -545,27 +408,14 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
       {/* Suggested Quick Prompts */}
       {messages.length <= 2 && (
         <div className="px-6 py-3 flex gap-2 overflow-x-auto scrollbar-hide border-t border-border bg-background/50 flex-shrink-0">
-          {[
-            {
-              icon: Sparkles,
-              text: "Buatkan rencana studi Sains Data semester 3 fokus Machine Learning",
-            },
-            {
-              icon: Map,
-              text: "Rencana studi Rekayasa Perangkat Lunak semester 4 fokus Cloud",
-            },
-            {
-              icon: BookOpen,
-              text: "Info prasyarat mata kuliah Machine Learning",
-            },
-          ].map((sug, i) => (
+          {QUICK_PROMPTS.map((prompt, i) => (
             <button
               key={i}
-              onClick={() => handleSend(sug.text)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-surface border border-border rounded-full text-xs font-medium text-navy hover:border-navy hover:text-navy transition-colors whitespace-nowrap"
+              type="button"
+              onClick={() => handleSend(prompt)}
+              className="px-3 py-1.5 bg-surface border border-border hover:border-gold hover:text-navy text-xs rounded-full whitespace-nowrap text-muted transition-all shadow-2xs cursor-pointer flex-shrink-0"
             >
-              <sug.icon className="w-3.5 h-3.5 text-gold" />
-              {sug.text}
+              💡 {prompt}
             </button>
           ))}
         </div>
@@ -576,24 +426,26 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
         <div className="relative flex items-center">
           <input
             type="text"
-            placeholder="Ketik pesan atau konsultasikan rencana studimu..."
-            className="w-full pl-4 pr-12 py-3 rounded-xl border border-border bg-background focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all text-sm font-sans"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
+            placeholder="Ketik pertanyaan atau permintaan rencana studi Anda..."
+            className="w-full pl-4 pr-12 py-3 bg-background border border-border rounded-xl focus:border-gold focus:ring-1 focus:ring-gold outline-hidden text-sm font-sans transition-all"
             disabled={isLoading}
           />
           <button
+            type="button"
             onClick={() => handleSend()}
             disabled={!input.trim() || isLoading}
-            className="absolute right-2 p-2 bg-navy text-white rounded-lg hover:bg-navy-light disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="absolute right-2 p-2 bg-navy text-gold rounded-lg hover:bg-navy-light disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
           >
             <Send className="w-4 h-4" />
           </button>
         </div>
-        <p className="text-[10px] text-center text-muted mt-2">
-          Compass AI menggunakan deterministic prerequisite DAG validator FTMM.
-          Selalu konsultasikan rencana final dengan Dosen Wali.
+        <p className="text-[10px] text-muted text-center mt-2 flex items-center justify-center gap-1">
+          <AlertCircle className="w-3 h-3 text-gold" />
+          Rencana studi yang dihasilkan divalidasi langsung oleh aturan
+          prasyarat kurikulum FTMM UNAIR.
         </p>
       </div>
     </div>
