@@ -21,13 +21,21 @@ import DegreePlanner, { PlacedCourse } from "./pages/DegreePlanner"
 import Chatbot, { DegreePlanPayload } from "./pages/Chatbot"
 import Login from "./pages/Login"
 import ErrorBoundary from "./components/ErrorBoundary"
+import { authService, type AuthUser } from "./services/authService"
 
 import mainLogo from "./imports/image-6.png"
 
 type Page = "dashboard" | "course-finder" | "degree-planner" | "chatbot"
 
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() =>
+    authService.getStoredUser(),
+  )
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
+    const hasToken = Boolean(authService.getStoredToken())
+    const hasUser = Boolean(authService.getStoredUser())
+    return hasToken && hasUser
+  })
   const [activePage, setActivePage] = useState<Page>("dashboard")
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [pendingCourses, setPendingCourses] = useState<Course[]>([])
@@ -87,8 +95,19 @@ export default function App() {
 
   const addedCourseIds = new Set(pendingCourses.map((c) => c.id))
 
+  const handleLoginSuccess = (user: AuthUser) => {
+    setCurrentUser(user)
+    setIsLoggedIn(true)
+  }
+
+  const handleLogout = () => {
+    authService.logout()
+    setCurrentUser(null)
+    setIsLoggedIn(false)
+  }
+
   if (!isLoggedIn) {
-    return <Login onLogin={() => setIsLoggedIn(true)} />
+    return <Login onLogin={handleLoginSuccess} />
   }
 
   const navItems = [
@@ -179,19 +198,29 @@ export default function App() {
           </nav>
 
           <div className="p-4 border-t border-navy-light/50">
-            <div className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-navy-light/50 transition-colors cursor-pointer text-teal-light hover:text-white">
+            <div className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-navy-light/50 transition-colors text-teal-light hover:text-white">
               <div className="w-8 h-8 rounded-full bg-teal flex items-center justify-center flex-shrink-0">
                 <User className="w-4 h-4 text-navy-dark" />
               </div>
               <div className="flex-1 overflow-hidden">
                 <p className="text-sm font-medium truncate">
-                  Airlangga Student
+                  {currentUser?.full_name || "Mahasiswa FTMM"}
                 </p>
                 <p className="text-xs text-muted font-mono truncate">
-                  1621123456
+                  {currentUser?.student_profile?.student_number ||
+                    currentUser?.email ||
+                    currentUser?.role}
                 </p>
               </div>
-              <LogOut className="w-4 h-4 text-muted hover:text-danger flex-shrink-0" />
+              <button
+                type="button"
+                onClick={handleLogout}
+                title="Keluar / Logout"
+                aria-label="Logout"
+                className="p-1 rounded hover:bg-white/10 transition-colors text-muted hover:text-orange flex-shrink-0"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
             </div>
           </div>
         </div>
