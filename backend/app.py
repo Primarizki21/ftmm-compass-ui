@@ -106,6 +106,12 @@ async def lifespan(app: FastAPI):
             await seed_data()
         except Exception as e:
             print(f"⚠️ Auto-seed skipped or encountered an error: {e}")
+
+    current_port = os.getenv("BACKEND_PORT", os.getenv("PORT", "8001"))
+    print(f"\n🚀 FTMM Compass Gateway is LIVE & READY!")
+    print(f"   📡 Base API: http://127.0.0.1:{current_port}/api/v1")
+    print(f"   📖 Swagger Docs: http://127.0.0.1:{current_port}/docs")
+    print(f"   🏥 Health Check: http://127.0.0.1:{current_port}/api/v1/health\n")
     yield
 
 
