@@ -4,6 +4,12 @@ from fastapi.testclient import TestClient
 from app import app
 import app as app_module
 import data_loader
+import asyncio
+from seed import seed_data
+try:
+    asyncio.run(seed_data())
+except Exception:
+    pass
 
 client = TestClient(app)
 

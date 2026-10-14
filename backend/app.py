@@ -75,6 +75,19 @@ CHATBOT_TIMEOUT_SECONDS = float(os.getenv("CHATBOT_TIMEOUT_SECONDS", "45.0"))
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    try:
+        import concurrent.futures
+        from alembic.config import Config
+        from alembic import command
+        alembic_ini_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "alembic.ini")
+        if os.path.exists(alembic_ini_path):
+            alembic_cfg = Config(alembic_ini_path)
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                executor.submit(command.upgrade, alembic_cfg, "head").result()
+            print("✓ Alembic migrations successfully applied to head")
+    except Exception as e:
+        print(f"⚠️ Alembic migration notice: {e}")
+
     auto_seed = os.getenv("AUTO_SEED", "true").lower() in ("true", "1", "yes")
     if auto_seed:
         try:
