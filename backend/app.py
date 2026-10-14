@@ -56,7 +56,6 @@ from models import (
     Course,
     Curriculum,
     CurriculumCourse,
-    StudentCurriculumAssignment,
     StudentCourseRecord,
     CourseOffering,
     OfferingComponent,
@@ -322,6 +321,7 @@ async def handle_health_check(strict: bool = False) -> HealthResponse:
                 chatbot_online = True
                 chatbot_model = data.get("default_model")
                 ollama_online = data.get("ollama_online", False)
+                raw_ollama = data.get("ollama")
                 if isinstance(raw_ollama, dict):
                     ollama_detail = OllamaHealthDetail(
                         online=raw_ollama.get("online", ollama_online),

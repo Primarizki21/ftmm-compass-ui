@@ -1,9 +1,9 @@
 import asyncio
 import datetime
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from database import AsyncSessionLocal, engine
+from database import AsyncSessionLocal
 from models import (
     StudyProgram,
     User,
