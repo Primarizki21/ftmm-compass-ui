@@ -18,10 +18,10 @@ jobs:
         run: |
           echo "Scanning git-tracked files for secret or classified patterns..."
           if git ls-files | grep -E "(^Ekstrak/|\.env$|\.env\.local$|\.pem$|\.key$)"; then
-            echo "❌ Error: Classified or secret files found committed in Git tree!"
+            echo "[ERROR] Classified or secret files found committed in Git tree!"
             exit 1
           fi
-          echo "✓ Security Guard passed: No classified or sensitive files found."
+          echo "[PASS] Security Guard passed: No classified or sensitive files found."
 
   frontend:
     name: Frontend Build & Format

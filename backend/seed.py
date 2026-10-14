@@ -98,7 +98,7 @@ COURSES_DATA = [
 
 async def seed_data():
     async with AsyncSessionLocal() as session:
-        print("🌱 1. Checking and seeding Study Programs...")
+        print("[SEED 1/8] Checking and seeding Study Programs...")
         prodi_map = {}
         for p_data in PRODIS:
             stmt = select(StudyProgram).where(StudyProgram.program_code == p_data["program_code"])
@@ -113,12 +113,12 @@ async def seed_data():
                 )
                 session.add(prodi)
                 await session.flush()
-                print(f"  + Added study program: {prodi.program_code} - {prodi.program_name}")
+                print(f"  [CREATED] Study program: {prodi.program_code} - {prodi.program_name}")
             else:
-                print(f"  = Existing study program: {prodi.program_code}")
+                print(f"  [EXISTS] Study program: {prodi.program_code}")
             prodi_map[prodi.program_code] = prodi
 
-        print("\n🌱 2. Checking and seeding Academic Periods...")
+        print("\n[SEED 2/8] Checking and seeding Academic Periods...")
         period_configs = [
             {"year": 2023, "term": "ganjil", "active": False},
             {"year": 2023, "term": "genap", "active": False},
@@ -139,15 +139,15 @@ async def seed_data():
                 )
                 session.add(p_obj)
                 await session.flush()
-                print(f"  + Added academic period: {pcfg['year']} {pcfg['term']} (active: {pcfg['active']})")
+                print(f"  [CREATED] Academic period: {pcfg['year']} {pcfg['term']} (active: {pcfg['active']})")
             else:
                 p_obj.is_active = pcfg["active"]
-                print(f"  = Existing academic period: {pcfg['year']} {pcfg['term']}")
+                print(f"  [EXISTS] Academic period: {pcfg['year']} {pcfg['term']}")
             period_map[f"{pcfg['year']}_{pcfg['term']}"] = p_obj
 
         active_period = period_map["2024_ganjil"]
 
-        print("\n🌱 3. Checking and seeding Test Users...")
+        print("\n[SEED 3/8] Checking and seeding Test Users...")
 
         # 1. Admin
         admin_email = "admin@ftmm.unair.ac.id"
@@ -163,11 +163,11 @@ async def seed_data():
             )
             session.add(admin_user)
             await session.flush()
-            print(f"  + Created Admin user: {admin_email}")
+            print(f"  [CREATED] Admin user: {admin_email}")
         else:
             admin_user.password_hash = get_password_hash("AdminFTMM2026!")
             admin_user.full_name = "Super Admin FTMM"
-            print(f"  = Existing Admin user: {admin_email}")
+            print(f"  [EXISTS] Admin user: {admin_email}")
 
         # 2. Mahasiswa
         mhs_email = "mahasiswa.testing@ftmm.unair.ac.id"
@@ -197,7 +197,7 @@ async def seed_data():
                 current_semester=3,
             )
             session.add(profile)
-            print(f"  + Created Mahasiswa user: {mhs_email} with NIM 164231001")
+            print(f"  [CREATED] Mahasiswa user: {mhs_email} with NIM 164231001")
         else:
             mhs_user.password_hash = get_password_hash("Mahasiswa2026!")
             mhs_user.full_name = "Budi Santoso"
@@ -210,7 +210,7 @@ async def seed_data():
                     current_semester=3,
                 )
                 session.add(profile)
-            print(f"  = Existing Mahasiswa user: {mhs_email}")
+            print(f"  [EXISTS] Mahasiswa user: {mhs_email}")
 
         # 3. Dosen
         dosen_email = "dosen.testing@ftmm.unair.ac.id"
@@ -226,13 +226,13 @@ async def seed_data():
             )
             session.add(dosen_user)
             await session.flush()
-            print(f"  + Created Dosen user: {dosen_email}")
+            print(f"  [CREATED] Dosen user: {dosen_email}")
         else:
             dosen_user.password_hash = get_password_hash("DosenFTMM2026!")
             dosen_user.full_name = "Dr. Ir. Hendra Kurniawan, S.T., M.T."
-            print(f"  = Existing Dosen user: {dosen_email}")
+            print(f"  [EXISTS] Dosen user: {dosen_email}")
 
-        print("\n🌱 4. Checking and seeding Curriculum & Courses...")
+        print("\n[SEED 4/8] Checking and seeding Curriculum & Courses...")
         stmt_curr = select(Curriculum).where(
             Curriculum.study_program_id == tsd_prodi.study_program_id,
             Curriculum.curriculum_year == 2023,
@@ -249,9 +249,9 @@ async def seed_data():
             )
             session.add(curriculum)
             await session.flush()
-            print("  + Created Curriculum: Kurikulum TSD 2023")
+            print("  [CREATED] Curriculum: Kurikulum TSD 2023")
         else:
-            print("  = Existing Curriculum: Kurikulum TSD 2023")
+            print("  [EXISTS] Curriculum: Kurikulum TSD 2023")
 
         # Assign curriculum to student
         stmt_assign = select(StudentCurriculumAssignment).where(
@@ -267,7 +267,7 @@ async def seed_data():
             )
             session.add(assignment)
             await session.flush()
-            print(f"  + Assigned curriculum to student: {mhs_user.email}")
+            print(f"  [ASSIGNED] Curriculum to student: {mhs_user.email}")
 
         # Seed Courses and Curriculum Courses
         course_map = {}
@@ -305,9 +305,9 @@ async def seed_data():
                 await session.flush()
             curriculum_course_map[cdata["code"]] = cc_obj
 
-        print(f"  + Verified and mapped {len(COURSES_DATA)} courses in curriculum")
+        print(f"  [OK] Verified and mapped {len(COURSES_DATA)} courses in curriculum")
 
-        print("\n🌱 5. Checking and seeding Student Course Records (Transkrip Akademik)...")
+        print("\n[SEED 5/8] Checking and seeding Student Course Records (Transkrip Akademik)...")
         # Sem 1 grades (total 22 SKS, IP 3.86)
         sem1_records = [
             ("KIK101", "A"),
@@ -392,9 +392,9 @@ async def seed_data():
                 session.add(rec)
 
         await session.flush()
-        print("  + Seeded 16 passed records (44 SKS lulus, IPK 3.82) and 6 active records (20 SKS taking)")
+        print("  [OK] Seeded 16 passed records (44 SKS lulus, IPK 3.82) and 6 active records (20 SKS taking)")
 
-        print("\n🌱 6. Checking and seeding Timetables & Class Schedules...")
+        print("\n[SEED 6/8] Checking and seeding Timetables & Class Schedules...")
         # Timetable for student
         stmt_tt = select(Timetable).where(
             Timetable.user_id == mhs_user.user_id,
@@ -411,7 +411,7 @@ async def seed_data():
             )
             session.add(timetable)
             await session.flush()
-            print("  + Created Timetable for student")
+            print("  [CREATED] Timetable for student")
 
         # Class schedules for Sem 3
         # Day: 1=Senin, 2=Selasa, 3=Rabu, 4=Kamis, 5=Jumat
@@ -589,11 +589,10 @@ async def seed_data():
         await session.flush()
         timetable.is_active = True
         await session.flush()
-        print("  + Activated student timetable with scheduled class items")
+        print("  [OK] Activated student timetable with scheduled class items")
+        print("  [OK] Seeded course offerings, sections, schedules, and timetable items")
 
-        print("  + Seeded course offerings, sections, schedules, and timetable items")
-
-        print("\n🌱 7. Checking and seeding Active Polling Period & Wishlist Votes...")
+        print("\n[SEED 7/8] Checking and seeding Active Polling Period & Wishlist Votes...")
         stmt_poll = select(ElectivePollingPeriod).where(ElectivePollingPeriod.status == "open")
         polling_period = (await session.execute(stmt_poll)).scalars().first()
         if not polling_period:
@@ -611,9 +610,9 @@ async def seed_data():
             )
             session.add(polling_period)
             await session.flush()
-            print(f"  + Created Active Polling Period: {polling_period.title}")
+            print(f"  [CREATED] Active Polling Period: {polling_period.title}")
         else:
-            print(f"  = Existing Active Polling Period: {polling_period.title}")
+            print(f"  [EXISTS] Active Polling Period: {polling_period.title}")
 
         # 7a. Seed realistic elective votes from students
         voter_users = [mhs_user]
@@ -663,10 +662,10 @@ async def seed_data():
                     )
                     session.add(new_v)
         await session.flush()
-        print(f"  + Seeded {len(vote_distributions)} elective courses with realistic student quorum votes")
+        print(f"  [OK] Seeded {len(vote_distributions)} elective courses with realistic student quorum votes")
 
         # 8. Seed persistent notifications for each role
-        print("\n🌱 8. Checking and seeding Persistent Notifications...")
+        print("\n[SEED 8/8] Checking and seeding Persistent Notifications...")
         notifications_seed_data = [
             # Student notifications
             {
@@ -787,8 +786,8 @@ async def seed_data():
                 session.add(new_notif)
 
         await session.commit()
-        print(f"  + Seeded {len(notifications_seed_data)} persistent user notifications across all roles")
-        print("\n✅ All seed data successfully populated and verified!")
+        print(f"  [OK] Seeded {len(notifications_seed_data)} persistent user notifications across all roles")
+        print("\n[DONE] All seed data successfully populated and verified.")
 
 
 if __name__ == "__main__":

@@ -60,7 +60,7 @@ def test_polling_flow():
     assert period_data["is_active"] is True
     assert period_data["term"] == "ganjil"
     assert period_data["max_votes_per_student"] == 3
-    print("✓ Admin create polling period OK")
+    print("[PASS] Admin create polling period OK")
 
     # Non-admin tidak boleh membuat polling period
     non_admin_res = client.post(
@@ -69,7 +69,7 @@ def test_polling_flow():
         headers=mhs_headers,
     )
     assert non_admin_res.status_code == 403
-    print("✓ Non-admin forbidden from creating polling period OK")
+    print("[PASS] Non-admin forbidden from creating polling period OK")
 
     # 3. GET /api/v1/polling/periods/active
     active_res = client.get("/api/v1/polling/periods/active")
@@ -78,7 +78,7 @@ def test_polling_flow():
     assert active_period["period_id"] == period_id
     assert active_period["term"] == "ganjil"
     assert active_period["is_active"] is True
-    print("✓ GET active polling period OK")
+    print("[PASS] GET active polling period OK")
 
     # 4. Bersihkan vote sebelumnya jika ada untuk user testing
     my_votes_res = client.get("/api/v1/polling/my-votes", headers=mhs_headers)
@@ -98,7 +98,7 @@ def test_polling_flow():
     assert v1_data["course_id"] == "TSD502"
     assert v1_data["priority"] == 1
     assert "vote_id" in v1_data
-    print("✓ Submit Vote 1 (TSD502) OK")
+    print("[PASS] Submit Vote 1 (TSD502) OK")
 
     # 6. Idempotent Update (Ganti prioritas TSD502 menjadi 2 tanpa duplicate)
     v1_update = client.post(
@@ -109,7 +109,7 @@ def test_polling_flow():
     assert v1_update.status_code == 200
     assert v1_update.json()["priority"] == 2
     assert v1_update.json()["vote_id"] == v1_data["vote_id"]
-    print("✓ Idempotent update priority OK")
+    print("[PASS] Idempotent update priority OK")
 
     # 7. Submit Vote 2 (TSD503) & Vote 3 (TSD504)
     v2_res = client.post(
@@ -125,7 +125,7 @@ def test_polling_flow():
         headers=mhs_headers,
     )
     assert v3_res.status_code == 200
-    print("✓ Submit Vote 2 & Vote 3 OK")
+    print("[PASS] Submit Vote 2 & Vote 3 OK")
 
     # 8. Batas Maksimal Vote Tercapai (Slot = 3) -> Vote ke-4 harus 409 Conflict
     v4_res = client.post(
@@ -135,7 +135,7 @@ def test_polling_flow():
     )
     assert v4_res.status_code == 409
     assert "Batas kuota vote telah tercapai" in v4_res.json()["detail"]
-    print("✓ Exceeding max votes quota rejected (409 Conflict) OK")
+    print("[PASS] Exceeding max votes quota rejected (409 Conflict) OK")
 
     # 9. GET /api/v1/polling/my-votes -> Harus tepat 3 vote
     my_votes_res = client.get("/api/v1/polling/my-votes", headers=mhs_headers)
@@ -144,7 +144,7 @@ def test_polling_flow():
     assert len(my_votes) == 3
     cids = {v["course_id"] for v in my_votes}
     assert cids == {"TSD502", "TSD503", "TSD504"}
-    print("✓ GET my-votes returns 3 registered votes OK")
+    print("[PASS] GET my-votes returns 3 registered votes OK")
 
     # 10. DELETE /api/v1/polling/votes/{course_id} -> Batalkan TSD504
     del_res = client.delete("/api/v1/polling/votes/TSD504", headers=mhs_headers)
@@ -154,7 +154,7 @@ def test_polling_flow():
     my_votes_after_del = client.get("/api/v1/polling/my-votes", headers=mhs_headers).json()
     assert len(my_votes_after_del) == 2
     assert "TSD504" not in {v["course_id"] for v in my_votes_after_del}
-    print("✓ Cancel vote (204 No Content) and slot released OK")
+    print("[PASS] Cancel vote (204 No Content) and slot released OK")
 
     # 11. Validasi Demand Analytics pada periode yang sedang berjalan dengan vote mahasiswa
     analytics_res = client.get("/api/v1/admin/polling/demand-analytics", headers=dosen_headers)
@@ -174,12 +174,12 @@ def test_polling_flow():
     assert tsd503_item["priority_1_votes"] >= 1
     assert tsd503_item["status"] in ["QUALIFIED", "BORDERLINE", "UNQUALIFIED"]
     assert tsd503_item["projected_classes"] >= 1
-    print("✓ Dosen GET demand analytics OK")
+    print("[PASS] Dosen GET demand analytics OK")
 
     # Mahasiswa dilarang mengakses analitik admin
     mhs_analytics_res = client.get("/api/v1/admin/polling/demand-analytics", headers=mhs_headers)
     assert mhs_analytics_res.status_code == 403
-    print("✓ Student forbidden from accessing demand analytics OK")
+    print("[PASS] Student forbidden from accessing demand analytics OK")
 
     # 12. Validasi Paritas Semester: Buat periode genap baru
     period_genap_payload = {
@@ -203,9 +203,9 @@ def test_polling_flow():
     )
     assert parity_err_res.status_code == 400
     assert "Paritas semester tidak sesuai" in parity_err_res.json()["detail"]
-    print("✓ Parity mismatch validation rejected (400 Bad Request) OK")
+    print("[PASS] Parity mismatch validation rejected (400 Bad Request) OK")
 
 
 if __name__ == "__main__":
     test_polling_flow()
-    print("\nAll polling and demand forecasting API tests passed! 🎯")
+    print("\n[DONE] All polling and demand forecasting API tests passed.")

@@ -6,9 +6,17 @@ dist
 backend/.venv
 *.pyc
 __pycache__
+**/__pycache__
 .env
 .env.*
+**/.env
+**/.env.*
 *.log
+**/*.log
 .backend-port
 tmp_*
 test_scratch_*
+Ekstrak/
+Ekstrak
+**/Ekstrak/
+**/Ekstrak

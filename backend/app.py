@@ -94,9 +94,9 @@ async def lifespan(app: FastAPI):
             alembic_cfg = Config(alembic_ini_path)
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 executor.submit(command.upgrade, alembic_cfg, "head").result()
-            print("✓ Alembic migrations successfully applied to head")
+            print("[OK] Alembic migrations successfully applied to head")
     except Exception as e:
-        print(f"⚠️ Alembic migration notice: {e}")
+        print(f"[WARN] Alembic migration notice: {e}")
 
     auto_seed = os.getenv("AUTO_SEED", "true").lower() in ("true", "1", "yes")
     if auto_seed:
@@ -104,13 +104,13 @@ async def lifespan(app: FastAPI):
             from seed import seed_data
             await seed_data()
         except Exception as e:
-            print(f"⚠️ Auto-seed skipped or encountered an error: {e}")
+            print(f"[WARN] Auto-seed skipped or encountered an error: {e}")
 
     current_port = os.getenv("BACKEND_PORT", os.getenv("PORT", "8001"))
-    print(f"\n🚀 FTMM Compass Gateway is LIVE & READY!")
-    print(f"   📡 Base API: http://127.0.0.1:{current_port}/api/v1")
-    print(f"   📖 Swagger Docs: http://127.0.0.1:{current_port}/docs")
-    print(f"   🏥 Health Check: http://127.0.0.1:{current_port}/api/v1/health\n")
+    print(f"\n[INFO] FTMM Compass Gateway is LIVE & READY")
+    print(f"       Base API: http://127.0.0.1:{current_port}/api/v1")
+    print(f"       Swagger Docs: http://127.0.0.1:{current_port}/docs")
+    print(f"       Health Check: http://127.0.0.1:{current_port}/api/v1/health\n")
     yield
 
 
