@@ -2,10 +2,12 @@ import os
 import json
 import httpx
 from typing import Any, AsyncGenerator
-from fastapi import FastAPI, APIRouter, HTTPException, Query, Request, status
+from fastapi import FastAPI, APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from schemas import (
     ChatRequest,
@@ -20,7 +22,14 @@ from schemas import (
     OllamaHealthDetail,
     CourseSearchResponse,
     CourseSearchItem,
+    LoginRequest,
+    LoginResponse,
+    UserResponse,
+    UserStudentProfileResponse,
 )
+from database import AsyncSessionLocal, get_db
+from models import User
+from auth import authenticate_user, create_access_token, get_current_user
 from data_loader import (
     get_courses_for_program,
     get_all_courses,
@@ -224,6 +233,13 @@ async def handle_health_check(strict: bool = False) -> HealthResponse:
     chatbot_model = None
     ollama_online = False
     ollama_detail: OllamaHealthDetail | None = None
+    database_online = False
+    try:
+        async with AsyncSessionLocal() as db_session:
+            await db_session.execute(text("SELECT 1"))
+            database_online = True
+    except Exception:
+        database_online = False
 
     try:
         async with httpx.AsyncClient(timeout=2.0) as client:
@@ -233,7 +249,6 @@ async def handle_health_check(strict: bool = False) -> HealthResponse:
                 chatbot_online = True
                 chatbot_model = data.get("default_model")
                 ollama_online = data.get("ollama_online", False)
-                raw_ollama = data.get("ollama")
                 if isinstance(raw_ollama, dict):
                     ollama_detail = OllamaHealthDetail(
                         online=raw_ollama.get("online", ollama_online),
@@ -258,6 +273,7 @@ async def handle_health_check(strict: bool = False) -> HealthResponse:
         ollama_online=ollama_online,
         default_model=chatbot_model,
         ollama=ollama_detail,
+        database_online=database_online,
     )
 
 
@@ -674,6 +690,63 @@ v1_router = APIRouter(prefix="/api/v1", tags=["v1"])
 async def v1_health(strict: bool = Query(False, description="Fail with 503 if chatbot is offline")):
     return await handle_health_check(strict=strict)
 
+
+@v1_router.post("/auth/login", response_model=LoginResponse)
+async def v1_login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
+    user = await authenticate_user(db, request.identifier, request.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="NIM/Email atau kata sandi tidak valid",
+        )
+
+    access_token = create_access_token(data={"sub": str(user.user_id), "role": user.role})
+
+    student_profile_data = None
+    if user.student_profile:
+        sp = user.student_profile
+        student_profile_data = UserStudentProfileResponse(
+            student_number=sp.student_number,
+            study_program=sp.study_program.program_name if sp.study_program else None,
+            program_code=sp.study_program.program_code if sp.study_program else None,
+            admission_year=sp.admission_year,
+            current_semester=sp.current_semester,
+        )
+
+    return LoginResponse(
+        access_token=access_token,
+        token_type="bearer",
+        expires_in=86400,
+        user=UserResponse(
+            user_id=str(user.user_id),
+            email=user.email,
+            full_name=user.full_name,
+            role=user.role,
+            student_profile=student_profile_data,
+        ),
+    )
+
+
+@v1_router.get("/auth/me", response_model=UserResponse)
+async def v1_me(current_user: User = Depends(get_current_user)):
+    student_profile_data = None
+    if current_user.student_profile:
+        sp = current_user.student_profile
+        student_profile_data = UserStudentProfileResponse(
+            student_number=sp.student_number,
+            study_program=sp.study_program.program_name if sp.study_program else None,
+            program_code=sp.study_program.program_code if sp.study_program else None,
+            admission_year=sp.admission_year,
+            current_semester=sp.current_semester,
+        )
+
+    return UserResponse(
+        user_id=str(current_user.user_id),
+        email=current_user.email,
+        full_name=current_user.full_name,
+        role=current_user.role,
+        student_profile=student_profile_data,
+    )
 
 @v1_router.get("/courses")
 async def v1_list_courses(

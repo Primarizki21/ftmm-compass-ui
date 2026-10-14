@@ -23,7 +23,9 @@ def test_v1_health():
     data = res.json()
     assert data["status"] in ["healthy", "degraded"]
     assert "service" in data
-    print("✓ Canonical v1 Health endpoint OK")
+    assert "database_online" in data
+    assert data["database_online"] is True
+    print(f"✓ Canonical v1 Health endpoint OK (database_online={data['database_online']})")
 
 
 def test_courses_endpoint():
@@ -353,6 +355,79 @@ def test_courses_fallback_isolation():
     finally:
         data_loader.OFFICIAL_CURRICULUM = original_official
 
+def test_auth_login_and_me():
+    # 1. Invalid login credentials
+    bad_res = client.post(
+        "/api/v1/auth/login",
+        json={"identifier": "mahasiswa.testing@ftmm.unair.ac.id", "password": "wrongpassword"},
+    )
+    assert bad_res.status_code == 401
+    assert "NIM/Email atau kata sandi tidak valid" in bad_res.json()["detail"]
+    print("✓ Auth login invalid password rejected (401) OK")
+
+    # 2. Valid login by Email (Student)
+    mhs_res = client.post(
+        "/api/v1/auth/login",
+        json={"identifier": "mahasiswa.testing@ftmm.unair.ac.id", "password": "Mahasiswa2026!"},
+    )
+    assert mhs_res.status_code == 200
+    mhs_data = mhs_res.json()
+    assert "access_token" in mhs_data
+    assert mhs_data["token_type"] == "bearer"
+    assert mhs_data["expires_in"] == 86400
+    assert mhs_data["user"]["email"] == "mahasiswa.testing@ftmm.unair.ac.id"
+    assert mhs_data["user"]["role"] == "student"
+    assert mhs_data["user"]["student_profile"]["student_number"] == "164231001"
+    assert mhs_data["user"]["student_profile"]["study_program"] == "Teknologi Sains Data"
+    assert mhs_data["user"]["student_profile"]["admission_year"] == 2023
+    assert mhs_data["user"]["student_profile"]["current_semester"] == 3
+    print("✓ Auth login via Email (Student) OK")
+
+    # 3. Valid login by NIM (Student)
+    nim_res = client.post(
+        "/api/v1/auth/login",
+        json={"identifier": "164231001", "password": "Mahasiswa2026!"},
+    )
+    assert nim_res.status_code == 200
+    nim_data = nim_res.json()
+    assert nim_data["user"]["email"] == "mahasiswa.testing@ftmm.unair.ac.id"
+    print("✓ Auth login via NIM (Student) OK")
+
+    # 4. GET /api/v1/auth/me without token -> 401
+    unauth_me = client.get("/api/v1/auth/me")
+    assert unauth_me.status_code == 401
+    print("✓ Auth me unauthorized request rejected (401) OK")
+
+    # 5. GET /api/v1/auth/me with valid bearer token
+    token = mhs_data["access_token"]
+    me_res = client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert me_res.status_code == 200
+    me_data = me_res.json()
+    assert me_data["email"] == "mahasiswa.testing@ftmm.unair.ac.id"
+    assert me_data["student_profile"]["student_number"] == "164231001"
+    print("✓ Auth me with valid token OK")
+
+    # 6. Valid login Admin
+    admin_res = client.post(
+        "/api/v1/auth/login",
+        json={"identifier": "admin@ftmm.unair.ac.id", "password": "AdminFTMM2026!"},
+    )
+    assert admin_res.status_code == 200
+    assert admin_res.json()["user"]["role"] == "admin"
+    print("✓ Auth login Admin OK")
+
+    # 7. Valid login Dosen
+    dosen_res = client.post(
+        "/api/v1/auth/login",
+        json={"identifier": "dosen.testing@ftmm.unair.ac.id", "password": "DosenFTMM2026!"},
+    )
+    assert dosen_res.status_code == 200
+    assert dosen_res.json()["user"]["role"] == "lecturer"
+    print("✓ Auth login Dosen OK")
+
 
 if __name__ == "__main__":
     test_health()
@@ -372,4 +447,5 @@ if __name__ == "__main__":
     test_v1_plan_validations_religion_conflict()
     test_courses_proxy_chatbot_ssot()
     test_courses_fallback_isolation()
+    test_auth_login_and_me()
     print("\nAll modernized API endpoint integration tests passed! 🚀")

@@ -26,6 +26,7 @@ CREATE TABLE users (
     user_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     email varchar(255) NOT NULL UNIQUE,
     full_name varchar(150) NOT NULL,
+    password_hash varchar(255) NOT NULL DEFAULT '',
     role varchar(30) NOT NULL DEFAULT 'student',
     is_active boolean NOT NULL DEFAULT true,
     anonymized_at timestamptz,

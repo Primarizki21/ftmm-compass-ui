@@ -47,6 +47,7 @@ class HealthResponse(BaseModel):
     ollama_online: bool = False
     default_model: Optional[str] = None
     ollama: Optional[OllamaHealthDetail] = None
+    database_online: bool = False
 
 class StudentProfile(BaseModel):
     program_studi: Optional[str] = Field(
@@ -169,3 +170,31 @@ class ChatResponse(BaseModel):
     missing_slots: List[str] = Field(default_factory=list)
     routing_mode: Optional[str] = None
     latency_ms: Optional[float] = None
+
+
+class LoginRequest(BaseModel):
+    identifier: str
+    password: str
+
+
+class UserStudentProfileResponse(BaseModel):
+    student_number: Optional[str] = None
+    study_program: Optional[str] = None
+    program_code: Optional[str] = None
+    admission_year: Optional[int] = None
+    current_semester: Optional[int] = None
+
+
+class UserResponse(BaseModel):
+    user_id: str
+    email: str
+    full_name: str
+    role: str
+    student_profile: Optional[UserStudentProfileResponse] = None
+
+
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int = 86400
+    user: UserResponse
