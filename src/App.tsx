@@ -283,6 +283,7 @@ export default function App() {
                 <Dashboard
                   onNavigate={handleNavigate}
                   schedule={activeSchedule}
+                  currentUser={currentUser}
                 />
               )}
               {activePage === "course-finder" && (
