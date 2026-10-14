@@ -1,3 +1,4 @@
+import { ChevronLeft, Menu } from "lucide-react"
 import { cn } from "../utils"
 
 interface AnimatedMenuToggleProps {
@@ -15,39 +16,38 @@ export default function AnimatedMenuToggle({
     <button
       type="button"
       onClick={onClick}
-      aria-label={isOpen ? "Tutup bilah navigasi" : "Buka bilah navigasi"}
-      title={isOpen ? "Tutup Sidebar" : "Buka Sidebar"}
+      aria-label={isOpen ? "Sembunyikan bilah navigasi" : "Buka bilah navigasi"}
+      title={isOpen ? "Sembunyikan Sidebar" : "Buka Sidebar"}
       className={cn(
-        "p-2 text-muted hover:text-navy hover:bg-background rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/50",
+        "p-2 text-muted hover:text-navy hover:bg-background rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/50 relative overflow-hidden group",
+        isOpen && "bg-background/80 text-navy",
         className,
       )}
     >
-      <div className="w-5 h-5 flex flex-col justify-center items-center relative">
-        {/* Top bar */}
+      <div className="w-5 h-5 relative flex items-center justify-center">
+        {/* Chevron Left icon when sidebar is OPEN */}
         <span
           className={cn(
-            "h-0.5 w-5 bg-current rounded-full transition-all duration-300 ease-in-out transform origin-center",
+            "absolute inset-0 flex items-center justify-center transition-all duration-200 ease-in-out transform",
             isOpen
-              ? "translate-y-[5px] rotate-45"
-              : "translate-y-[-5px] rotate-0",
+              ? "opacity-100 scale-100 rotate-0"
+              : "opacity-0 scale-75 -rotate-90 pointer-events-none",
           )}
-        />
-        {/* Middle bar */}
+        >
+          <ChevronLeft className="w-5 h-5 text-current" />
+        </span>
+
+        {/* 3-line Hamburger Menu icon when sidebar is CLOSED */}
         <span
           className={cn(
-            "h-0.5 w-5 bg-current rounded-full transition-all duration-200 ease-in-out transform origin-center",
-            isOpen ? "opacity-0 scale-x-0" : "opacity-100 scale-x-100",
+            "absolute inset-0 flex items-center justify-center transition-all duration-200 ease-in-out transform",
+            !isOpen
+              ? "opacity-100 scale-100 rotate-0"
+              : "opacity-0 scale-75 rotate-90 pointer-events-none",
           )}
-        />
-        {/* Bottom bar */}
-        <span
-          className={cn(
-            "h-0.5 w-5 bg-current rounded-full transition-all duration-300 ease-in-out transform origin-center",
-            isOpen
-              ? "-translate-y-[5px] -rotate-45"
-              : "translate-y-[5px] rotate-0",
-          )}
-        />
+        >
+          <Menu className="w-5 h-5 text-current" />
+        </span>
       </div>
     </button>
   )
