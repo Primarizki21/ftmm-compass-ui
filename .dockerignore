@@ -1,14 +1,64 @@
-node_modules
-dist
+# Version control & caches
+.git/
 .git
-.cache
-.venv
-backend/.venv
+.github/
+.codegraph/
+.omp/
+.cache/
+.pytest_cache/
+**/.pytest_cache/
+.ruff_cache/
+**/__pycache__/
 *.pyc
-__pycache__
+
+# Virtual environments & dependencies
+.venv/
+**/.venv/
+node_modules/
+dist/
+
+# Institutional classified data
+Ekstrak/
+Ekstrak
+**/Ekstrak/
+**/Ekstrak
+
+# Environment, secrets & credentials
 .env
 .env.*
+**/.env
+**/.env.*
+*.pem
+**/*.pem
+*.key
+**/*.key
+*.crt
+**/*.crt
+*.cert
+**/*.cert
+*.pfx
+**/*.pfx
+*.p12
+**/*.p12
+id_rsa*
+**/id_rsa*
+id_ed25519*
+**/id_ed25519*
+
+# Logs & temp files
 *.log
+**/*.log
 .backend-port
 tmp_*
+**/tmp_*
 test_scratch_*
+**/test_scratch_*
+*.bak
+**/*.bak
+
+# Database storage & sqlite
+pgdata/
+**/pgdata/
+*.sqlite
+*.sqlite3
+*.db

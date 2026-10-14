@@ -13,7 +13,12 @@ export default defineConfig(({ mode }) => {
       sourcemap: emitSourcemaps ? "inline" : false,
       minify: !emitSourcemaps,
     },
-    plugins: [react(), tailwindcss(), backendApiProxyPlugin()],
+    plugins: [
+      react(),
+      tailwindcss(),
+      backendApiProxyPlugin(),
+      assetCacheControlPlugin(),
+    ],
     resolve: {
       alias: {
         "@": path.resolve(import.meta.dirname, "./src"),
@@ -88,6 +93,24 @@ function backendApiProxyPlugin(): Plugin {
             }),
           )
         }
+      })
+    },
+  }
+}
+
+/** Applies immutable cache headers to hashed static assets and no-cache to index.html in preview */
+function assetCacheControlPlugin(): Plugin {
+  return {
+    name: "asset-cache-control",
+    configurePreviewServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const url = req.url || ""
+        if (url.match(/\.(webp|png|jpg|jpeg|svg|css|js|woff2?)$/)) {
+          res.setHeader("Cache-Control", "public, max-age=31536000, immutable")
+        } else if (url === "/" || url.endsWith(".html")) {
+          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate")
+        }
+        next()
       })
     },
   }

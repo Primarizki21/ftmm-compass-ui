@@ -1,4 +1,25 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ftmm-compass-postgres
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=ftmm_compass_dev
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database/schema_v2_1_rc1.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - default
+
   gateway:
     build:
       context: .
@@ -12,8 +33,12 @@ services:
     environment:
       - BACKEND_PORT=8001
       - HOST=0.0.0.0
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://postgres:postgres@postgres:5432/ftmm_compass_dev}
       - CHATBOT_SERVICE_URL=${CHATBOT_SERVICE_URL:-http://ftmm-compass-chatbot:8000}
       - CHATBOT_TIMEOUT_SECONDS=${CHATBOT_TIMEOUT_SECONDS:-45.0}
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - default
       - ftmm-network
@@ -53,3 +78,6 @@ networks:
   default:
   ftmm-network:
     external: true
+
+volumes:
+  pgdata:

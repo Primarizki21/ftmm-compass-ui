@@ -21,7 +21,7 @@ def test_data_loader():
         courses = get_courses_for_program(alias)
         assert len(courses) > 0, f"{expected_name} catalog should not be empty"
         assert all(c.program == expected_name for c in courses)
-    print("✓ Data loader OK across all 5 official FTMM study programs")
+    print("[PASS] Data loader OK across all 5 official FTMM study programs")
 
 def test_prerequisite_validator():
     print("Testing prerequisite validator...")
@@ -43,7 +43,7 @@ def test_prerequisite_validator():
     }
     res_valid = validate_plan_constraints(valid_plan, [])
     assert res_valid.is_valid, f"Expected valid plan, got errors: {res_valid.errors}"
-    print("✓ Valid plan correctly accepted")
+    print("[PASS] Valid plan correctly accepted")
 
     # 2. Parity violation test (Odd course in even semester)
     parity_violation_plan = {
@@ -57,7 +57,7 @@ def test_prerequisite_validator():
     res_parity = validate_plan_constraints(parity_violation_plan, [])
     assert not res_parity.is_valid, "Expected parity violation to fail"
     assert any("Semester Ganjil" in e for e in res_parity.errors), "Parity error message missing"
-    print("✓ Parity violation correctly detected")
+    print("[PASS] Parity violation correctly detected")
 
     # 3. Missing prerequisite test
     missing_prereq_plan = {
@@ -71,7 +71,7 @@ def test_prerequisite_validator():
     res_prereq = validate_plan_constraints(missing_prereq_plan, [])
     assert not res_prereq.is_valid, "Expected missing prerequisite to fail"
     assert any("Prasyarat tidak terpenuhi" in e for e in res_prereq.errors)
-    print("✓ Missing prerequisite correctly detected")
+    print("[PASS] Missing prerequisite correctly detected")
 
     # 4. SKS limit violation test (> maks_sks_per_semester)
     sks_overload_plan = {
@@ -84,7 +84,7 @@ def test_prerequisite_validator():
     res_sks = validate_plan_constraints(sks_overload_plan, [], maks_sks_per_semester=24)
     assert not res_sks.is_valid, "Expected SKS limit violation to fail"
     assert any("melebihi batas maksimum" in e for e in res_sks.errors)
-    print("✓ SKS limit overload correctly detected")
+    print("[PASS] SKS limit overload correctly detected")
 
     # 5. Multi-religion conflict test
     religion_conflict_plan = {
@@ -96,7 +96,7 @@ def test_prerequisite_validator():
     res_rel = validate_plan_constraints(religion_conflict_plan, [])
     assert not res_rel.is_valid, "Expected multi-religion plan to fail"
     assert any("Pelanggaran kurikulum agama" in e for e in res_rel.errors)
-    print("✓ Multi-religion conflict correctly detected")
+    print("[PASS] Multi-religion conflict correctly detected")
 
     # 6. Duplicate course warning test
     duplicate_plan = {
@@ -105,7 +105,7 @@ def test_prerequisite_validator():
     }
     res_dup = validate_plan_constraints(duplicate_plan, [])
     assert any("terdaftar ganda" in w for w in res_dup.warnings)
-    print("✓ Duplicate course warning correctly detected")
+    print("[PASS] Duplicate course warning correctly detected")
 
 
 def test_study_planner():
@@ -123,7 +123,7 @@ def test_study_planner():
     assert payload.action == "APPLY_DEGREE_PLAN"
     assert payload.summary.target_semester == 7
     assert len(payload.plan) >= 7
-    print(f"✓ Planner synthesized {payload.summary.total_credits} SKS across {len(payload.plan)} semesters")
+    print(f"[PASS] Planner synthesized {payload.summary.total_credits} SKS across {len(payload.plan)} semesters")
 
 
 
@@ -132,4 +132,4 @@ if __name__ == "__main__":
     test_prerequisite_validator()
     test_study_planner()
     # test_data_loader, test_prerequisite_validator, and test_study_planner verified
-    print("\nAll backend unit tests passed successfully! 🎉")
+    print("\n[DONE] All backend unit tests passed successfully.")

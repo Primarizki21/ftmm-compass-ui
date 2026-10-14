@@ -34,6 +34,7 @@ export interface Course {
   parity: "odd" | "even"
   prerequisites?: PrerequisiteNode[]
   workload?: WorkloadInfo
+  lecturer?: string
 }
 
 export const TIMETABLE_DAYS = [

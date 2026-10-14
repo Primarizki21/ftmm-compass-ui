@@ -39,6 +39,7 @@ export default function DegreePlanner({
   activeSchedule: _activeSchedule,
   onUpdateSchedule,
   initialTab,
+  currentUser,
 }: DegreePlannerProps) {
   const [activeTab, setActiveTab] = useState<Tab>(initialTab || "roadmap")
 
@@ -483,6 +484,7 @@ export default function DegreePlanner({
             appliedSummary={appliedSummary}
             onResetPlan={onResetPlan}
             dragging={dragging}
+            currentUser={currentUser}
           />
 
           {/* Semester Columns */}

@@ -1,3 +1,4 @@
+import { type AuthUser } from "../../services/authService"
 import React from "react"
 import { Course, TIMETABLE_DAYS, ScheduleItem } from "../../data"
 
@@ -172,4 +173,5 @@ export interface DegreePlannerProps {
   activeSchedule?: ScheduleItem[]
   onUpdateSchedule?: (schedule: ScheduleItem[]) => void
   initialTab?: Tab
+  currentUser?: AuthUser | null
 }

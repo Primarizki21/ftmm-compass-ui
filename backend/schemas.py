@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict, Literal, Any
+from typing import List, Optional, Dict, Literal, Any, Union
 from pydantic import BaseModel, Field
 
 
@@ -47,6 +47,7 @@ class HealthResponse(BaseModel):
     ollama_online: bool = False
     default_model: Optional[str] = None
     ollama: Optional[OllamaHealthDetail] = None
+    database_online: bool = False
 
 class StudentProfile(BaseModel):
     program_studi: Optional[str] = Field(
@@ -82,7 +83,32 @@ class CourseModel(BaseModel):
     parity: Literal["odd", "even"] = "odd"
     desc: str = ""
     program: Optional[str] = None
+    lecturer: Optional[str] = None
     prerequisites: List[str] = Field(default_factory=list)
+class AdminCourseCreateRequest(BaseModel):
+    course_code: str
+    course_name: str
+    program_name: str = "Teknologi Sains Data"
+    credits: int = 3
+    recommended_semester: int = 1
+    term: Literal["ganjil", "genap"] = "ganjil"
+    course_type: Literal["Wajib", "Pilihan"] = "Pilihan"
+    description: Optional[str] = ""
+    lecturer: Optional[str] = "Tim Dosen FTMM UNAIR"
+    prerequisites: List[str] = Field(default_factory=list)
+
+class AdminCourseUpdateRequest(BaseModel):
+    course_code: Optional[str] = None
+    course_name: Optional[str] = None
+    program_name: Optional[str] = None
+    credits: Optional[int] = None
+    recommended_semester: Optional[int] = None
+    term: Optional[Literal["ganjil", "genap"]] = None
+    course_type: Optional[Literal["Wajib", "Pilihan"]] = None
+    description: Optional[str] = None
+    lecturer: Optional[str] = None
+    is_active: Optional[bool] = None
+    prerequisites: Optional[List[str]] = None
 
 
 class PlacedCourseModel(CourseModel):
@@ -169,3 +195,182 @@ class ChatResponse(BaseModel):
     missing_slots: List[str] = Field(default_factory=list)
     routing_mode: Optional[str] = None
     latency_ms: Optional[float] = None
+
+
+class LoginRequest(BaseModel):
+    identifier: str
+    password: str
+
+
+class UserStudentProfileResponse(BaseModel):
+    student_number: Optional[str] = None
+    study_program: Optional[str] = None
+    program_code: Optional[str] = None
+    admission_year: Optional[int] = None
+    current_semester: Optional[int] = None
+
+class UserProfileUpdateRequest(BaseModel):
+    phone_number: Optional[str] = Field(None, max_length=30, description="Nomor telepon atau WhatsApp aktif")
+    bio: Optional[str] = Field(None, max_length=500, description="Bio atau deskripsi singkat akademik")
+    career_interests: Optional[List[str]] = Field(default_factory=list, description="Minat atau fokus bidang karir")
+
+
+
+class UserResponse(BaseModel):
+    user_id: str
+    email: str
+    full_name: str
+    role: str
+    auth_provider: str = "Cybercampus SSO UNAIR"
+    academic_identifier: Optional[str] = None
+    unit_name: Optional[str] = None
+    phone_number: Optional[str] = None
+    bio: Optional[str] = None
+    career_interests: List[str] = Field(default_factory=list)
+    permissions: List[str] = Field(default_factory=list)
+    student_profile: Optional[UserStudentProfileResponse] = None
+
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int = 86400
+    user: UserResponse
+class PollingPeriodResponse(BaseModel):
+    period_id: str
+    academic_year: str
+    term: Literal["ganjil", "genap"]
+    target_semester_type: Literal["ganjil", "genap"]
+    start_date: str
+    end_date: str
+    is_active: bool
+    min_quorum: int
+    max_votes_per_student: int
+    description: Optional[str] = None
+
+
+class CreatePollingPeriodRequest(BaseModel):
+    title: str
+    academic_year: str
+    target_term: Literal["ganjil", "genap"]
+    target_semester: int = Field(..., ge=1, le=8)
+    start_date: str
+    end_date: str
+    status: Literal["upcoming", "open", "closed"] = "upcoming"
+    min_quota_threshold: int = 15
+    max_votes_per_student: int = 3
+    description: Optional[str] = None
+
+
+class ElectiveVoteRequest(BaseModel):
+    course_id: str
+    priority: int = Field(..., ge=1, le=3)
+
+
+class ElectiveVoteResponse(BaseModel):
+    vote_id: str
+    course_id: str
+    course_code: Optional[str] = None
+    course_name: Optional[str] = None
+    priority: int
+    created_at: str
+
+
+class CourseDemandItem(BaseModel):
+    course_id: str
+    course_code: str
+    course_name: str
+    study_program: str
+    program_code: Optional[str] = None
+    credits: int = 3
+    total_votes: int = 0
+    priority_1_votes: int = 0
+    priority_2_votes: int = 0
+    priority_3_votes: int = 0
+    min_quorum: int = 15
+    status: Literal["QUALIFIED", "BORDERLINE", "UNQUALIFIED"]
+    projected_classes: int = 0
+
+
+class DemandAnalyticsResponse(BaseModel):
+    period: PollingPeriodResponse
+    total_students_voted: int
+    items: List[CourseDemandItem] = Field(default_factory=list)
+
+
+class DashboardScheduleItem(BaseModel):
+    id: str
+    course_id: str
+    course_code: str
+    course_name: str
+    credits: int
+    day: str
+    start_time: str
+    end_time: str
+    time: str
+    room: str
+    lecturer: Optional[str] = None
+    class_name: Optional[str] = None
+    enrolled_students: Optional[int] = None
+    color: Optional[str] = "teal"
+
+
+class StudentDashboardStats(BaseModel):
+    type: Literal["student"] = "student"
+    sks_completed: int
+    sks_target: int = 144
+    completion_percentage: float
+    current_semester: int
+    term_name: str
+    courses_planned: int
+    sks_planned: int
+    gpa: float
+    predicate: str
+
+
+class LecturerDashboardStats(BaseModel):
+    type: Literal["lecturer"] = "lecturer"
+    courses_taught: int
+    sks_taught: int
+    total_students: int
+    advisee_students: int
+    active_term: str
+    status: str
+
+
+class AdminDashboardStats(BaseModel):
+    type: Literal["admin"] = "admin"
+    total_active_students: int
+    total_lecturers: int
+    total_courses: int
+    total_study_programs: int
+    active_polling_period: str
+    system_status: str
+
+
+class DashboardMeResponse(BaseModel):
+    user_id: str
+    full_name: str
+    role: str
+    email: str
+    student_number: Optional[str] = None
+    study_program: Optional[str] = None
+    period_name: str
+    academic_week: int = 4
+    stats: Union[StudentDashboardStats, LecturerDashboardStats, AdminDashboardStats]
+    schedule: List[DashboardScheduleItem] = Field(default_factory=list)
+
+
+class NotificationItemResponse(BaseModel):
+    id: str
+    title: str
+    message: str
+    type: Literal["warning", "deadline", "info", "success"] = "info"
+    is_read: bool = False
+    action_url: Optional[str] = None
+    timestamp: str
+    created_at: str
+
+
+class NotificationListResponse(BaseModel):
+    unread_count: int
+    items: List[NotificationItemResponse]
