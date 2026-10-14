@@ -1,8 +1,8 @@
 import { useState } from "react"
 import { Compass } from "lucide-react"
 import { cn } from "../utils"
-import logoFtmm from "../assets/branding/logo-ftmm.png"
-import logoUnair from "../assets/branding/logo-unair.png"
+import logoFtmm from "../assets/branding/logo-ftmm.webp"
+import logoUnair from "../assets/branding/logo-unair.webp"
 
 interface BrandLogoProps {
   variant?: "sidebar" | "login-hero" | "login-form" | "header"
