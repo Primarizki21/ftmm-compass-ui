@@ -41,7 +41,11 @@ class User(Base):
         uselist=False,
         cascade="all, delete-orphan",
     )
-
+    elective_votes: Mapped[list["ElectiveCourseVote"]] = relationship(
+        "ElectiveCourseVote",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
 
 class StudyProgram(Base):
     __tablename__ = "study_programs"
@@ -81,3 +85,82 @@ class StudentProfile(Base):
 
     user: Mapped["User"] = relationship("User", back_populates="student_profile")
     study_program: Mapped["StudyProgram"] = relationship("StudyProgram", back_populates="student_profiles")
+
+
+class ElectivePollingPeriod(Base):
+    __tablename__ = "elective_polling_periods"
+
+    polling_period_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    title: Mapped[str] = mapped_column(String(150), nullable=False)
+    academic_year: Mapped[str] = mapped_column(String(20), nullable=False)
+    target_term: Mapped[str] = mapped_column(String(10), nullable=False)
+    target_semester: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    start_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    end_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="upcoming")
+    min_quota_threshold: Mapped[int] = mapped_column(Integer, nullable=False, default=15)
+    max_votes_per_student: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
+    description: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+    votes: Mapped[list["ElectiveCourseVote"]] = relationship(
+        "ElectiveCourseVote",
+        back_populates="polling_period",
+        cascade="all, delete-orphan",
+    )
+
+
+class ElectiveCourseVote(Base):
+    __tablename__ = "elective_course_votes"
+
+    vote_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    polling_period_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("elective_polling_periods.polling_period_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.user_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    course_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    course_code: Mapped[str] = mapped_column(String(30), nullable=False)
+    course_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    credits: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=3)
+    priority: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+    user: Mapped["User"] = relationship("User", back_populates="elective_votes")
+    polling_period: Mapped["ElectivePollingPeriod"] = relationship(
+        "ElectivePollingPeriod",
+        back_populates="votes",
+    )

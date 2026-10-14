@@ -1998,4 +1998,47 @@ JOIN class_schedules cs2 ON cs2.class_section_id = ti2.class_section_id
  AND cs1.start_time < cs2.end_time
  AND cs2.start_time < cs1.end_time;
 
+-- ============================================================
+-- 13. PRE-KRS ELECTIVE POLLING & DEMAND FORECASTING
+-- ============================================================
+
+CREATE TABLE elective_polling_periods (
+    polling_period_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title VARCHAR(150) NOT NULL,
+    academic_year VARCHAR(20) NOT NULL,
+    target_term VARCHAR(10) NOT NULL,
+    target_semester SMALLINT NOT NULL,
+    start_date TIMESTAMPTZ NOT NULL,
+    end_date TIMESTAMPTZ NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'upcoming',
+    min_quota_threshold INTEGER NOT NULL DEFAULT 15,
+    max_votes_per_student INTEGER NOT NULL DEFAULT 3,
+    description TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT elective_polling_periods_term_check CHECK (target_term IN ('ganjil', 'genap')),
+    CONSTRAINT elective_polling_periods_semester_check CHECK (target_semester BETWEEN 1 AND 8),
+    CONSTRAINT elective_polling_periods_status_check CHECK (status IN ('upcoming', 'open', 'closed')),
+    CONSTRAINT elective_polling_periods_dates_check CHECK (end_date >= start_date)
+);
+
+CREATE TABLE elective_course_votes (
+    vote_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    polling_period_id UUID NOT NULL REFERENCES elective_polling_periods(polling_period_id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    course_id VARCHAR(100) NOT NULL,
+    course_code VARCHAR(30) NOT NULL,
+    course_name VARCHAR(200) NOT NULL,
+    credits SMALLINT NOT NULL DEFAULT 3,
+    priority SMALLINT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT elective_course_votes_priority_check CHECK (priority BETWEEN 1 AND 3),
+    CONSTRAINT elective_course_votes_unique UNIQUE (polling_period_id, user_id, course_id)
+);
+
+CREATE INDEX idx_elective_polling_periods_status ON elective_polling_periods(status);
+CREATE INDEX idx_elective_course_votes_period_course ON elective_course_votes(polling_period_id, course_id);
+CREATE INDEX idx_elective_course_votes_user ON elective_course_votes(user_id);
+
 COMMIT;

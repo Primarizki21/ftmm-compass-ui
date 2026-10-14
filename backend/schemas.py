@@ -198,3 +198,63 @@ class LoginResponse(BaseModel):
     token_type: str = "bearer"
     expires_in: int = 86400
     user: UserResponse
+class PollingPeriodResponse(BaseModel):
+    period_id: str
+    academic_year: str
+    term: Literal["ganjil", "genap"]
+    target_semester_type: Literal["ganjil", "genap"]
+    start_date: str
+    end_date: str
+    is_active: bool
+    min_quorum: int
+    max_votes_per_student: int
+    description: Optional[str] = None
+
+
+class CreatePollingPeriodRequest(BaseModel):
+    title: str
+    academic_year: str
+    target_term: Literal["ganjil", "genap"]
+    target_semester: int = Field(..., ge=1, le=8)
+    start_date: str
+    end_date: str
+    status: Literal["upcoming", "open", "closed"] = "upcoming"
+    min_quota_threshold: int = 15
+    max_votes_per_student: int = 3
+    description: Optional[str] = None
+
+
+class ElectiveVoteRequest(BaseModel):
+    course_id: str
+    priority: int = Field(..., ge=1, le=3)
+
+
+class ElectiveVoteResponse(BaseModel):
+    vote_id: str
+    course_id: str
+    course_code: Optional[str] = None
+    course_name: Optional[str] = None
+    priority: int
+    created_at: str
+
+
+class CourseDemandItem(BaseModel):
+    course_id: str
+    course_code: str
+    course_name: str
+    study_program: str
+    program_code: Optional[str] = None
+    credits: int = 3
+    total_votes: int = 0
+    priority_1_votes: int = 0
+    priority_2_votes: int = 0
+    priority_3_votes: int = 0
+    min_quorum: int = 15
+    status: Literal["QUALIFIED", "BORDERLINE", "UNQUALIFIED"]
+    projected_classes: int = 0
+
+
+class DemandAnalyticsResponse(BaseModel):
+    period: PollingPeriodResponse
+    total_students_voted: int
+    items: List[CourseDemandItem] = Field(default_factory=list)
