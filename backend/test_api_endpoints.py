@@ -1,5 +1,6 @@
 from unittest.mock import patch, AsyncMock
 import httpx
+import time
 from fastapi.testclient import TestClient
 from app import app
 import app as app_module
@@ -539,6 +540,88 @@ def test_dashboard_me_roles():
     assert legacy_dash.status_code == 200
     print("✓ Dual-tier legacy /api/dashboard/me alias OK")
 
+def test_admin_courses_crud():
+    # 1. Login student & admin
+    mhs_res = client.post(
+        "/api/v1/auth/login",
+        json={"identifier": "mahasiswa.testing@ftmm.unair.ac.id", "password": "Mahasiswa2026!"},
+    )
+    assert mhs_res.status_code == 200
+    mhs_token = mhs_res.json()["access_token"]
+
+    admin_res = client.post(
+        "/api/v1/auth/login",
+        json={"identifier": "admin@ftmm.unair.ac.id", "password": "AdminFTMM2026!"},
+    )
+    assert admin_res.status_code == 200
+    admin_token = admin_res.json()["access_token"]
+
+    test_code = f"TSD{int(time.time() * 1000) % 800 + 100}"
+    course_payload = {
+        "course_code": test_code,
+        "course_name": "Sistem Otonom Cerdas",
+        "program_name": "Teknologi Sains Data",
+        "credits": 3,
+        "recommended_semester": 7,
+        "term": "ganjil",
+        "course_type": "Pilihan",
+        "description": "Pengembangan sistem otonom cerdas berbasis AI dan robotika.",
+        "prerequisites": ["Kecerdasan Buatan"],
+    }
+
+    # 2. Student forbidden
+    res_forbidden = client.post(
+        "/api/v1/admin/courses",
+        json=course_payload,
+        headers={"Authorization": f"Bearer {mhs_token}"},
+    )
+    assert res_forbidden.status_code == 403
+    print("✓ Student forbidden from creating course OK")
+
+    # 3. Admin create course
+    res_create = client.post(
+        "/api/v1/admin/courses",
+        json=course_payload,
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert res_create.status_code == 201
+    created_data = res_create.json()
+    assert created_data["code"] == test_code
+    assert created_data["name"] == "Sistem Otonom Cerdas"
+    assert created_data["credits"] == 3
+    print("✓ Admin create course OK")
+
+    # 4. Course appears in list
+    list_res = client.get("/api/v1/courses?prodi=Teknologi Sains Data")
+    assert list_res.status_code == 200
+    found = any(c["code"] == test_code for c in list_res.json()["courses"])
+    assert found is True
+    print("✓ Newly created course found in catalog OK")
+
+    # 5. Admin update course
+    update_payload = {
+        "course_name": "Sistem Otonom Cerdas & Robotika Terapan",
+        "credits": 4,
+    }
+    res_update = client.put(
+        f"/api/v1/admin/courses/{test_code}",
+        json=update_payload,
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert res_update.status_code == 200
+    assert res_update.json()["name"] == "Sistem Otonom Cerdas & Robotika Terapan"
+    assert res_update.json()["credits"] == 4
+    print("✓ Admin update course OK")
+
+    # 6. Admin delete (soft-delete) course
+    res_del = client.delete(
+        f"/api/v1/admin/courses/{test_code}",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert res_del.status_code == 200
+    print("✓ Admin delete course OK")
+
+
 if __name__ == "__main__":
     test_health()
     test_v1_health()
@@ -560,4 +643,5 @@ if __name__ == "__main__":
     test_auth_login_and_me()
     test_auth_update_profile()
     test_dashboard_me_roles()
+    test_admin_courses_crud()
     print("\nAll modernized API endpoint integration tests passed! 🚀")

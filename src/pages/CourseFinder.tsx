@@ -11,6 +11,8 @@ import {
   Star,
   X,
   AlertCircle,
+  Plus,
+  Edit3,
 } from "lucide-react"
 import { cn } from "../utils"
 import { Course } from "../data"
@@ -20,6 +22,8 @@ import {
   type StudentVote,
   type DemandAnalyticsResponse,
 } from "../services/pollingService"
+import { type AuthUser } from "../services/authService"
+import CourseFormModal from "../components/course-finder/CourseFormModal"
 import {
   ALL_COURSES,
   PROGRAMS,
@@ -33,6 +37,7 @@ export interface CourseFinderProps {
   addedCourseIds: Set<string>
   initialCourse?: Course | null
   onClearInitialCourse?: () => void
+  currentUser?: AuthUser | null
 }
 
 export default function CourseFinder({
@@ -40,6 +45,7 @@ export default function CourseFinder({
   addedCourseIds,
   initialCourse,
   onClearInitialCourse,
+  currentUser,
 }: CourseFinderProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedParity, setSelectedParity] = useState<"all" | "odd" | "even">(
@@ -58,6 +64,8 @@ export default function CourseFinder({
   )
   const [modalPriority, setModalPriority] = useState<1 | 2 | 3>(1)
   const [isSubmittingVote, setIsSubmittingVote] = useState(false)
+  const [isCourseFormOpen, setIsCourseFormOpen] = useState(false)
+  const [editingCourse, setEditingCourse] = useState<Course | null>(null)
   useEffect(() => {
     if (initialCourse) {
       setDetailCourse(initialCourse)
@@ -282,15 +290,30 @@ export default function CourseFinder({
     <div className="h-full flex flex-col animate-in fade-in duration-500">
       {/* Search & Filter Header */}
       <div className="bg-surface rounded-xl border border-border shadow-sm p-4 mb-4 space-y-3.5 flex-shrink-0">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
-          <input
-            type="text"
-            placeholder="Cari mata kuliah, kode (cth: AGI101, TI201), singkatan prodi (TI, TSD, TRKB, TE, RN)..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border focus:border-gold focus:ring-1 focus:ring-gold outline-hidden transition-all text-sm font-sans"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
+            <input
+              type="text"
+              placeholder="Cari mata kuliah, kode (cth: AGI101, TI201), singkatan prodi (TI, TSD, TRKB, TE, RN)..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border focus:border-gold focus:ring-1 focus:ring-gold outline-hidden transition-all text-sm font-sans"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          {currentUser?.role === "admin" && (
+            <button
+              type="button"
+              onClick={() => {
+                setEditingCourse(null)
+                setIsCourseFormOpen(true)
+              }}
+              className="px-3.5 py-2.5 rounded-xl bg-gold hover:bg-gold/90 text-navy font-semibold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer flex-shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Tambah Mata Kuliah</span>
+            </button>
+          )}
         </div>
 
         {/* Program Tabs with Abbreviations */}
@@ -494,9 +517,25 @@ export default function CourseFinder({
                         </span>
                       )}
                     </div>
-                    <h3 className="font-heading font-semibold text-base text-foreground mt-1.5 group-hover:text-gold transition-colors line-clamp-1">
-                      {course.name}
-                    </h3>
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="font-heading font-semibold text-base text-foreground mt-1.5 group-hover:text-gold transition-colors line-clamp-1">
+                        {course.name}
+                      </h3>
+                      {currentUser?.role === "admin" && (
+                        <button
+                          type="button"
+                          title="Edit Mata Kuliah"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setEditingCourse(course)
+                            setIsCourseFormOpen(true)
+                          }}
+                          className="p-1 rounded-md text-muted hover:text-navy hover:bg-background border border-border/60 transition-colors cursor-pointer flex-shrink-0"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <span
                     className={cn(
@@ -578,12 +617,13 @@ export default function CourseFinder({
                     {course.parity === "odd" ? "Ganjil" : "Genap"}
                   </span>
                 </div>
-                {addedCourseIds.has(course.id) && (
-                  <div className="flex items-center gap-1 text-[11px] font-medium text-teal mt-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Ditambahkan ke
-                    Degree Planner
-                  </div>
-                )}
+                {currentUser?.role === "student" &&
+                  addedCourseIds.has(course.id) && (
+                    <div className="flex items-center gap-1 text-[11px] font-medium text-teal mt-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Ditambahkan ke
+                      Degree Planner
+                    </div>
+                  )}
               </div>
             ))}
           </div>
@@ -727,6 +767,31 @@ export default function CourseFinder({
           </div>
         </div>
       )}
+      {/* Admin Create/Edit Course Modal */}
+      <CourseFormModal
+        isOpen={isCourseFormOpen}
+        onClose={() => {
+          setIsCourseFormOpen(false)
+          setEditingCourse(null)
+        }}
+        initialCourse={editingCourse}
+        availablePrograms={availablePrograms}
+        onSuccess={(savedCourse) => {
+          setCourses((prev) => {
+            const exists = prev.some(
+              (c) => c.code === savedCourse.code || c.id === savedCourse.id,
+            )
+            if (exists) {
+              return prev.map((c) =>
+                c.code === savedCourse.code || c.id === savedCourse.id
+                  ? savedCourse
+                  : c,
+              )
+            }
+            return [savedCourse, ...prev]
+          })
+        }}
+      />
     </div>
   )
 }

@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from "react"
 import { Bell, Check, Clock, AlertTriangle, BookOpen } from "lucide-react"
 import { cn } from "../utils"
 
+import { type AuthUser } from "../services/authService"
+
 export interface AcademicNotification {
   id: string
   title: string
@@ -11,41 +13,141 @@ export interface AcademicNotification {
   isRead: boolean
 }
 
-const INITIAL_NOTIFICATIONS: AcademicNotification[] = [
-  {
-    id: "notif-1",
-    title: "Deteksi Bentrok Jadwal Kuliah",
-    message:
-      "Terdapat bentrok jadwal antara II4042 (Machine Learning) dan II4045 (Data Visualization) pada Selasa 10:00.",
-    type: "warning",
-    timestamp: "10 menit lalu",
-    isRead: false,
-  },
-  {
-    id: "notif-2",
-    title: "Batas Akhir Revisi KRS (PRS)",
-    message:
-      "Periode perubahan rencana studi semester aktif ditutup pada 30 Agustus 2024 pukul 23:59 WIB.",
-    type: "deadline",
-    timestamp: "2 jam lalu",
-    isRead: false,
-  },
-  {
-    id: "notif-3",
-    title: "Compass AI: Rekomendasi Tersedia",
-    message:
-      "Rencana studi optimal untuk Semester 5 dan 6 telah diperbarui berdasarkan target peminatanmu.",
-    type: "info",
-    timestamp: "1 hari lalu",
-    isRead: true,
-  },
-]
+const ROLE_NOTIFICATIONS: Record<string, AcademicNotification[]> = {
+  student: [
+    {
+      id: "notif-mhs-1",
+      title: "Deteksi Bentrok Jadwal Kuliah",
+      message:
+        "Terdapat bentrok jadwal antara II4042 (Machine Learning) dan II4045 (Data Visualization) pada Selasa 10:00.",
+      type: "warning",
+      timestamp: "10 menit lalu",
+      isRead: false,
+    },
+    {
+      id: "notif-mhs-2",
+      title: "Batas Akhir Revisi KRS (PRS)",
+      message:
+        "Periode perubahan rencana studi semester aktif ditutup pada 30 Agustus 2024 pukul 23:59 WIB.",
+      type: "deadline",
+      timestamp: "2 jam lalu",
+      isRead: false,
+    },
+    {
+      id: "notif-mhs-3",
+      title: "Hasil Polling Peminatan MK",
+      message:
+        "Mata kuliah pilihan yang kamu vote (TSD302) telah memenuhi kuorum pembukaan kelas perkuliahan.",
+      type: "info",
+      timestamp: "5 jam lalu",
+      isRead: false,
+    },
+    {
+      id: "notif-mhs-4",
+      title: "Compass AI: Rekomendasi Tersedia",
+      message:
+        "Rencana studi optimal untuk Semester 5 dan 6 telah diperbarui berdasarkan target peminatanmu.",
+      type: "info",
+      timestamp: "1 hari lalu",
+      isRead: true,
+    },
+  ],
+  lecturer: [
+    {
+      id: "notif-dsn-1",
+      title: "Pengajuan Rencana Studi Mahasiswa",
+      message:
+        "5 mahasiswa bimbingan akademik mengajukan draft KRS untuk diverifikasi dan disetujui.",
+      type: "warning",
+      timestamp: "15 menit lalu",
+      isRead: false,
+    },
+    {
+      id: "notif-dsn-2",
+      title: "Batas Entri RPS & Presensi Perkuliahan",
+      message:
+        "Entri presensi dan pembaruan silabus/RPS semester aktif wajib dilengkapi sebelum Week 5.",
+      type: "deadline",
+      timestamp: "3 jam lalu",
+      isRead: false,
+    },
+    {
+      id: "notif-dsn-3",
+      title: "Update Kuorum MK Pilihan Anda",
+      message:
+        "Mata kuliah TSD302 (Pembelajaran Mesin Lanjut) mencapai kuorum 42 peminat (siap buka 2 kelas paralel).",
+      type: "info",
+      timestamp: "6 jam lalu",
+      isRead: false,
+    },
+    {
+      id: "notif-dsn-4",
+      title: "Jadwal Mengajar Terkonfirmasi",
+      message:
+        "Alokasi ruang kuliah TSD201 Kelas A telah ditetapkan di Ruang Kuliah Bersama 3.02.",
+      type: "info",
+      timestamp: "1 hari lalu",
+      isRead: true,
+    },
+  ],
+  admin: [
+    {
+      id: "notif-adm-1",
+      title: "Monitoring Polling Pra-KRS",
+      message:
+        "Periode pemilihan MK Pilihan Semester Ganjil 2024/2025 sedang aktif (142 mahasiswa telah submit).",
+      type: "info",
+      timestamp: "20 menit lalu",
+      isRead: false,
+    },
+    {
+      id: "notif-adm-2",
+      title: "Mata Kuliah di Bawah Kuorum",
+      message:
+        "3 mata kuliah pilihan belum memenuhi kuorum minimum (15 mahasiswa) menjelang penutupan polling.",
+      type: "warning",
+      timestamp: "2 jam lalu",
+      isRead: false,
+    },
+    {
+      id: "notif-adm-3",
+      title: "Audit Integritas Kurikulum",
+      message:
+        "Sinkronisasi otomatis katalog 5 prodi dengan SSOT lokal berhasil (195 matkul terverifikasi).",
+      type: "info",
+      timestamp: "1 hari lalu",
+      isRead: true,
+    },
+    {
+      id: "notif-adm-4",
+      title: "Verifikasi Akun Pengajar Baru",
+      message:
+        "2 akun dosen baru terdaftar dari Cybercampus dan memerlukan verifikasi penugasan unit prodi.",
+      type: "deadline",
+      timestamp: "2 hari lalu",
+      isRead: true,
+    },
+  ],
+}
 
-export default function NotificationDropdown() {
+interface NotificationDropdownProps {
+  currentUser?: AuthUser | null
+}
+
+export default function NotificationDropdown({
+  currentUser,
+}: NotificationDropdownProps) {
+  const activeRole = currentUser?.role || "student"
   const [isOpen, setIsOpen] = useState(false)
   const [notifications, setNotifications] = useState<AcademicNotification[]>(
-    INITIAL_NOTIFICATIONS,
+    () => ROLE_NOTIFICATIONS[activeRole] || ROLE_NOTIFICATIONS.student,
   )
+
+  useEffect(() => {
+    const role = currentUser?.role || "student"
+    setNotifications(ROLE_NOTIFICATIONS[role] || ROLE_NOTIFICATIONS.student)
+  }, [currentUser?.role])
+
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const unreadCount = notifications.filter((n) => !n.isRead).length

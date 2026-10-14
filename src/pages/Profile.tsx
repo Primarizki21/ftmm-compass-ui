@@ -216,7 +216,7 @@ export default function Profile({
               type="button"
               onClick={handleRefreshProfile}
               disabled={isRefreshing}
-              title="Sinkronisasi data profil terbaru dari Cybercampus UNAIR"
+              title="Sinkronisasi data profil terbaru dari Basis Data Lokal FTMM (Development Mirror Cybercampus)"
               className="px-3.5 py-2 rounded-xl border border-border bg-background hover:bg-surface text-navy text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs disabled:opacity-60"
             >
               <RefreshCw
@@ -231,7 +231,8 @@ export default function Profile({
           <div className="mt-4 p-3 rounded-xl bg-teal/10 border border-teal/30 text-navy-dark text-xs flex items-center gap-2">
             <Check className="w-4 h-4 text-teal" />
             <span>
-              Data profil berhasil disinkronkan dengan basis data UNAIR.
+              Data profil berhasil disinkronkan dengan basis data lokal
+              (Cybercampus Dev Mirror).
             </span>
           </div>
         )}
@@ -723,21 +724,37 @@ export default function Profile({
               </button>
             </div>
 
-            {/* Locked Institutional Notice */}
-            <div className="p-3.5 rounded-xl bg-background border border-border flex items-start gap-2.5 text-xs text-muted">
-              <Lock className="w-4 h-4 text-muted flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold text-navy">
-                  Data Identitas Akademik Terkunci
-                </p>
-                <p className="text-[11px] mt-0.5">
-                  NIM/NIP ({academicId}), Program Studi (
-                  {user?.unit_name || "FTMM"}), dan Hak Akses ({user?.role})
-                  dikelola terpusat oleh Cybercampus UNAIR dan tidak dapat
-                  diubah secara mandiri.
-                </p>
+            {/* Institutional Authority / Locked Notice */}
+            {user?.role === "admin" ? (
+              <div className="p-3.5 rounded-xl bg-teal/10 border border-teal/30 flex items-start gap-2.5 text-xs text-navy">
+                <ShieldCheck className="w-4 h-4 text-teal flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-navy">
+                    Hak Akses Super Administrator
+                  </p>
+                  <p className="text-[11px] mt-0.5 text-muted">
+                    Akun memiliki wewenang penuh untuk mengelola katalog
+                    kurikulum, periode polling pra-KRS, dan konfigurasi
+                    operasional akademik fakultas.
+                  </p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="p-3.5 rounded-xl bg-background border border-border flex items-start gap-2.5 text-xs text-muted">
+                <Lock className="w-4 h-4 text-muted flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-navy">
+                    Data Identitas Akademik Terkunci
+                  </p>
+                  <p className="text-[11px] mt-0.5">
+                    NIM/NIP ({academicId}), Program Studi (
+                    {user?.unit_name || "FTMM"}), dan Hak Akses ({user?.role})
+                    dikelola terpusat oleh Cybercampus UNAIR dan tidak dapat
+                    diubah secara mandiri.
+                  </p>
+                </div>
+              </div>
+            )}
 
             <form onSubmit={handleSaveProfile} className="space-y-4">
               <div className="space-y-1.5">

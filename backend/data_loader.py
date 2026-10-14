@@ -576,3 +576,53 @@ def get_all_courses() -> List[CourseModel]:
     for courses in active_curriculum.values():
         all_courses.extend(courses)
     return all_courses
+
+ADMIN_CUSTOM_COURSES: List[CourseModel] = []
+
+
+def get_admin_custom_courses() -> List[CourseModel]:
+    return ADMIN_CUSTOM_COURSES
+
+
+def add_course_to_catalog(course: CourseModel) -> CourseModel:
+    norm_prodi = normalize_prodi(course.program or "Teknologi Sains Data") or "Teknologi Sains Data"
+    ADMIN_CUSTOM_COURSES.append(course)
+    if OFFICIAL_CURRICULUM is not None:
+        if norm_prodi not in OFFICIAL_CURRICULUM:
+            OFFICIAL_CURRICULUM[norm_prodi] = []
+        OFFICIAL_CURRICULUM[norm_prodi].append(course)
+    if norm_prodi in FTMM_CURRICULUM:
+        FTMM_CURRICULUM[norm_prodi].append(course)
+    return course
+
+def update_course_in_catalog(course_id: str, updates: dict) -> Optional[CourseModel]:
+    catalogs = [OFFICIAL_CURRICULUM, FTMM_CURRICULUM]
+    updated = None
+    for cat in catalogs:
+        if not cat:
+            continue
+        for prodi, course_list in cat.items():
+            for i, c in enumerate(course_list):
+                if c.id == course_id or c.code == course_id:
+                    data = c.model_dump()
+                    for k, v in updates.items():
+                        if v is not None:
+                            data[k] = v
+                    updated = CourseModel(**data)
+                    course_list[i] = updated
+    return updated
+
+
+def remove_course_from_catalog(course_id: str) -> bool:
+    catalogs = [OFFICIAL_CURRICULUM, FTMM_CURRICULUM]
+    found = False
+    for cat in catalogs:
+        if not cat:
+            continue
+        for prodi, course_list in cat.items():
+            for i, c in enumerate(course_list):
+                if c.id == course_id or c.code == course_id:
+                    course_list.pop(i)
+                    found = True
+                    break
+    return found

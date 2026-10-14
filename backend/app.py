@@ -7,7 +7,7 @@ from fastapi import FastAPI, APIRouter, Depends, HTTPException, Query, Request, 
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
-from sqlalchemy import text, select, func, case
+from sqlalchemy import text, select, func, case, or_, cast, String
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from schemas import (
@@ -16,6 +16,9 @@ from schemas import (
     StudentProfile,
     DegreePlanPayload,
     PlanPayloadSummary,
+    CourseModel,
+    AdminCourseCreateRequest,
+    AdminCourseUpdateRequest,
     PlacedCourseModel,
     PlanValidationRequest,
     PlanValidationResponse,
@@ -66,6 +69,10 @@ from data_loader import (
     get_all_courses,
     get_available_programs,
     normalize_prodi,
+    add_course_to_catalog,
+    update_course_in_catalog,
+    remove_course_from_catalog,
+    get_admin_custom_courses,
 )
 from tools.planner import generate_study_plan
 from tools.prerequisite_validator import validate_plan_constraints
@@ -376,6 +383,14 @@ async def handle_list_courses(
                     if isinstance(c, dict) and "program" in c and isinstance(c["program"], str):
                         c["program"] = c["program"].replace("S1 ", "").strip()
 
+                # Merge local custom courses added by admin
+                existing_codes = {c.get("code") for c in raw_courses if isinstance(c, dict)}
+                for ac in get_admin_custom_courses():
+                    if ac.code not in existing_codes:
+                        target_p = clean_prodi or norm_prodi
+                        if not target_p or target_p.lower() in ("all", "semua") or normalize_prodi(ac.program) == normalize_prodi(target_p):
+                            raw_courses.append(ac.model_dump())
+                            existing_codes.add(ac.code)
                 # If paginated shape
                 if "meta" in data and "data" in data:
                     raw_paged = data.get("data", [])
@@ -892,6 +907,175 @@ async def v1_search_courses(
         program_studi=program_studi,
         top_k=top_k,
     )
+
+@v1_router.post("/admin/courses", response_model=CourseModel, status_code=status.HTTP_201_CREATED)
+async def v1_admin_create_course(
+    payload: AdminCourseCreateRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Akses ditolak: Hanya role admin yang dapat menambahkan mata kuliah.",
+        )
+
+    stmt = select(Course).where(Course.course_code == payload.course_code)
+    existing = (await db.execute(stmt)).scalars().first()
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Mata kuliah dengan kode '{payload.course_code}' sudah terdaftar.",
+        )
+
+    new_course = Course(
+        course_code=payload.course_code,
+        course_name=payload.course_name,
+        is_active=True,
+    )
+    db.add(new_course)
+    await db.flush()
+
+    norm_prodi = normalize_prodi(payload.program_name) or "Teknologi Sains Data"
+    stmt_prog = select(StudyProgram).where(StudyProgram.program_name.ilike(f"%{norm_prodi}%"))
+    prog = (await db.execute(stmt_prog)).scalars().first()
+    if prog:
+        stmt_curr = (
+            select(Curriculum)
+            .where(Curriculum.study_program_id == prog.study_program_id)
+            .order_by(Curriculum.curriculum_year.desc())
+        )
+        curr = (await db.execute(stmt_curr)).scalars().first()
+        if curr:
+            curr_course = CurriculumCourse(
+                curriculum_id=curr.curriculum_id,
+                course_id=new_course.course_id,
+                credits_total=payload.credits,
+                recommended_semester=payload.recommended_semester,
+                term=payload.term,
+                course_type=payload.course_type.lower(),
+                course_scope="program_studi",
+                description=payload.description or "",
+                is_active=True,
+            )
+            db.add(curr_course)
+
+    await db.commit()
+
+    cm = CourseModel(
+        id=payload.course_code,
+        code=payload.course_code,
+        name=payload.course_name,
+        credits=payload.credits,
+        semester=payload.recommended_semester,
+        type=payload.course_type,
+        parity="odd" if payload.term == "ganjil" else "even",
+        desc=payload.description or "",
+        program=norm_prodi,
+        prerequisites=payload.prerequisites,
+    )
+    add_course_to_catalog(cm)
+    return cm
+
+
+@v1_router.put("/admin/courses/{course_id}", response_model=CourseModel)
+async def v1_admin_update_course(
+    course_id: str,
+    payload: AdminCourseUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Akses ditolak: Hanya role admin yang dapat mengubah mata kuliah.",
+        )
+
+    stmt = select(Course).where(or_(Course.course_code == course_id, cast(Course.course_id, String) == course_id))
+    course_db = (await db.execute(stmt)).scalars().first()
+    if course_db:
+        if payload.course_name:
+            course_db.course_name = payload.course_name
+        if payload.is_active is not None:
+            course_db.is_active = payload.is_active
+
+        stmt_cc = select(CurriculumCourse).where(CurriculumCourse.course_id == course_db.course_id)
+        cc = (await db.execute(stmt_cc)).scalars().first()
+        if cc:
+            if payload.credits is not None:
+                cc.credits_total = payload.credits
+            if payload.recommended_semester is not None:
+                cc.recommended_semester = payload.recommended_semester
+            if payload.term is not None:
+                cc.term = payload.term
+            if payload.course_type is not None:
+                cc.course_type = payload.course_type.lower()
+            if payload.description is not None:
+                cc.description = payload.description
+            if payload.is_active is not None:
+                cc.is_active = payload.is_active
+        await db.commit()
+
+    updates = {}
+    if payload.course_name is not None:
+        updates["name"] = payload.course_name
+    if payload.credits is not None:
+        updates["credits"] = payload.credits
+    if payload.recommended_semester is not None:
+        updates["semester"] = payload.recommended_semester
+    if payload.term is not None:
+        updates["parity"] = "odd" if payload.term == "ganjil" else "even"
+    if payload.course_type is not None:
+        updates["type"] = payload.course_type
+    if payload.description is not None:
+        updates["desc"] = payload.description
+    if payload.prerequisites is not None:
+        updates["prerequisites"] = payload.prerequisites
+
+    updated = update_course_in_catalog(course_id, updates)
+    if not updated and not course_db:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Mata kuliah dengan ID/kode '{course_id}' tidak ditemukan.",
+        )
+
+    if not updated:
+        updated = CourseModel(
+            id=course_db.course_code,
+            code=course_db.course_code,
+            name=course_db.course_name,
+            credits=payload.credits or 3,
+            semester=payload.recommended_semester or 1,
+            type=payload.course_type or "Pilihan",
+            parity="odd" if payload.term == "ganjil" else "even",
+            desc=payload.description or "",
+            program="Teknologi Sains Data",
+            prerequisites=payload.prerequisites or [],
+        )
+
+    return updated
+
+
+@v1_router.delete("/admin/courses/{course_id}")
+async def v1_admin_delete_course(
+    course_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Akses ditolak: Hanya role admin yang dapat menonaktifkan mata kuliah.",
+        )
+
+    stmt = select(Course).where(or_(Course.course_code == course_id, cast(Course.course_id, String) == course_id))
+    course_db = (await db.execute(stmt)).scalars().first()
+    if course_db:
+        course_db.is_active = False
+        await db.commit()
+
+    remove_course_from_catalog(course_id)
+    return {"status": "success", "message": f"Mata kuliah {course_id} berhasil dinonaktifkan."}
 
 
 @v1_router.post("/chat", response_model=ChatResponse)

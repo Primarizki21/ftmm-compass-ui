@@ -18,6 +18,8 @@ import {
   Server,
   Database,
   Sparkles,
+  UserCheck,
+  ShieldAlert,
 } from "lucide-react"
 import { SCHEDULE, TIMETABLE_DAYS, ScheduleItem } from "../data"
 import TimetableGrid from "../components/TimetableGrid"
@@ -220,16 +222,28 @@ export default function Dashboard({
           <div className="bg-surface rounded-xl p-5 border border-border shadow-sm flex flex-col relative overflow-hidden group">
             <div className="absolute -right-6 -top-6 w-24 h-24 bg-gold/10 rounded-full blur-2xl group-hover:bg-gold/20 transition-colors" />
             <h3 className="text-muted text-xs font-medium mb-1 flex items-center gap-2">
-              <Clock className="w-3.5 h-3.5 text-gold" /> Beban Mengajar
+              <Clock className="w-3.5 h-3.5 text-gold" /> Beban Mengajar (BKD)
             </h3>
             <div className="flex items-end gap-2 mt-2">
               <span className="text-3xl font-heading font-bold text-navy">
                 {dashboardData.stats.sks_taught}
               </span>
-              <span className="text-muted text-xs mb-1">SKS Mengajar</span>
+              <span className="text-muted text-xs mb-1">
+                / 12 SKS Standar BKD
+              </span>
             </div>
-            <p className="text-[10px] text-muted mt-3 font-mono">
-              Semester: {dashboardData.stats.active_term}
+            <div className="w-full bg-border h-1.5 rounded-full mt-3 overflow-hidden">
+              <div
+                className="bg-gold h-full rounded-full transition-all"
+                style={{
+                  width: `${Math.min(100, (dashboardData.stats.sks_taught / 12) * 100)}%`,
+                }}
+              />
+            </div>
+            <p className="text-[10px] text-muted mt-1.5 font-mono">
+              Pemenuhan:{" "}
+              {Math.round((dashboardData.stats.sks_taught / 12) * 100)}%
+              tridharma pengajaran
             </p>
           </div>
 
@@ -556,12 +570,14 @@ export default function Dashboard({
                 </span>
               )}
             </div>
-            <button
-              onClick={() => onNavigate("degree-planner")}
-              className="text-sm font-medium text-navy hover:text-gold transition-colors flex items-center gap-1"
-            >
-              Buka di Degree Planner <ChevronRight className="w-4 h-4" />
-            </button>
+            {currentUser?.role === "student" && (
+              <button
+                onClick={() => onNavigate("degree-planner")}
+                className="text-sm font-medium text-navy hover:text-gold transition-colors flex items-center gap-1 cursor-pointer"
+              >
+                Buka di Degree Planner <ChevronRight className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
           <TimetableGrid
@@ -570,6 +586,167 @@ export default function Dashboard({
             compact
             onNavigate={onNavigate}
           />
+        </div>
+      )}
+      {/* Lecturer-Specific Operational Section: Kelas Ampuan & Advisee Review */}
+      {currentUser?.role === "lecturer" && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Kelas Ampuan Panel */}
+          <div className="bg-surface rounded-xl border border-border shadow-sm p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-border/80 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-lg bg-navy/10 text-navy">
+                  <BookOpen className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-heading font-bold text-base text-navy">
+                    Daftar Kelas Ampuan Aktif
+                  </h3>
+                  <p className="text-xs text-muted">
+                    Semester Ganjil 2024/2025 · 3 Kelas Paralel
+                  </p>
+                </div>
+              </div>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-teal/15 text-navy-dark border border-teal/30">
+                3 Mata Kuliah
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              <div className="p-3.5 rounded-xl bg-background border border-border flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-bold text-navy px-1.5 py-0.5 rounded bg-surface border border-border">
+                      TSD201
+                    </span>
+                    <span className="text-sm font-semibold text-navy">
+                      Struktur Data (Kelas A)
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted flex items-center gap-2 mt-1">
+                    <span>Senin 08:00 - 10:30</span>
+                    <span>•</span>
+                    <span>RKB 3.02</span>
+                  </p>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs font-bold text-navy">38/40</span>
+                  <p className="text-[10px] text-teal-dark font-medium flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-teal" /> RPS Terunggah
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-background border border-border flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-bold text-navy px-1.5 py-0.5 rounded bg-surface border border-border">
+                      TSD301
+                    </span>
+                    <span className="text-sm font-semibold text-navy">
+                      Analisis Big Data (Kelas B)
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted flex items-center gap-2 mt-1">
+                    <span>Rabu 10:00 - 12:30</span>
+                    <span>•</span>
+                    <span>Lab Komputasi FTMM</span>
+                  </p>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs font-bold text-navy">28/30</span>
+                  <p className="text-[10px] text-teal-dark font-medium flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-teal" /> RPS Terunggah
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-background border border-border flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-bold text-navy px-1.5 py-0.5 rounded bg-surface border border-border">
+                      TSD302
+                    </span>
+                    <span className="text-sm font-semibold text-navy">
+                      Pembelajaran Mesin Lanjut (Kelas A)
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted flex items-center gap-2 mt-1">
+                    <span>Kamis 13:00 - 15:30</span>
+                    <span>•</span>
+                    <span>RKB 2.05</span>
+                  </p>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs font-bold text-navy">42/45</span>
+                  <p className="text-[10px] text-teal-dark font-medium flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-teal" /> RPS Terunggah
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bimbingan Perwalian Panel */}
+          <div className="bg-surface rounded-xl border border-border shadow-sm p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-border/80 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-lg bg-teal/15 text-navy">
+                  <UserCheck className="w-4 h-4 text-teal" />
+                </div>
+                <div>
+                  <h3 className="font-heading font-bold text-base text-navy">
+                    Bimbingan Akademik (Perwalian)
+                  </h3>
+                  <p className="text-xs text-muted">
+                    Status Rencana Studi 24 Mahasiswa Angkatan 2022 & 2023
+                  </p>
+                </div>
+              </div>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gold/15 text-navy border border-gold/30">
+                Periode PRS
+              </span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div className="p-3 rounded-xl bg-background border border-border text-center">
+                <span className="text-2xl font-bold font-heading text-navy">
+                  18
+                </span>
+                <p className="text-[11px] text-muted mt-0.5">KRS Disetujui</p>
+                <span className="inline-block mt-1 w-2 h-2 rounded-full bg-teal" />
+              </div>
+              <div className="p-3 rounded-xl bg-background border border-border text-center">
+                <span className="text-2xl font-bold font-heading text-gold">
+                  5
+                </span>
+                <p className="text-[11px] text-muted mt-0.5">
+                  Menunggu Verifikasi
+                </p>
+                <span className="inline-block mt-1 w-2 h-2 rounded-full bg-gold" />
+              </div>
+              <div className="p-3 rounded-xl bg-background border border-border text-center">
+                <span className="text-2xl font-bold font-heading text-orange">
+                  1
+                </span>
+                <p className="text-[11px] text-muted mt-0.5">
+                  Perlu Evaluasi IPS
+                </p>
+                <span className="inline-block mt-1 w-2 h-2 rounded-full bg-orange" />
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-gold/10 border border-gold/30 flex items-start gap-3">
+              <ShieldAlert className="w-4 h-4 text-gold flex-shrink-0 mt-0.5" />
+              <div className="text-xs text-navy">
+                <p className="font-semibold">Perhatian Perwalian Aktif</p>
+                <p className="text-[11px] text-muted mt-0.5">
+                  1 mahasiswa (NIM: 164221018) mengajukan 22 SKS dengan capaian
+                  IPS semester lalu 2.45 (Batas SOP FTMM: Maksimal 18 SKS).
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

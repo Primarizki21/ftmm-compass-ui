@@ -1,4 +1,5 @@
 import {
+  BookOpen,
   LayoutDashboard,
   LogOut,
   Map,
@@ -7,7 +8,7 @@ import {
   User,
   X,
 } from "lucide-react"
-import { useState } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { cn } from "./utils"
 import { Course, SCHEDULE, ScheduleItem } from "./data"
 
@@ -52,6 +53,13 @@ export default function App() {
     null,
   )
   const academicPeriod = getCurrentAcademicPeriod()
+  useEffect(() => {
+    if (currentUser && currentUser.role !== "student") {
+      if (activePage === "degree-planner" || activePage === "chatbot") {
+        setActivePage("dashboard")
+      }
+    }
+  }, [currentUser, activePage])
 
   const handleNavigate = (
     page: string,
@@ -115,12 +123,27 @@ export default function App() {
     return <Login onLogin={handleLoginSuccess} />
   }
 
-  const navItems = [
-    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { id: "course-finder", label: "Course Finder", icon: Search },
-    { id: "degree-planner", label: "Degree Planner", icon: Map },
-    { id: "chatbot", label: "Compass AI", icon: MessageSquare },
-  ] as const
+  const navItems = useMemo(() => {
+    const role = currentUser?.role || "student"
+    if (role === "lecturer") {
+      return [
+        { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+        { id: "course-finder", label: "Course Finder", icon: Search },
+      ] as const
+    }
+    if (role === "admin") {
+      return [
+        { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+        { id: "course-finder", label: "Course Management", icon: BookOpen },
+      ] as const
+    }
+    return [
+      { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { id: "course-finder", label: "Course Finder", icon: Search },
+      { id: "degree-planner", label: "Degree Planner", icon: Map },
+      { id: "chatbot", label: "Compass AI", icon: MessageSquare },
+    ] as const
+  }, [currentUser?.role])
 
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden font-sans text-foreground">
@@ -268,11 +291,14 @@ export default function App() {
                 ? "Compass AI"
                 : activePage === "profile"
                   ? "Profil Pengguna"
-                  : activePage.replace("-", " ")}
+                  : activePage === "course-finder" &&
+                      currentUser?.role === "admin"
+                    ? "Course Management"
+                    : activePage.replace("-", " ")}
             </h2>
           </div>
           <div className="flex items-center gap-2 md:gap-4">
-            <NotificationDropdown />
+            <NotificationDropdown currentUser={currentUser} />
             <div className="text-sm text-right hidden sm:block">
               <p className="font-medium text-navy">
                 {academicPeriod.termDisplay}
@@ -315,6 +341,7 @@ export default function App() {
                   addedCourseIds={addedCourseIds}
                   initialCourse={finderInitialCourse}
                   onClearInitialCourse={() => setFinderInitialCourse(null)}
+                  currentUser={currentUser}
                 />
               )}
               {activePage === "degree-planner" && (

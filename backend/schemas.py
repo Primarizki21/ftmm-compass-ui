@@ -85,6 +85,28 @@ class CourseModel(BaseModel):
     program: Optional[str] = None
     prerequisites: List[str] = Field(default_factory=list)
 
+class AdminCourseCreateRequest(BaseModel):
+    course_code: str
+    course_name: str
+    program_name: str = "Teknologi Sains Data"
+    credits: int = 3
+    recommended_semester: int = 1
+    term: Literal["ganjil", "genap"] = "ganjil"
+    course_type: Literal["Wajib", "Pilihan"] = "Pilihan"
+    description: Optional[str] = ""
+    prerequisites: List[str] = Field(default_factory=list)
+
+
+class AdminCourseUpdateRequest(BaseModel):
+    course_name: Optional[str] = None
+    credits: Optional[int] = None
+    recommended_semester: Optional[int] = None
+    term: Optional[Literal["ganjil", "genap"]] = None
+    course_type: Optional[Literal["Wajib", "Pilihan"]] = None
+    description: Optional[str] = None
+    is_active: Optional[bool] = None
+    prerequisites: Optional[List[str]] = None
+
 
 class PlacedCourseModel(CourseModel):
     status: Literal["completed", "planned", "wishlist"] = "planned"
