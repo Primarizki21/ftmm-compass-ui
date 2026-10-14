@@ -6,7 +6,7 @@ from schemas import (
     PlanPayloadSummary,
 )
 from data_loader import get_courses_for_program, normalize_prodi
-from tools.prerequisite_validator import validate_plan_constraints, is_course_completed
+from tools.prerequisite_validator import validate_plan_constraints
 
 
 def generate_study_plan(profile: StudentProfile) -> DegreePlanPayload:

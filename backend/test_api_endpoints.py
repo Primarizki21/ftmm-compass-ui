@@ -1,9 +1,9 @@
-import json
 from unittest.mock import patch, AsyncMock
 import httpx
 from fastapi.testclient import TestClient
 from app import app
 import app as app_module
+import data_loader
 
 client = TestClient(app)
 
@@ -37,7 +37,11 @@ def test_v1_courses_all_prodis():
     res = client.get("/api/v1/courses")
     assert res.status_code == 200
     data = res.json()
-    assert data["total_courses"] >= 300
+    assert data["total_courses"] > 0
+    if data_loader.OFFICIAL_CURRICULUM:
+        assert data["total_courses"] >= 300
+    else:
+        assert data["total_courses"] >= 50
     prodis = set(c.get("program") for c in data.get("courses", []))
     assert len(prodis) == 5
 
@@ -328,6 +332,27 @@ def test_v1_plan_validations_religion_conflict():
     assert any("Pelanggaran kurikulum agama" in e for e in data["errors"])
     print("✓ Canonical v1 Plan validations religion conflict correctly caught")
 
+def test_courses_fallback_isolation():
+    original_official = data_loader.OFFICIAL_CURRICULUM
+    try:
+        data_loader.OFFICIAL_CURRICULUM = {}
+        with patch.object(app_module, "CHATBOT_SERVICE_URL", "http://127.0.0.1:9999"):
+            res = client.get("/api/v1/courses")
+            assert res.status_code == 200
+            data = res.json()
+            assert data["total_courses"] >= 50
+            prodis = set(c.get("program") for c in data.get("courses", []))
+            assert len(prodis) == 5
+
+            res_prodi = client.get("/api/v1/courses?prodi=Teknologi%20Sains%20Data")
+            assert res_prodi.status_code == 200
+            data_prodi = res_prodi.json()
+            assert data_prodi["total_courses"] > 0
+            assert all(c["program"] == "Teknologi Sains Data" for c in data_prodi.get("courses", []))
+        print("✓ Dual-mode fallback isolation OK (resilient without Ekstrak/ and offline SSOT)")
+    finally:
+        data_loader.OFFICIAL_CURRICULUM = original_official
+
 
 if __name__ == "__main__":
     test_health()
@@ -346,4 +371,5 @@ if __name__ == "__main__":
     test_v1_plan_validations_endpoint()
     test_v1_plan_validations_religion_conflict()
     test_courses_proxy_chatbot_ssot()
+    test_courses_fallback_isolation()
     print("\nAll modernized API endpoint integration tests passed! 🚀")

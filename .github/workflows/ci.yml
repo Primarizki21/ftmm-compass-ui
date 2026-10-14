@@ -7,6 +7,22 @@ on:
     branches: [main]
 
 jobs:
+  security:
+    name: Security & Secret Leak Guard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify no classified or sensitive files committed
+        run: |
+          echo "Scanning git-tracked files for secret or classified patterns..."
+          if git ls-files | grep -E "(^Ekstrak/|\.env$|\.env\.local$|\.pem$|\.key$)"; then
+            echo "❌ Error: Classified or secret files found committed in Git tree!"
+            exit 1
+          fi
+          echo "✓ Security Guard passed: No classified or sensitive files found."
+
   frontend:
     name: Frontend Build & Format
     runs-on: ubuntu-latest
@@ -54,6 +70,12 @@ jobs:
 
       - name: Install backend dependencies
         run: uv sync --directory backend
+      - name: Static syntax and compilation check
+        run: uv run python -m compileall -q backend
+
+      - name: Python lint check with Ruff
+        run: uvx ruff check --select E9,F821,F822,F823,F401 backend
+
 
       - name: Run backend unit tests
         run: uv run --directory backend python test_backend.py

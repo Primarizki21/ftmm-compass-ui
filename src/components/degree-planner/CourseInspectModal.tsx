@@ -14,6 +14,11 @@ import {
 import { cn } from "../../utils"
 import { PlacedCourse, isCompleted, isOdd } from "./types"
 
+interface CoursePlacementInfo {
+  sem: number
+  status: string
+}
+
 interface CourseInspectModalProps {
   course: PlacedCourse | null
   currentSem: number
@@ -50,8 +55,8 @@ export default function CourseInspectModal({
   const completed = isCompleted(course)
 
   // Map courses taken before target semester
-  const priorCourses = new Map<string, { sem: number; status: string }>()
-  const sameOrLaterCourses = new Map<string, { sem: number; status: string }>()
+  const priorCourses = new Map<string, CoursePlacementInfo>()
+  const sameOrLaterCourses = new Map<string, CoursePlacementInfo>()
 
   Object.entries(allPlan).forEach(([semStr, list]) => {
     const semNum = Number(semStr)

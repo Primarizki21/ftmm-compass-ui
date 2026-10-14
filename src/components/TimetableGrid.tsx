@@ -10,7 +10,10 @@ interface TimetableGridProps {
   compact?: boolean
   onNavigate?: (
     page: string,
-    options?: { tab?: "roadmap" | "timetable"; course?: any },
+    options?: {
+      tab?: "roadmap" | "timetable"
+      course?: any
+    },
   ) => void
   onItemClick?: (item: ScheduleItem) => void
 }

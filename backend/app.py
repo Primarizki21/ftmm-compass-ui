@@ -18,10 +18,6 @@ from schemas import (
     PlanValidationResponse,
     HealthResponse,
     OllamaHealthDetail,
-    CourseCatalogResponse,
-    PaginatedCourseResponse,
-    PaginationMeta,
-    PaginationLinks,
     CourseSearchResponse,
     CourseSearchItem,
 )
@@ -30,7 +26,6 @@ from data_loader import (
     get_all_courses,
     get_available_programs,
     normalize_prodi,
-    FTMM_CURRICULUM,
 )
 from tools.planner import generate_study_plan
 from tools.prerequisite_validator import validate_plan_constraints

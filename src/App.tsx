@@ -36,12 +36,18 @@ export default function App() {
   const [appliedPlanSummary, setAppliedPlanSummary] =
     useState<DegreePlanPayload["summary"] | null>(null)
   const [activeSchedule, setActiveSchedule] = useState<ScheduleItem[]>(SCHEDULE)
-  const [plannerInitialTab, setPlannerInitialTab] = useState<"roadmap" | "timetable">("roadmap")
-  const [finderInitialCourse, setFinderInitialCourse] = useState<Course | null>(null)
+  const [plannerInitialTab, setPlannerInitialTab] =
+    useState<"roadmap" | "timetable">("roadmap")
+  const [finderInitialCourse, setFinderInitialCourse] = useState<Course | null>(
+    null,
+  )
 
   const handleNavigate = (
     page: string,
-    options?: { tab?: "roadmap" | "timetable"; course?: Course },
+    options?: {
+      tab?: "roadmap" | "timetable"
+      course?: Course
+    },
   ) => {
     setPlannerInitialTab(options?.tab || "roadmap")
     setFinderInitialCourse(options?.course || null)

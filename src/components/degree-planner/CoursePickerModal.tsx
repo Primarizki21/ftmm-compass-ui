@@ -51,7 +51,6 @@ export default function CoursePickerModal({
     .filter((c) => c.status === "wishlist")
     .reduce((sum, c) => sum + c.credits, 0)
 
-
   // Base pool filtered by semester parity / exact semester, program, and search query
   const basePool = catalog.filter((c) => {
     if (c.type === "Wajib") {

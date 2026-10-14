@@ -3,9 +3,14 @@ interface CourseDescriptionViewProps {
   className?: string
 }
 
+interface DescriptionItem {
+  marker: string
+  content: string
+}
+
 interface ParsedDescription {
   intro: string
-  items: { marker: string; content: string }[]
+  items: DescriptionItem[]
 }
 
 /**
@@ -40,7 +45,7 @@ export function parseDescription(raw?: string): ParsedDescription {
       .replace(/[:;,]\s*$/, "")
       .trim()
 
-    const items: { marker: string; content: string }[] = []
+    const items: DescriptionItem[] = []
     for (let i = 0; i < matches.length; i++) {
       const match = matches[i]
       const marker = match[1].trim()
@@ -72,7 +77,7 @@ export function parseDescription(raw?: string): ParsedDescription {
     .filter(Boolean)
   if (lines.length >= 2) {
     const lineItemPattern = /^(\([a-z0-9]+\)|[a-z0-9]{1,2}[\.\)]|[-•])\s+(.*)$/i
-    const parsedLines: { marker: string; content: string }[] = []
+    const parsedLines: DescriptionItem[] = []
     let detectedIntro = ""
 
     for (const line of lines) {

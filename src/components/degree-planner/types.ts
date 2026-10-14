@@ -122,7 +122,8 @@ export function getCourseReligion(course: {
     text.includes("agama") || /ag[ikphbc]/i.test(course.code || "")
   if (!isAgama) return null
   if (text.includes("islam") || /agi/i.test(course.code || "")) return "Islam"
-  if (text.includes("katolik") || /agk/i.test(course.code || "")) return "Katolik"
+  if (text.includes("katolik") || /agk/i.test(course.code || ""))
+    return "Katolik"
   if (
     text.includes("protestan") ||
     text.includes("kristen") ||
@@ -145,7 +146,6 @@ export function getCourseReligion(course: {
   return "Umum"
 }
 
-
 export type SemesterState = "idle" | "valid-hover" | "invalid" | "invalid-hover"
 
 export type Tab = "roadmap" | "timetable"
@@ -164,7 +164,10 @@ export interface DegreePlannerProps {
   onResetPlan?: () => void
   onNavigate?: (
     page: string,
-    options?: { tab?: Tab; course?: Course },
+    options?: {
+      tab?: Tab
+      course?: Course
+    },
   ) => void
   activeSchedule?: ScheduleItem[]
   onUpdateSchedule?: (schedule: ScheduleItem[]) => void

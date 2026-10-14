@@ -112,7 +112,6 @@ export default function DegreePlanner({
     return null
   }, [plan])
 
-
   // Map course ID to semester where it is currently placed
   const placedMap = useMemo(() => {
     const map = new Map<string, number>()
@@ -541,7 +540,9 @@ export default function DegreePlanner({
             placedMap={placedMap}
             onClose={() => setPickerSem(null)}
             onAddCourse={handleAddCourseFromModal}
-            currentSemesterCourses={pickerSem !== null ? plan[pickerSem] || [] : []}
+            currentSemesterCourses={
+              pickerSem !== null ? plan[pickerSem] || [] : []
+            }
             activeReligion={activeReligion}
           />
 

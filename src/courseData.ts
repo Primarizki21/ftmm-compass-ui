@@ -400,7 +400,10 @@ export interface ApiCoursesResponse {
 /** Fetches the official course catalog from the backend API with fallback to local cache. */
 export async function fetchCatalog(
   program?: string,
-): Promise<{ courses: Course[]; programs?: string[] } | null> {
+): Promise<{
+  courses: Course[]
+  programs?: string[]
+} | null> {
   try {
     const queryParam =
       program && program !== "all"

@@ -15,6 +15,11 @@ import DegreePlanActionCard from "../components/chatbot/DegreePlanActionCard"
 
 export type { DegreePlanPayload } from "../components/chatbot/chatService"
 
+interface ApiChatErrorDetail {
+  code?: string
+  message?: string
+}
+
 interface ChatbotProps {
   onApplyPlan?: (payload: DegreePlanPayload) => void
 }
@@ -127,7 +132,7 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
                 token?: string
                 done?: boolean
                 reply?: string
-                error?: { code?: string; message?: string }
+                error?: ApiChatErrorDetail
                 updated_profile?: StudentProfileState
                 plan_payload?: DegreePlanPayload
                 action_type?: string
@@ -227,7 +232,7 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
         )
       } else {
         const errorData = (await fallbackRes.json().catch(() => null)) as {
-          error?: { code?: string; message?: string }
+          error?: ApiChatErrorDetail
           detail?: string
         } | null
         const detail =
