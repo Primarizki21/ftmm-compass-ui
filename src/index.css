@@ -22,11 +22,33 @@
   --color-foreground: #2d333a;
   --color-muted: #6b7280;
   --color-border: #e5e7eb;
+  --color-input: #e5e7eb;
+  --color-ring: #0f3e32;
+  
+  /* shadcn/ui semantic tokens mapped to FTMM canonical palette */
+  --color-primary: #0f3e32;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f4f6f4;
+  --color-secondary-foreground: #0f3e32;
+  --color-destructive: #ad5712;
+  --color-destructive-foreground: #ffffff;
+  --color-card: #ffffff;
+  --color-card-foreground: #2d333a;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #2d333a;
+  --color-accent: #f0f7f4;
+  --color-accent-foreground: #0f3e32;
+  --color-muted-foreground: #6b7280;
+  
+  /* Radius scale */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
   
   /* Status */
   --color-warning: #d7b03d;
   --color-danger: #ad5712;
-
   /* Heading font — Poppins, matching Cybercampus UNAIR style */
   --font-heading: 'Poppins', sans-serif;
   --font-sans: 'Inter', sans-serif;
@@ -34,6 +56,10 @@
 }
 
 @layer base {
+  :root {
+    --radius: 0.5rem;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
