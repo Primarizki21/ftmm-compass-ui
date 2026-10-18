@@ -1,5 +1,9 @@
 import os
 import json
+import time
+import uuid
+import logging
+import jwt
 from contextlib import asynccontextmanager
 import httpx
 from typing import Any, AsyncGenerator, Optional
@@ -7,6 +11,9 @@ from fastapi import FastAPI, APIRouter, Depends, HTTPException, Query, Request, 
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from datetime import datetime, timezone
 from sqlalchemy import text, select, func, case, or_, and_, update, cast, String
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -49,6 +56,7 @@ from schemas import (
 from database import AsyncSessionLocal, get_db
 from models import (
     User,
+    ChatLog,
     StudentProfile as StudentProfileModel,
     ElectivePollingPeriod,
     ElectiveCourseVote,
@@ -66,7 +74,7 @@ from models import (
     StudyProgram,
     UserNotification,
 )
-from auth import authenticate_user, create_access_token, get_current_user
+from auth import authenticate_user, create_access_token, get_current_user, SECRET_KEY, ALGORITHM
 from data_loader import (
     get_courses_for_program,
     get_all_courses,
@@ -121,6 +129,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
+app.state.limiter = limiter
+
 # Enable CORS for Vite frontend
 app.add_middleware(
     CORSMiddleware,
@@ -143,6 +154,19 @@ def _check_circular_url(service_url: str):
 # ============================================================================
 # Global Exception Handlers (skill://api-design & standard error envelopes)
 # ============================================================================
+
+@app.exception_handler(RateLimitExceeded)
+def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        content={
+            "error": {
+                "code": "rate_limit_exceeded",
+                "message": "Batas pengiriman pesan terlampaui (maksimal 20 request per menit).",
+                "details": [],
+            }
+        },
+    )
 
 @app.exception_handler(ConnectionError)
 async def connection_error_handler(request: Request, exc: ConnectionError):
@@ -548,8 +572,60 @@ async def handle_search_courses(
     )
 
 
-async def handle_chat(request: ChatRequest) -> ChatResponse:
+logger = logging.getLogger("ftmm_compass.gateway")
+
+
+def _resolve_user_id(request_data: ChatRequest, client_request: Request | None = None) -> uuid.UUID | None:
+    if request_data.user_id:
+        try:
+            return uuid.UUID(str(request_data.user_id))
+        except (ValueError, TypeError):
+            pass
+    if client_request and "authorization" in client_request.headers:
+        auth_header = client_request.headers.get("authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:].strip()
+            try:
+                payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+                sub = payload.get("sub")
+                if sub:
+                    return uuid.UUID(str(sub))
+            except Exception:
+                pass
+    return None
+
+
+async def log_chat_metadata(
+    session_id: str,
+    user_message: str,
+    assistant_reply: str | None,
+    action_type: str | None,
+    routing_mode: str | None,
+    latency_ms: float | None,
+    user_id: uuid.UUID | None = None,
+) -> None:
+    try:
+        async with AsyncSessionLocal() as db_session:
+            chat_log = ChatLog(
+                session_id=session_id,
+                user_id=user_id,
+                user_message=user_message,
+                assistant_reply=assistant_reply,
+                action_type=action_type,
+                routing_mode=routing_mode,
+                latency_ms=latency_ms,
+            )
+            db_session.add(chat_log)
+            await db_session.commit()
+    except Exception as exc:
+        logger.warning(f"Failed to log chat metadata to PostgreSQL: {exc}")
+
+
+async def handle_chat(request: ChatRequest, client_request: Request | None = None) -> ChatResponse:
     _check_circular_url(CHATBOT_SERVICE_URL)
+    start_time = time.perf_counter()
+    session_id = request.session_id or (client_request.headers.get("x-session-id") if client_request else None) or "default"
+    user_id = _resolve_user_id(request, client_request)
 
     try:
         async with httpx.AsyncClient(timeout=CHATBOT_TIMEOUT_SECONDS) as client:
@@ -571,14 +647,29 @@ async def handle_chat(request: ChatRequest) -> ChatResponse:
                 elif action_type == "PLAN_GENERATED" and updated_profile.program_studi:
                     plan_payload = generate_study_plan(updated_profile)
 
+                elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
+                latency_ms = data.get("latency_ms") if data.get("latency_ms") is not None else elapsed_ms
+                routing_mode = data.get("routing_mode")
+                reply = data.get("reply", "")
+
+                await log_chat_metadata(
+                    session_id=session_id,
+                    user_message=request.message,
+                    assistant_reply=reply,
+                    action_type=action_type,
+                    routing_mode=routing_mode,
+                    latency_ms=latency_ms,
+                    user_id=user_id,
+                )
+
                 return ChatResponse(
-                    reply=data.get("reply", ""),
+                    reply=reply,
                     updated_profile=updated_profile,
                     plan_payload=plan_payload,
                     action_type=action_type,
                     missing_slots=[],
-                    routing_mode=data.get("routing_mode"),
-                    latency_ms=data.get("latency_ms"),
+                    routing_mode=routing_mode,
+                    latency_ms=latency_ms,
                 )
             try:
                 err_json = resp.json()
@@ -613,11 +704,20 @@ async def handle_chat(request: ChatRequest) -> ChatResponse:
         )
 
 
-async def handle_chat_stream(request: ChatRequest) -> StreamingResponse:
+async def handle_chat_stream(request: ChatRequest, client_request: Request | None = None) -> StreamingResponse:
     _check_circular_url(CHATBOT_SERVICE_URL)
+    session_id = request.session_id or (client_request.headers.get("x-session-id") if client_request else None) or "default"
+    user_id = _resolve_user_id(request, client_request)
 
     async def stream_generator() -> AsyncGenerator[str, None]:
         client = httpx.AsyncClient(timeout=CHATBOT_TIMEOUT_SECONDS)
+        start_time = time.perf_counter()
+        accumulated_tokens: list[str] = []
+        final_reply: str | None = None
+        action_type: str | None = None
+        routing_mode: str | None = None
+        latency_ms: float | None = None
+
         try:
             payload = {
                 "message": request.message,
@@ -653,36 +753,110 @@ async def handle_chat_stream(request: ChatRequest) -> StreamingResponse:
                         "token": "",
                         "done": True,
                     }
+                    elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
+                    await log_chat_metadata(
+                        session_id=session_id,
+                        user_message=request.message,
+                        assistant_reply=err_msg,
+                        action_type="ERROR",
+                        routing_mode="ERROR",
+                        latency_ms=elapsed_ms,
+                        user_id=user_id,
+                    )
                     yield f"data: {json.dumps(error_payload, ensure_ascii=False)}\n\n"
                     return
 
                 async for line in response.aiter_lines():
                     if line:
                         yield f"{line}\n\n"
+                        if line.startswith("data:"):
+                            raw_json = line[5:].strip()
+                            try:
+                                event_data = json.loads(raw_json)
+                                if event_data.get("token"):
+                                     accumulated_tokens.append(event_data["token"])
+                                if event_data.get("done"):
+                                    if event_data.get("reply"):
+                                        final_reply = event_data["reply"]
+                                    action_type = event_data.get("action_type")
+                                    routing_mode = event_data.get("routing_mode")
+                                    latency_ms = event_data.get("latency_ms")
+                            except Exception:
+                                pass
+
+            assistant_reply = final_reply or "".join(accumulated_tokens)
+            elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
+            if latency_ms is None:
+                latency_ms = elapsed_ms
+            await log_chat_metadata(
+                session_id=session_id,
+                user_message=request.message,
+                assistant_reply=assistant_reply,
+                action_type=action_type or "GENERAL",
+                routing_mode=routing_mode,
+                latency_ms=latency_ms,
+                user_id=user_id,
+            )
         except (httpx.ConnectError, ConnectionError) as exc:
+            err_msg = f"Layanan Chatbot AI offline ({exc.__class__.__name__}). Pastikan kontainer ftmm-compass-chatbot aktif di port 8000."
             err_payload = {
                 "error": {
                     "code": "upstream_service_unavailable",
-                    "message": f"Layanan Chatbot AI offline ({exc.__class__.__name__}). Pastikan kontainer ftmm-compass-chatbot aktif di port 8000.",
+                    "message": err_msg,
                 },
                 "token": "",
                 "done": True,
             }
+            elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
+            await log_chat_metadata(
+                session_id=session_id,
+                user_message=request.message,
+                assistant_reply=err_msg,
+                action_type="ERROR",
+                routing_mode="ERROR",
+                latency_ms=elapsed_ms,
+                user_id=user_id,
+            )
             yield f"data: {json.dumps(err_payload, ensure_ascii=False)}\n\n"
         except httpx.TimeoutException:
+            err_msg = "Waktu tunggu layanan Chatbot AI habis."
             err_payload = {
                 "error": {
                     "code": "upstream_timeout",
-                    "message": "Waktu tunggu layanan Chatbot AI habis.",
+                    "message": err_msg,
                 },
                 "token": "",
                 "done": True,
             }
+            elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
+            await log_chat_metadata(
+                session_id=session_id,
+                user_message=request.message,
+                assistant_reply=err_msg,
+                action_type="ERROR",
+                routing_mode="ERROR",
+                latency_ms=elapsed_ms,
+                user_id=user_id,
+            )
             yield f"data: {json.dumps(err_payload, ensure_ascii=False)}\n\n"
         finally:
             await client.aclose()
 
     return StreamingResponse(stream_generator(), media_type="text/event-stream")
+
+
+async def handle_reset_chat_session(session_id: str) -> dict:
+    try:
+        async with httpx.AsyncClient(timeout=2.0) as client:
+            await client.delete(f"{CHATBOT_SERVICE_URL}/api/v1/chat/sessions/{session_id}")
+    except Exception:
+        pass
+
+    return {
+        "status": "success",
+        "message": f"Sesi obrolan '{session_id}' berhasil direset.",
+        "session_id": session_id,
+    }
 
 
 async def handle_validate_plan(request: PlanValidationRequest) -> PlanValidationResponse:
@@ -1208,13 +1382,20 @@ async def v1_admin_delete_course(
 
 
 @v1_router.post("/chat", response_model=ChatResponse)
-async def v1_chat(request: ChatRequest):
-    return await handle_chat(request)
+@limiter.limit("20/minute")
+async def v1_chat(request: Request, chat_request: ChatRequest):
+    return await handle_chat(chat_request, client_request=request)
 
 
 @v1_router.post("/chat/stream")
-async def v1_chat_stream(request: ChatRequest):
-    return await handle_chat_stream(request)
+@limiter.limit("20/minute")
+async def v1_chat_stream(request: Request, chat_request: ChatRequest):
+    return await handle_chat_stream(chat_request, client_request=request)
+
+
+@v1_router.delete("/chat/sessions/{session_id}")
+async def v1_reset_chat_session(session_id: str):
+    return await handle_reset_chat_session(session_id)
 
 
 @v1_router.post("/plans/validations", response_model=PlanValidationResponse)
@@ -1273,13 +1454,20 @@ async def legacy_search_courses(
 
 
 @legacy_router.post("/chat", response_model=ChatResponse)
-async def legacy_chat(request: ChatRequest):
-    return await handle_chat(request)
+@limiter.limit("20/minute")
+async def legacy_chat(request: Request, chat_request: ChatRequest):
+    return await handle_chat(chat_request, client_request=request)
 
 
 @legacy_router.post("/chat/stream")
-async def legacy_chat_stream(request: ChatRequest):
-    return await handle_chat_stream(request)
+@limiter.limit("20/minute")
+async def legacy_chat_stream(request: Request, chat_request: ChatRequest):
+    return await handle_chat_stream(chat_request, client_request=request)
+
+
+@legacy_router.delete("/chat/sessions/{session_id}")
+async def legacy_reset_chat_session(session_id: str):
+    return await handle_reset_chat_session(session_id)
 
 
 @legacy_router.post("/plan/validate", response_model=PlanValidationResponse)

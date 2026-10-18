@@ -692,6 +692,118 @@ def test_notifications_endpoints():
     print("[PASS] Mark all notifications as read OK")
 
 
+def test_chat_rate_limiting_429():
+    app.state.limiter._limiter.storage.reset()
+    mock_response = httpx.Response(
+        200,
+        json={
+            "reply": "Mock reply for rate limit",
+            "updated_profile": {},
+            "plan_payload": None,
+            "action_type": "GENERAL",
+            "routing_mode": "test",
+            "latency_ms": 10.0,
+        },
+        request=httpx.Request("POST", "http://127.0.0.1:8000/api/chat"),
+    )
+
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+        mock_post.return_value = mock_response
+        for i in range(20):
+            res = client.post(
+                "/api/v1/chat",
+                json={
+                    "message": f"Ping rate limit {i}",
+                    "history": [],
+                    "student_profile": {},
+                },
+            )
+            assert res.status_code == 200
+
+        res_throttled = client.post(
+            "/api/v1/chat",
+            json={
+                "message": "Ping 21 exceeding quota",
+                "history": [],
+                "student_profile": {},
+            },
+        )
+        assert res_throttled.status_code == 429
+        data = res_throttled.json()
+        assert data["error"]["code"] == "rate_limit_exceeded"
+        assert "Batas pengiriman pesan terlampaui" in data["error"]["message"]
+        print("[PASS] Chat rate limiting 429 after 20 req/min verified OK")
+
+    app.state.limiter._limiter.storage.reset()
+
+
+def test_chat_metadata_logging_postgres():
+    app.state.limiter._limiter.storage.reset()
+    test_session_id = f"test-sess-log-{int(time.time())}"
+    mock_response = httpx.Response(
+        200,
+        json={
+            "reply": "Halo! Saya adalah Compass AI yang siap membantu.",
+            "updated_profile": {"program_studi": "Teknologi Sains Data", "semester_saat_ini": 5},
+            "plan_payload": None,
+            "action_type": "STUDY_PLAN_ADVICE",
+            "routing_mode": "HYBRID_RAG_CAG",
+            "latency_ms": 42.5,
+        },
+        request=httpx.Request("POST", "http://127.0.0.1:8000/api/chat"),
+    )
+
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+        mock_post.return_value = mock_response
+        res = client.post(
+            "/api/v1/chat",
+            json={
+                "message": "Halo database logging test",
+                "history": [],
+                "student_profile": {},
+                "session_id": test_session_id,
+            },
+        )
+        assert res.status_code == 200
+
+    async def _query_log():
+        from database import AsyncSessionLocal
+        from models import ChatLog
+        from sqlalchemy import select
+
+        async with AsyncSessionLocal() as session:
+            stmt = select(ChatLog).where(ChatLog.session_id == test_session_id)
+            return (await session.execute(stmt)).scalars().first()
+
+    log_entry = asyncio.run(_query_log())
+    assert log_entry is not None
+    assert log_entry.session_id == test_session_id
+    assert log_entry.user_message == "Halo database logging test"
+    assert "Compass AI" in (log_entry.assistant_reply or "")
+    assert log_entry.action_type == "STUDY_PLAN_ADVICE"
+    assert log_entry.routing_mode == "HYBRID_RAG_CAG"
+    assert log_entry.latency_ms == 42.5
+    assert log_entry.created_at is not None
+    print("[PASS] Chat metadata logging to PostgreSQL verified OK")
+
+
+def test_chat_reset_session_endpoints():
+    test_sid = "test-session-reset-999"
+    res_v1 = client.delete(f"/api/v1/chat/sessions/{test_sid}")
+    assert res_v1.status_code == 200
+    data_v1 = res_v1.json()
+    assert data_v1["status"] == "success"
+    assert data_v1["session_id"] == test_sid
+    assert f"Sesi obrolan '{test_sid}' berhasil direset." in data_v1["message"]
+
+    res_leg = client.delete(f"/api/chat/sessions/{test_sid}")
+    assert res_leg.status_code == 200
+    data_leg = res_leg.json()
+    assert data_leg["status"] == "success"
+    assert data_leg["session_id"] == test_sid
+    assert f"Sesi obrolan '{test_sid}' berhasil direset." in data_leg["message"]
+    print("[PASS] Chat reset session endpoints (v1 & legacy) verified OK")
+
 
 if __name__ == "__main__":
     test_health()
@@ -716,4 +828,7 @@ if __name__ == "__main__":
     test_dashboard_me_roles()
     test_admin_courses_crud()
     test_notifications_endpoints()
+    test_chat_rate_limiting_429()
+    test_chat_metadata_logging_postgres()
+    test_chat_reset_session_endpoints()
     print("\n[DONE] All modernized API endpoint integration tests passed.")
