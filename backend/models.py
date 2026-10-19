@@ -5,6 +5,7 @@ from sqlalchemy import (
     Boolean,
     Date,
     DateTime,
+    Float,
     ForeignKey,
     Integer,
     SmallInteger,
@@ -52,6 +53,15 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+    chat_logs: Mapped[list["ChatLog"]] = relationship(
+        "ChatLog",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
+    @property
+    def id(self) -> uuid.UUID:
+        return self.user_id
 
 class StudyProgram(Base):
     __tablename__ = "study_programs"
@@ -493,3 +503,31 @@ class UserNotification(Base):
     )
 
     user: Mapped[Optional["User"]] = relationship("User")
+
+
+class ChatLog(Base):
+    __tablename__ = "chat_logs"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    session_id: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
+    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.user_id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    user_message: Mapped[str] = mapped_column(Text, nullable=False)
+    assistant_reply: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    action_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    routing_mode: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    latency_ms: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    user: Mapped[Optional["User"]] = relationship("User", back_populates="chat_logs")

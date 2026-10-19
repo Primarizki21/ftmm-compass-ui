@@ -119,11 +119,6 @@ export default function App() {
     setIsLogoutModalOpen(false)
     setActivePage("dashboard")
   }
-
-  if (!isLoggedIn) {
-    return <Login onLogin={handleLoginSuccess} />
-  }
-
   const navItems = useMemo(() => {
     const role = currentUser?.role || "student"
     if (role === "lecturer") {
@@ -145,6 +140,10 @@ export default function App() {
       { id: "chatbot", label: "Compass AI", icon: MessageSquare },
     ] as const
   }, [currentUser?.role])
+
+  if (!isLoggedIn) {
+    return <Login onLogin={handleLoginSuccess} />
+  }
 
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden font-sans text-foreground">
