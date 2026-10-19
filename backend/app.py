@@ -129,7 +129,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
+rate_limit_default = os.getenv("DEFAULT_RATE_LIMIT", "300/minute")
+default_limits = [rate_limit_default] if rate_limit_default and rate_limit_default.lower() not in ("none", "false", "0") else []
+limiter = Limiter(key_func=get_remote_address, default_limits=default_limits)
 app.state.limiter = limiter
 
 # Enable CORS for Vite frontend

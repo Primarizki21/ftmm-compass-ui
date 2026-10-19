@@ -541,7 +541,8 @@ def test_dashboard_me_roles():
     print("[PASS] Dual-tier legacy /api/dashboard/me alias OK")
 
 def test_admin_courses_crud():
-    # 1. Login student & admin
+    if hasattr(app.state, "limiter") and hasattr(app.state.limiter, "_limiter"):
+        app.state.limiter._limiter.storage.reset()
     mhs_res = client.post(
         "/api/v1/auth/login",
         json={"identifier": "mahasiswa.testing@ftmm.unair.ac.id", "password": "Mahasiswa2026!"},
@@ -556,7 +557,7 @@ def test_admin_courses_crud():
     assert admin_res.status_code == 200
     admin_token = admin_res.json()["access_token"]
 
-    test_code = f"TSD{int(time.time() * 1000) % 800 + 100}"
+    test_code = f"TSDX{int(time.time() * 1000) % 9000 + 1000}"
     course_payload = {
         "course_code": test_code,
         "course_name": "Sistem Otonom Cerdas",
@@ -584,7 +585,7 @@ def test_admin_courses_crud():
         json=course_payload,
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    assert res_create.status_code == 201
+    assert res_create.status_code == 201, f"Expected 201 Created but got {res_create.status_code}: {res_create.text}"
     created_data = res_create.json()
     assert created_data["code"] == test_code
     assert created_data["name"] == "Sistem Otonom Cerdas"
