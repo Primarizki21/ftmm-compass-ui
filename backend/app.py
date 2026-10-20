@@ -1736,20 +1736,10 @@ async def remove_vote(
         await db.flush()
     return None
 
-
-@v1_router.get("/admin/polling/demand-analytics", response_model=DemandAnalyticsResponse)
-async def get_demand_analytics(
-    study_program: Optional[str] = Query(None, description="Filter program studi"),
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    allowed_roles = {"lecturer", "admin", "faculty_staff"}
-    if current_user.role not in allowed_roles:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Akses ditolak: Hanya dosen, admin, atau staf fakultas yang dapat mengakses rekapitulasi analitik peminatan.",
-        )
-
+async def _fetch_demand_analytics(
+    study_program: Optional[str],
+    db: AsyncSession,
+) -> DemandAnalyticsResponse:
     # 1. Ambil periode aktif
     stmt_period = (
         select(ElectivePollingPeriod)
@@ -1873,6 +1863,30 @@ async def get_demand_analytics(
         total_students_voted=total_students_voted,
         items=items,
     )
+
+
+@v1_router.get("/polling/demand-analytics", response_model=DemandAnalyticsResponse)
+async def get_student_demand_analytics(
+    study_program: Optional[str] = Query(None, description="Filter program studi"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return await _fetch_demand_analytics(study_program, db)
+
+
+@v1_router.get("/admin/polling/demand-analytics", response_model=DemandAnalyticsResponse)
+async def get_demand_analytics(
+    study_program: Optional[str] = Query(None, description="Filter program studi"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    allowed_roles = {"lecturer", "admin", "faculty_staff"}
+    if current_user.role not in allowed_roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Akses ditolak: Hanya dosen, admin, atau staf fakultas yang dapat mengakses rekapitulasi analitik peminatan.",
+        )
+    return await _fetch_demand_analytics(study_program, db)
 
 
 @v1_router.get("/dashboard/me", response_model=DashboardMeResponse)

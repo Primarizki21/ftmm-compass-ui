@@ -205,6 +205,18 @@ def test_polling_flow():
     assert "Paritas semester tidak sesuai" in parity_err_res.json()["detail"]
     print("[PASS] Parity mismatch validation rejected (400 Bad Request) OK")
 
+    # Cleanup: Hapus periode uji coba agar tidak menutupi data seeding operasional
+    try:
+        from database import AsyncSessionLocal
+        from models import ElectivePollingPeriod
+        from sqlalchemy import delete
+        async def _cleanup():
+            async with AsyncSessionLocal() as s:
+                await s.execute(delete(ElectivePollingPeriod).where(ElectivePollingPeriod.title.like("%2026/2027%")))
+                await s.commit()
+        asyncio.run(_cleanup())
+    except Exception:
+        pass
 
 if __name__ == "__main__":
     test_polling_flow()

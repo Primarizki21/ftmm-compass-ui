@@ -1,4 +1,4 @@
-import { Search, X, Clock, Bookmark, BookOpen, Check, Plus } from "lucide-react"
+import { Search, X, BookOpen, Check, Plus } from "lucide-react"
 import { cn } from "../../utils"
 import { Course } from "../../data"
 import { isOdd, getCourseReligion, PlacedCourse } from "./types"
@@ -11,8 +11,6 @@ interface CoursePickerModalProps {
   setPickerProgram: (p: string) => void
   pickerType: "all" | "Pilihan" | "Wajib"
   setPickerType: (t: "all" | "Pilihan" | "Wajib") => void
-  pickerStatus: "planned" | "wishlist"
-  setPickerStatus: (s: "planned" | "wishlist") => void
   availablePrograms: string[]
   catalog: Course[]
   placedMap: Map<string, number>
@@ -30,8 +28,6 @@ export default function CoursePickerModal({
   setPickerProgram,
   pickerType,
   setPickerType,
-  pickerStatus,
-  setPickerStatus,
   availablePrograms,
   catalog,
   placedMap,
@@ -42,22 +38,14 @@ export default function CoursePickerModal({
 }: CoursePickerModalProps) {
   if (pickerSem === null) return null
 
-  const targetParity = isOdd(pickerSem) ? "odd" : "even"
   const q = pickerSearch.toLowerCase().trim()
   const plannedSKS = (currentSemesterCourses || [])
     .filter((c) => c.status === "planned" || c.status === "completed")
     .reduce((sum, c) => sum + c.credits, 0)
-  const wishlistSKS = (currentSemesterCourses || [])
-    .filter((c) => c.status === "wishlist")
-    .reduce((sum, c) => sum + c.credits, 0)
 
-  // Base pool filtered by semester parity / exact semester, program, and search query
+  // Base pool filtered by semester, program, and search query
   const basePool = catalog.filter((c) => {
-    if (c.type === "Wajib") {
-      if (c.semester !== pickerSem) return false
-    } else {
-      if (c.parity !== targetParity) return false
-    }
+    if (c.semester !== pickerSem) return false
     if (pickerProgram !== "all" && c.program !== pickerProgram) return false
     if (q) {
       const matchName = c.name.toLowerCase().includes(q)
@@ -130,11 +118,6 @@ export default function CoursePickerModal({
               >
                 {plannedSKS} / 24 SKS Direncanakan
               </span>
-              {wishlistSKS > 0 && (
-                <span className="text-xs font-mono text-muted bg-surface px-2 py-0.5 rounded-md border border-border">
-                  +{wishlistSKS} SKS Wishlist
-                </span>
-              )}
               {activeReligion && (
                 <span className="text-[10px] font-medium text-navy/80 bg-navy/8 border border-navy/15 px-2 py-0.5 rounded-md">
                   Agama Terpilih: <strong>{activeReligion}</strong>
@@ -244,55 +227,6 @@ export default function CoursePickerModal({
                 </button>
               ))}
             </div>
-
-            {/* Add Status Toggle */}
-            <div className="flex items-center gap-2 text-xs">
-              <span className="text-muted text-[11px] font-medium">
-                Tambahkan sebagai:
-              </span>
-              <div
-                role="group"
-                aria-label="Status penambahan mata kuliah"
-                className="flex items-center gap-1 bg-background p-1 rounded-lg border border-border"
-              >
-                <button
-                  type="button"
-                  onClick={() => setPickerStatus("planned")}
-                  className={cn(
-                    "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all cursor-pointer",
-                    pickerStatus === "planned"
-                      ? "bg-gold text-navy shadow-2xs font-semibold"
-                      : "text-muted hover:text-navy",
-                  )}
-                >
-                  <Clock
-                    className={cn(
-                      "w-3.5 h-3.5",
-                      pickerStatus === "planned" ? "text-navy" : "text-gold",
-                    )}
-                  />
-                  Direncanakan
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPickerStatus("wishlist")}
-                  className={cn(
-                    "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all cursor-pointer",
-                    pickerStatus === "wishlist"
-                      ? "bg-navy text-white shadow-2xs font-semibold"
-                      : "text-muted hover:text-navy",
-                  )}
-                >
-                  <Bookmark
-                    className={cn(
-                      "w-3.5 h-3.5",
-                      pickerStatus === "wishlist" ? "text-gold" : "text-muted",
-                    )}
-                  />
-                  Wishlist
-                </button>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -396,24 +330,10 @@ export default function CoursePickerModal({
                       <button
                         type="button"
                         onClick={() => onAddCourse(course)}
-                        className={cn(
-                          "px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer",
-                          pickerStatus === "wishlist"
-                            ? "bg-surface text-navy border border-dashed border-navy/40 hover:bg-navy/5"
-                            : "bg-navy text-white hover:bg-navy-light",
-                        )}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer bg-navy text-white hover:bg-navy-light"
                       >
-                        {pickerStatus === "wishlist" ? (
-                          <>
-                            <Bookmark className="w-3.5 h-3.5 text-navy" />
-                            Wishlist
-                          </>
-                        ) : (
-                          <>
-                            <Plus className="w-3.5 h-3.5" />
-                            Tambah
-                          </>
-                        )}
+                        <Plus className="w-3.5 h-3.5" />
+                        Tambah
                       </button>
                     )}
                   </div>

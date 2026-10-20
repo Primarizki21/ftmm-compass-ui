@@ -633,11 +633,14 @@ async def seed_data():
             voter_users.append(vu)
 
         vote_distributions = [
-            {"code": "TSD302", "name": "Pembelajaran Mesin Lanjut", "credits": 3, "count": 42},
-            {"code": "TSD401", "name": "Pemrosesan Bahasa Alami", "credits": 3, "count": 35},
-            {"code": "TSD402", "name": "Sistem Rekomendasi", "credits": 3, "count": 18},
-            {"code": "TRKB301", "name": "Visi Komputer Cerdas", "credits": 3, "count": 12},
-            {"code": "TI301", "name": "Ergonomi dan Rekayasa Sistem Kerja", "credits": 3, "count": 8},
+            {"code": "SIC304", "name": "Natural Language Processing", "credits": 3, "count": 42},
+            {"code": "SID307", "name": "Teknologi Big Data", "credits": 3, "count": 35},
+            {"code": "RKK304", "name": "Deep Learning", "credits": 3, "count": 28},
+            {"code": "MAS317", "name": "Analisis Data Spasial", "credits": 3, "count": 18},
+            {"code": "RKS305", "name": "Autonomous Vehicle", "credits": 3, "count": 16},
+            {"code": "TEL302", "name": "Elektronika Daya", "credits": 3, "count": 14},
+            {"code": "RNT201", "name": "Nanoteknologi Pertanian dan Pemrosesan Makanan", "credits": 2, "count": 12},
+            {"code": "MNU215", "name": "Bisnis dan Komersialisasi Nanoteknologi", "credits": 2, "count": 8},
         ]
 
         for dist in vote_distributions:
@@ -687,7 +690,7 @@ async def seed_data():
             {
                 "target_role": "student",
                 "title": "Hasil Polling Peminatan MK Pilihan",
-                "message": "Mata kuliah pilihan yang kamu vote (TSD302) telah memenuhi kuorum 42 mahasiswa dan siap membuka 2 kelas.",
+                "message": "Mata kuliah pilihan yang kamu vote (SIC304 - Natural Language Processing) telah memenuhi kuorum 42 mahasiswa dan siap membuka 2 kelas.",
                 "type": "info",
                 "is_read": False,
                 "action_url": "course-finder",

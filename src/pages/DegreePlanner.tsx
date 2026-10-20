@@ -65,9 +65,6 @@ export default function DegreePlanner({
   const [pickerType, setPickerType] = useState<"all" | "Pilihan" | "Wajib">(
     "all",
   )
-  const [pickerStatus, setPickerStatus] = useState<"planned" | "wishlist">(
-    "planned",
-  )
   const [catalog, setCatalog] = useState<Course[]>(ALL_COURSES)
   const [availablePrograms, setAvailablePrograms] = useState<string[]>(PROGRAMS)
   const [inspectCourse, setInspectCourse] = useState<{
@@ -138,11 +135,10 @@ export default function DegreePlanner({
 
   const handleAddCourseFromModal = (course: Course) => {
     if (pickerSem === null) return
-    const finalStatus = course.type === "Wajib" ? "planned" : pickerStatus
     const newCourse: PlacedCourse = {
       ...course,
       semester: pickerSem,
-      status: finalStatus,
+      status: "planned",
     }
     setPlan((prev) => ({
       ...prev,
@@ -328,29 +324,6 @@ export default function DegreePlanner({
       ...prev,
       [sem]: (prev[sem] || []).filter((c) => c.id !== courseId),
     }))
-  }
-
-  const handleToggleStatus = (
-    courseId: string,
-    sem: number,
-    newStatus: "planned" | "wishlist",
-  ) => {
-    setPlan((prev) => ({
-      ...prev,
-      [sem]: (prev[sem] || []).map((c) =>
-        c.id === courseId ? { ...c, status: newStatus } : c,
-      ),
-    }))
-    if (inspectCourse && inspectCourse.course.id === courseId) {
-      setInspectCourse((prev) =>
-        prev
-          ? {
-              ...prev,
-              course: { ...prev.course, status: newStatus },
-            }
-          : null,
-      )
-    }
   }
 
   // Active semester courses for timetable view
@@ -548,8 +521,6 @@ export default function DegreePlanner({
             setPickerProgram={setPickerProgram}
             pickerType={pickerType}
             setPickerType={setPickerType}
-            pickerStatus={pickerStatus}
-            setPickerStatus={setPickerStatus}
             availablePrograms={availablePrograms}
             catalog={catalog}
             placedMap={placedMap}
@@ -567,7 +538,6 @@ export default function DegreePlanner({
             currentSem={inspectCourse ? inspectCourse.sem : 1}
             allPlan={plan}
             onClose={() => setInspectCourse(null)}
-            onToggleStatus={handleToggleStatus}
             onDeleteCourse={deleteCourse}
             onOpenInCourseFinder={(c) => {
               onNavigate?.("course-finder", { course: c })

@@ -5,7 +5,6 @@ import {
   Clock,
   CheckCircle2,
   AlertTriangle,
-  Bookmark,
   ExternalLink,
   Trash2,
   GraduationCap,
@@ -24,11 +23,6 @@ interface CourseInspectModalProps {
   currentSem: number
   allPlan: Record<number, PlacedCourse[]>
   onClose: () => void
-  onToggleStatus?: (
-    courseId: string,
-    sem: number,
-    newStatus: "planned" | "wishlist",
-  ) => void
   onDeleteCourse?: (courseId: string, sem: number) => void
   onOpenInCourseFinder?: (course: PlacedCourse) => void
 }
@@ -38,7 +32,6 @@ export default function CourseInspectModal({
   currentSem,
   allPlan,
   onClose,
-  onToggleStatus,
   onDeleteCourse,
   onOpenInCourseFinder,
 }: CourseInspectModalProps) {
@@ -224,15 +217,12 @@ export default function CourseInspectModal({
               <span
                 className={cn(
                   "font-heading font-bold text-xs uppercase px-2 py-1 rounded inline-flex items-center gap-1",
-                  course.status === "completed" && "bg-teal/15 text-navy",
-                  course.status === "planned" && "bg-gold/15 text-navy",
-                  course.status === "wishlist" &&
-                    "bg-navy/10 text-navy border border-dashed border-border",
+                  course.status === "completed"
+                    ? "bg-teal/15 text-navy"
+                    : "bg-gold/15 text-navy",
                 )}
               >
-                {course.status === "completed" && "Lulus"}
-                {course.status === "planned" && "Direncanakan"}
-                {course.status === "wishlist" && "Wishlist"}
+                {course.status === "completed" ? "Lulus" : "Direncanakan"}
               </span>
             </div>
           </div>
@@ -364,23 +354,6 @@ export default function CourseInspectModal({
         {/* Modal Footer / Actions */}
         <div className="p-4 border-t border-border bg-background/50 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            {!completed && onToggleStatus && (
-              <button
-                type="button"
-                onClick={() => {
-                  const targetStatus =
-                    course.status === "wishlist" ? "planned" : "wishlist"
-                  onToggleStatus(course.id, currentSem, targetStatus)
-                }}
-                className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-border bg-surface text-navy hover:bg-navy/5 transition-colors flex items-center gap-1.5 cursor-pointer"
-              >
-                <Bookmark className="w-3.5 h-3.5 text-gold" />
-                {course.status === "wishlist"
-                  ? "Tandai Direncanakan"
-                  : "Pindahkan ke Wishlist"}
-              </button>
-            )}
-
             {!completed && onDeleteCourse && (
               <button
                 type="button"
