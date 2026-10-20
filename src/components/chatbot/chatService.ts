@@ -73,3 +73,22 @@ export const QUICK_PROMPTS = [
   "Rekomendasi matkul pilihan untuk peminatan Rekayasa Data di TSD.",
   "Bagaimana syarat kelulusan dan aturan batas SKS di FTMM?",
 ] as const
+
+export const INITIAL_CHAT_MESSAGES: ChatMessage[] = [
+  {
+    id: "init-1",
+    role: "assistant",
+    content:
+      "Halo! Saya **Compass AI**, asisten akademik pintar di FTMM Universitas Airlangga. 🧭\n\nSaya dapat membantu Anda menyusun **Rencana Studi (Study Planner)** yang dipersonalisasi sesuai minat karir dan aturan prasyarat kurikulum FTMM.\n\nAda yang bisa saya bantu hari ini?",
+  },
+]
+
+export const INITIAL_STUDENT_PROFILE: StudentProfileState = {
+  program_studi: null,
+  semester_saat_ini: null,
+  riwayat_matkul_lulus: [],
+  minat_fokus: [],
+  target_kelulusan_semester: 8,
+  maks_sks_per_semester: 24,
+  is_confirmed_by_user: false,
+}
