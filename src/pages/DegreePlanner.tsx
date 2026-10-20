@@ -8,7 +8,6 @@ import {
   PlacedCourse,
   SEMESTERS,
   TIMETABLE_DAYS,
-  INITIAL_PLAN,
   SemesterState,
   Tab,
   DegreePlannerProps,
@@ -16,6 +15,7 @@ import {
   getCourseReligion,
 } from "../components/degree-planner/types"
 import PlannerHeader from "../components/degree-planner/PlannerHeader"
+import { useDegreePlanStorage } from "../components/degree-planner/useDegreePlanStorage"
 import {
   SemesterColumn,
   ElectiveCourseBank,
@@ -46,13 +46,18 @@ export default function DegreePlanner({
   useEffect(() => {
     setActiveTab(initialTab || "roadmap")
   }, [initialTab])
-  const [plan, setPlan] = useState<Record<number, PlacedCourse[]>>(
-    customPlan || INITIAL_PLAN,
-  )
-
-  useEffect(() => {
-    setPlan(customPlan || INITIAL_PLAN)
-  }, [customPlan])
+  const {
+    drafts,
+    activeDraftId,
+    plan,
+    setPlan,
+    switchDraft,
+    createDraft,
+    duplicateCurrentDraft,
+    resetCurrentDraft,
+    isSaving,
+    lastSaved,
+  } = useDegreePlanStorage(customPlan)
 
   const [pickerSem, setPickerSem] = useState<number | null>(null)
   const [pickerSearch, setPickerSearch] = useState("")
@@ -485,6 +490,14 @@ export default function DegreePlanner({
             onResetPlan={onResetPlan}
             dragging={dragging}
             currentUser={currentUser}
+            drafts={drafts}
+            activeDraftId={activeDraftId}
+            onSwitchDraft={switchDraft}
+            onCreateDraft={(name, desc) => createDraft(name, desc)}
+            onDuplicateDraft={duplicateCurrentDraft}
+            onResetDraft={resetCurrentDraft}
+            isSaving={isSaving}
+            lastSaved={lastSaved}
           />
 
           {/* Semester Columns */}
@@ -638,7 +651,11 @@ export default function DegreePlanner({
 
             {/* Right Column: Timetable Grid (8 cols on desktop) */}
             <div className="lg:col-span-8 flex flex-col min-h-0 h-full">
-              <TimetableGrid schedule={dynamicSchedule} days={TIMETABLE_DAYS} />
+              <TimetableGrid
+                schedule={dynamicSchedule}
+                days={TIMETABLE_DAYS}
+                semester={activeTimetableSem}
+              />
             </div>
           </div>
         </div>

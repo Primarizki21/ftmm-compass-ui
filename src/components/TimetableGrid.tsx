@@ -1,6 +1,19 @@
-import { AlertTriangle } from "lucide-react"
+import { useState, useEffect } from "react"
+import {
+  AlertTriangle,
+  Share2,
+  Check,
+  Download,
+  Printer,
+  Sparkles,
+} from "lucide-react"
 import { cn } from "../utils"
 import type { ScheduleItem } from "../data"
+import {
+  copyTimetableShareUrl,
+  getSharedTimetableFromLocation,
+} from "../utils/timetableShare"
+import { exportTimetableToIcs } from "../utils/icsExport"
 
 const HOURS = Array.from({ length: 10 }, (_, i) => i + 7)
 
@@ -8,31 +21,208 @@ interface TimetableGridProps {
   schedule: ScheduleItem[]
   days: readonly string[]
   compact?: boolean
+  semester?: number
   onNavigate?: (
     page: string,
     options?: {
       tab?: "roadmap" | "timetable"
-      course?: any
+      course?: unknown
     },
   ) => void
   onItemClick?: (item: ScheduleItem) => void
+  onLoadSharedSchedule?: (items: ScheduleItem[], semester?: number) => void
+  showActions?: boolean
 }
 
 export default function TimetableGrid({
   schedule,
   days,
   compact,
+  semester,
   onNavigate,
   onItemClick,
+  onLoadSharedSchedule,
+  showActions = true,
 }: TimetableGridProps) {
-  const conflictingItems = schedule.filter((s) => s.conflict)
+  const [copied, setCopied] = useState(false)
+  const [exported, setExported] = useState(false)
+  const [sharedData, setSharedData] = useState<{
+    schedule: ScheduleItem[]
+    semester?: number
+  } | null>(null)
+
+  // Auto-read shared timetable from URL on mount
+  useEffect(() => {
+    const shared = getSharedTimetableFromLocation()
+    if (shared && shared.schedule.length > 0) {
+      setSharedData(shared)
+      onLoadSharedSchedule?.(shared.schedule, shared.semester)
+    }
+  }, [onLoadSharedSchedule])
+
+  const displayedSchedule = sharedData ? sharedData.schedule : schedule
+  const conflictingItems = displayedSchedule.filter((s) => s.conflict)
   const hasConflict = conflictingItems.length > 0
   const rowHeight = compact ? 38 : 44
+
+  const handleCopyLink = async () => {
+    const res = await copyTimetableShareUrl(displayedSchedule, semester)
+    if (res.success) {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  const handleExportIcs = () => {
+    const ok = exportTimetableToIcs(
+      displayedSchedule,
+      `jadwal-kuliah-ftmm${semester ? `-sem${semester}` : ""}.ics`,
+    )
+    if (ok) {
+      setExported(true)
+      setTimeout(() => setExported(false), 2000)
+    }
+  }
+
+  const handlePrint = () => {
+    if (typeof window !== "undefined") {
+      window.print()
+    }
+  }
+
+  const handleDismissShared = () => {
+    setSharedData(null)
+    if (
+      typeof window !== "undefined" &&
+      window.location.hash.includes("timetable")
+    ) {
+      history.replaceState(
+        null,
+        "",
+        window.location.pathname + window.location.search,
+      )
+    }
+  }
+
   return (
     <>
+      {/* Printable Header — Visible ONLY when printing */}
+      <div className="hidden print:block mb-4 border-b-2 border-navy pb-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-lg font-bold font-heading text-navy">
+              UNIVERSITAS AIRLANGGA
+            </h1>
+            <h2 className="text-sm font-semibold text-navy/90">
+              FAKULTAS TEKNOLOGI MAJU DAN MULTIDISIPLIN
+            </h2>
+            <p className="text-xs text-muted mt-0.5">
+              Jadwal Perkuliahan Mahasiswa{" "}
+              {semester ? `• Semester ${semester}` : "• Semester Aktif"}
+            </p>
+          </div>
+          <div className="text-right text-xs text-muted">
+            <p className="font-semibold text-navy">FTMM Compass Timetable</p>
+            <p>
+              {new Date().toLocaleDateString("id-ID", { dateStyle: "long" })}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Shared Timetable Banner */}
+      {sharedData && (
+        <div className="bg-teal/15 border border-teal/40 rounded-xl p-3 mb-3 flex items-center justify-between gap-3 text-xs text-navy flex-shrink-0 print:hidden animate-in fade-in duration-200">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-teal-dark flex-shrink-0" />
+            <span>
+              <strong>Jadwal Dimuat dari Tautan Berbagi:</strong> Menampilkan{" "}
+              {sharedData.schedule.length} kelas terjadwal.
+            </span>
+          </div>
+          <button
+            onClick={handleDismissShared}
+            className="px-2.5 py-1 rounded-lg bg-surface border border-border text-navy font-semibold hover:bg-navy/5 cursor-pointer transition-colors"
+          >
+            Kembali ke Jadwal Default
+          </button>
+        </div>
+      )}
+
+      {/* Timetable Action Bar (Sharing, Export ICS, Print/PDF) */}
+      {!compact && showActions && (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2.5 flex-shrink-0 print:hidden">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-navy bg-navy/5 border border-navy/15 px-2.5 py-1 rounded-lg">
+              {displayedSchedule.length} Kelas Terdaftar
+            </span>
+            {hasConflict && (
+              <span className="text-xs font-semibold text-danger bg-danger/10 border border-danger/30 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                {conflictingItems.length} Bentrok
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Share URL Button */}
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              title="Salin tautan jadwal ke clipboard ala NUSMods"
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-xs font-semibold border flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs",
+                copied
+                  ? "bg-teal/20 text-navy border-teal/50"
+                  : "bg-surface hover:bg-navy/5 text-navy border-border hover:border-navy/30",
+              )}
+            >
+              {copied ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-navy" />
+                  <span>Tautan Tersalin!</span>
+                </>
+              ) : (
+                <>
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>Salin Tautan Jadwal</span>
+                </>
+              )}
+            </button>
+
+            {/* Export ICS Button */}
+            <button
+              type="button"
+              onClick={handleExportIcs}
+              title="Ekspor ke iCalendar (.ics) untuk Google Calendar / Apple Calendar"
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-xs font-semibold border flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs",
+                exported
+                  ? "bg-gold/20 text-navy border-gold/50"
+                  : "bg-surface hover:bg-navy/5 text-navy border-border hover:border-navy/30",
+              )}
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>{exported ? "Terekspor!" : "Ekspor (.ics)"}</span>
+            </button>
+
+            {/* Print / Save PDF Button */}
+            <button
+              type="button"
+              onClick={handlePrint}
+              title="Cetak jadwal atau simpan sebagai dokumen PDF"
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold border bg-navy text-white hover:bg-navy-light border-navy flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>Cetak Jadwal / Simpan PDF</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Conflict banner — above grid in full mode */}
       {!compact && hasConflict && (
-        <div className="bg-danger/10 border border-danger/30 rounded-xl p-4 flex items-start gap-3 mb-4 flex-shrink-0">
+        <div className="bg-danger/10 border border-danger/30 rounded-xl p-4 flex items-start gap-3 mb-4 flex-shrink-0 print:hidden">
           <AlertTriangle className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" />
           <div className="flex-1">
             <h4 className="font-medium text-danger text-sm">
@@ -53,7 +243,7 @@ export default function TimetableGrid({
       {/* Timetable grid */}
       <div
         className={cn(
-          "overflow-auto",
+          "overflow-auto print-timetable-surface",
           !compact
             ? "flex-1 bg-surface border border-border rounded-xl shadow-xs relative"
             : "bg-surface relative",
@@ -124,7 +314,7 @@ export default function TimetableGrid({
                   key={day}
                   className="flex-1 border-r border-border/50 last:border-r-0 relative"
                 >
-                  {schedule
+                  {displayedSchedule
                     .filter((s) => s.day === day)
                     .map((item) => {
                       const top = (item.start - 7) * rowHeight
@@ -195,7 +385,7 @@ export default function TimetableGrid({
 
       {/* Conflict banner — below grid in compact mode */}
       {compact && hasConflict && (
-        <div className="px-5 pb-5">
+        <div className="px-5 pb-5 print:hidden">
           <div className="bg-danger/10 border border-danger/30 rounded-xl p-4 flex items-start gap-3">
             <AlertTriangle className="w-4 h-4 text-danger flex-shrink-0 mt-0.5" />
             <div className="flex-1">
@@ -216,7 +406,7 @@ export default function TimetableGrid({
               onClick={() =>
                 onNavigate?.("degree-planner", { tab: "timetable" })
               }
-              className="text-xs font-medium text-danger hover:underline flex-shrink-0 whitespace-nowrap"
+              className="text-xs font-medium text-danger hover:underline flex-shrink-0 whitespace-nowrap cursor-pointer"
             >
               Perbaiki &rarr;
             </button>

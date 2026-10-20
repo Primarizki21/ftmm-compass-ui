@@ -1,6 +1,6 @@
 import { type AuthUser } from "../../services/authService"
 import React from "react"
-import { Course, TIMETABLE_DAYS, ScheduleItem } from "../../data"
+import { type Course, TIMETABLE_DAYS, type ScheduleItem } from "../../data"
 
 export { TIMETABLE_DAYS }
 export const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8] as const
