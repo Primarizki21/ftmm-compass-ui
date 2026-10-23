@@ -48,6 +48,11 @@ export default function CourseFinder({
   currentUser,
 }: CourseFinderProps) {
   const [searchQuery, setSearchQuery] = useState("")
+  const [selectedType, setSelectedType] = useState<"all" | "Wajib" | "Pilihan">(
+    "all",
+  )
+  const [selectedAvailability, setSelectedAvailability] =
+    useState<"all" | "open" | "closed">("all")
   const [selectedParity, setSelectedParity] = useState<"all" | "odd" | "even">(
     "all",
   )
@@ -126,7 +131,23 @@ export default function CourseFinder({
     }
   }, [])
 
+  const rankedCourseCodes = useMemo(() => {
+    const list = courses
+      .map((c) => ({
+        key: c.code || c.id,
+        votes: demandStats[c.id] || demandStats[c.code || ""] || 0,
+      }))
+      .filter((it) => it.votes > 0)
+      .sort((a, b) => b.votes - a.votes)
+    const map: Record<string, number> = {}
+    list.forEach((it, idx) => {
+      map[it.key] = idx + 1
+    })
+    return map
+  }, [courses, demandStats])
+
   const filtered = useMemo(() => {
+    const minQ = pollingPeriod?.min_quorum || 15
     const list = courses.filter((c) => {
       const q = searchQuery.toLowerCase().trim()
       const matchesSearch =
@@ -143,6 +164,16 @@ export default function CourseFinder({
         Boolean(
           c.prodiAbbr && getProdiAbbreviation(activeProgram) === c.prodiAbbr,
         )
+
+      const matchesType = selectedType === "all" || c.type === selectedType
+
+      const votes = demandStats[c.id] || demandStats[c.code || ""] || 0
+      const isCourseOpen = c.type === "Wajib" || votes >= minQ
+
+      const matchesAvailability =
+        selectedAvailability === "all" ||
+        (selectedAvailability === "open" && isCourseOpen) ||
+        (selectedAvailability === "closed" && !isCourseOpen)
 
       const matchesParity =
         selectedParity === "all" || c.parity === selectedParity
@@ -161,6 +192,8 @@ export default function CourseFinder({
       return (
         matchesSearch &&
         matchesProgram &&
+        matchesType &&
+        matchesAvailability &&
         matchesParity &&
         matchesCredits &&
         matchesCategory
@@ -168,7 +201,11 @@ export default function CourseFinder({
     })
 
     if (filterMostDemanded) {
-      return [...list].sort((a, b) => {
+      const withVotes = list.filter(
+        (c) => (demandStats[c.id] || demandStats[c.code || ""] || 0) > 0,
+      )
+      const targetList = withVotes.length > 0 ? withVotes : list
+      return [...targetList].sort((a, b) => {
         const aVotes = demandStats[a.id] || demandStats[a.code || ""] || 0
         const bVotes = demandStats[b.id] || demandStats[b.code || ""] || 0
         return bVotes - aVotes
@@ -180,13 +217,15 @@ export default function CourseFinder({
     courses,
     searchQuery,
     activeProgram,
+    selectedType,
+    selectedAvailability,
     selectedParity,
     selectedCredits,
     selectedCategory,
     filterMostDemanded,
     demandStats,
+    pollingPeriod,
   ])
-
   const myVoteMap = useMemo(() => {
     const map: Record<string, StudentVote> = {}
     myVotes.forEach((v) => {
@@ -253,6 +292,8 @@ export default function CourseFinder({
   const hasActiveFilters =
     searchQuery.trim() !== "" ||
     activeProgram !== "all" ||
+    selectedType !== "all" ||
+    selectedAvailability !== "all" ||
     selectedParity !== "all" ||
     selectedCredits !== "all" ||
     selectedCategory !== "all" ||
@@ -260,6 +301,8 @@ export default function CourseFinder({
   const handleResetFilters = () => {
     setSearchQuery("")
     setActiveProgram("all")
+    setSelectedType("all")
+    setSelectedAvailability("all")
     setSelectedParity("all")
     setSelectedCredits("all")
     setSelectedCategory("all")
@@ -360,6 +403,46 @@ export default function CourseFinder({
         {/* Secondary Filter Controls: Parity, SKS Dropdown, PDB Category Dropdown */}
         <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-border/50 text-xs">
           <div className="flex flex-wrap items-center gap-2">
+            {/* Type Selector: Semua Tipe, Wajib, Pilihan */}
+            <div className="inline-flex rounded-lg border border-border bg-background p-0.5">
+              <button
+                type="button"
+                onClick={() => setSelectedType("all")}
+                className={cn(
+                  "px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer",
+                  selectedType === "all"
+                    ? "bg-navy text-white font-semibold"
+                    : "text-muted hover:text-navy",
+                )}
+              >
+                Semua Tipe
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedType("Wajib")}
+                className={cn(
+                  "px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer",
+                  selectedType === "Wajib"
+                    ? "bg-navy text-white font-semibold"
+                    : "text-muted hover:text-navy",
+                )}
+              >
+                Wajib
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedType("Pilihan")}
+                className={cn(
+                  "px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer",
+                  selectedType === "Pilihan"
+                    ? "bg-gold text-navy font-bold shadow-xs"
+                    : "text-muted hover:text-navy",
+                )}
+              >
+                Pilihan
+              </button>
+            </div>
+
             {/* Parity Selector */}
             <div className="inline-flex rounded-lg border border-border bg-background p-0.5">
               <button
@@ -437,7 +520,27 @@ export default function CourseFinder({
                 <GraduationCap className="w-3.5 h-3.5" />
               </div>
             </div>
-            {/* Pill Filter Cepat: Paling Diminati */}
+
+            {/* Status Ketersediaan Kelas Dropdown */}
+            <div className="relative">
+              <select
+                value={selectedAvailability}
+                onChange={(e) =>
+                  setSelectedAvailability(
+                    e.target.value as "all" | "open" | "closed",
+                  )
+                }
+                className="h-8 pl-3 pr-8 rounded-lg border border-border bg-background text-xs font-medium text-foreground hover:border-gold focus:border-gold focus:ring-1 focus:ring-gold outline-hidden cursor-pointer appearance-none transition-colors"
+                aria-label="Filter Ketersediaan Kelas"
+              >
+                <option value="all">Status Kelas: Semua</option>
+                <option value="open">Dibuka Semester Ini</option>
+                <option value="closed">Ditutup Semester Ini</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-muted">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+              </div>
+            </div>
             <button
               type="button"
               onClick={() => setFilterMostDemanded(!filterMostDemanded)}
@@ -538,66 +641,133 @@ export default function CourseFinder({
                       )}
                     </div>
                   </div>
-                  <span
-                    className={cn(
-                      "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider flex-shrink-0",
-                      course.type === "Wajib"
-                        ? "bg-navy/8 text-navy"
-                        : "bg-gold/10 text-navy",
-                    )}
-                  >
-                    {course.type}
-                  </span>
-                </div>
-                {course.type === "Pilihan" && (
-                  <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-background border border-border/70 text-xs">
-                    <div className="flex items-center gap-1.5 font-medium text-[11px] text-muted">
-                      <Flame className="w-3.5 h-3.5 text-orange flex-shrink-0" />
-                      <span>
-                        <strong className="text-navy font-mono font-bold">
-                          {demandStats[course.id] ||
-                            demandStats[course.code || ""] ||
-                            0}
-                        </strong>{" "}
-                        peminat / Min. {pollingPeriod?.min_quorum || 15}
-                      </span>
-                    </div>
-                    {currentUser?.role === "student" &&
+                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                    <span
+                      className={cn(
+                        "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider",
+                        course.type === "Wajib"
+                          ? "bg-navy/8 text-navy"
+                          : "bg-gold/10 text-navy",
+                      )}
+                    >
+                      {course.type}
+                    </span>
+                    {course.type === "Pilihan" &&
                       (() => {
-                        const vote =
-                          myVoteMap[course.id] ||
-                          (course.code ? myVoteMap[course.code] : undefined)
-                        const targetSem = course.semester || 6
+                        const votes =
+                          demandStats[course.id] ||
+                          demandStats[course.code || ""] ||
+                          0
+                        const minQ = pollingPeriod?.min_quorum || 15
+                        const isElectiveOpen = votes >= minQ
                         return (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleOpenPriorityModal(course)
-                            }}
+                          <span
                             className={cn(
-                              "px-2 py-1 rounded-md text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-xs",
-                              vote
-                                ? "bg-gold text-navy hover:bg-gold/90"
-                                : "bg-navy text-white hover:bg-navy-light",
+                              "px-1.5 py-0.5 rounded text-[9px] font-bold",
+                              isElectiveOpen
+                                ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                                : "bg-zinc-100 text-zinc-700 border border-zinc-200",
                             )}
                           >
-                            <Star
-                              className={cn(
-                                "w-3 h-3",
-                                vote ? "fill-navy text-navy" : "text-gold",
-                              )}
-                            />
-                            <span>
-                              {vote
-                                ? `★ Di Wishlist (Prioritas ${vote.priority})`
-                                : `☆ Wishlist Sem ${targetSem}`}
-                            </span>
-                          </button>
+                            {isElectiveOpen ? "Dibuka" : "Ditutup"}
+                          </span>
                         )
                       })()}
                   </div>
-                )}
+                </div>
+                {course.type === "Pilihan" &&
+                  (() => {
+                    const votes =
+                      demandStats[course.id] ||
+                      demandStats[course.code || ""] ||
+                      0
+                    const minQ = pollingPeriod?.min_quorum || 15
+                    const isElectiveOpen = votes >= minQ
+                    const rank = rankedCourseCodes[course.code || course.id]
+                    return (
+                      <div className="flex flex-col gap-2 p-2.5 rounded-lg bg-background border border-border/70 text-xs">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 font-medium text-[11px] text-muted">
+                            <Flame
+                              className={cn(
+                                "w-3.5 h-3.5 flex-shrink-0",
+                                votes > 0 ? "text-orange" : "text-muted",
+                              )}
+                            />
+                            <span>
+                              <strong className="text-navy font-mono font-bold">
+                                {votes}
+                              </strong>{" "}
+                              peminat / Min. {minQ}
+                            </span>
+                          </div>
+                          {rank && votes > 0 && (
+                            <span className="text-[10px] font-bold text-orange bg-orange/10 px-1.5 py-0.5 rounded border border-orange/20">
+                              #{rank} Paling Diminati
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-border/40 text-[11px]">
+                          <span
+                            className={cn(
+                              "font-medium",
+                              isElectiveOpen
+                                ? "text-emerald-700"
+                                : "text-muted",
+                            )}
+                          >
+                            {isElectiveOpen
+                              ? "Tersedia Kelas Kuliah"
+                              : "Ditutup Semester Ini"}
+                          </span>
+                          {currentUser?.role === "student" &&
+                            (() => {
+                              const vote =
+                                myVoteMap[course.id] ||
+                                (course.code
+                                  ? myVoteMap[course.code]
+                                  : undefined)
+                              const targetSem = course.semester || 6
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleOpenPriorityModal(course)
+                                  }}
+                                  className={cn(
+                                    "px-2 py-1 rounded-md text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-xs",
+                                    vote
+                                      ? "bg-gold text-navy hover:bg-gold/90"
+                                      : "bg-navy text-white hover:bg-navy-light",
+                                  )}
+                                  title={
+                                    vote
+                                      ? "Perbarui prioritas voting Pra-KRS"
+                                      : "Beri vote prioritas agar kelas dibuka di semester mendatang"
+                                  }
+                                >
+                                  <Star
+                                    className={cn(
+                                      "w-3 h-3",
+                                      vote
+                                        ? "fill-navy text-navy"
+                                        : "text-gold",
+                                    )}
+                                  />
+                                  <span>
+                                    {vote
+                                      ? `★ Wishlist P${vote.priority}`
+                                      : `☆ Vote Sem ${targetSem}`}
+                                  </span>
+                                </button>
+                              )
+                            })()}
+                        </div>
+                      </div>
+                    )
+                  })()}
                 <p className="text-xs text-muted line-clamp-2 leading-relaxed">
                   {course.desc}
                 </p>
@@ -644,6 +814,8 @@ export default function CourseFinder({
           setSelectedCourse(null)
         }}
         currentUser={currentUser}
+        demandStats={demandStats}
+        minQuorum={pollingPeriod?.min_quorum || 15}
       />
 
       {/* Priority & Wishlist Selection Modal */}

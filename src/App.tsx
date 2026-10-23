@@ -17,6 +17,12 @@ import Dashboard from "./pages/Dashboard"
 import CourseFinder from "./pages/CourseFinder"
 import DegreePlanner, { PlacedCourse } from "./pages/DegreePlanner"
 import Chatbot, { DegreePlanPayload } from "./pages/Chatbot"
+import {
+  INITIAL_CHAT_MESSAGES,
+  INITIAL_STUDENT_PROFILE,
+  type ChatMessage,
+  type StudentProfileState,
+} from "./components/chatbot/chatService"
 import Profile from "./pages/Profile"
 import Login from "./pages/Login"
 import ErrorBoundary from "./components/ErrorBoundary"
@@ -50,6 +56,15 @@ export default function App() {
   const [plannerInitialTab, setPlannerInitialTab] =
     useState<"roadmap" | "timetable">("roadmap")
   const [finderInitialCourse, setFinderInitialCourse] = useState<Course | null>(
+    null,
+  )
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(
+    INITIAL_CHAT_MESSAGES,
+  )
+  const [chatProfile, setChatProfile] = useState<StudentProfileState>(
+    INITIAL_STUDENT_PROFILE,
+  )
+  const [chatAppliedPlanId, setChatAppliedPlanId] = useState<string | null>(
     null,
   )
   const academicPeriod = getCurrentAcademicPeriod()
@@ -117,6 +132,9 @@ export default function App() {
     setCurrentUser(null)
     setIsLoggedIn(false)
     setIsLogoutModalOpen(false)
+    setChatMessages(INITIAL_CHAT_MESSAGES)
+    setChatProfile(INITIAL_STUDENT_PROFILE)
+    setChatAppliedPlanId(null)
     setActivePage("dashboard")
   }
   const navItems = useMemo(() => {
@@ -358,7 +376,20 @@ export default function App() {
                 />
               )}
               {activePage === "chatbot" && (
-                <Chatbot onApplyPlan={handleApplyPlanFromChatbot} />
+                <Chatbot
+                  messages={chatMessages}
+                  onMessagesChange={setChatMessages}
+                  profile={chatProfile}
+                  onProfileChange={setChatProfile}
+                  appliedPlanId={chatAppliedPlanId}
+                  onAppliedPlanIdChange={setChatAppliedPlanId}
+                  onResetChat={() => {
+                    setChatMessages(INITIAL_CHAT_MESSAGES)
+                    setChatProfile(INITIAL_STUDENT_PROFILE)
+                    setChatAppliedPlanId(null)
+                  }}
+                  onApplyPlan={handleApplyPlanFromChatbot}
+                />
               )}
               {activePage === "profile" && (
                 <Profile

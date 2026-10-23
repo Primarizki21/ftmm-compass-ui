@@ -7,8 +7,12 @@ import {
   Clock,
   Bookmark,
   GripVertical,
+  FolderGit2,
+  Copy,
+  Plus,
 } from "lucide-react"
 import { PlacedCourse, isSemLocked } from "./types"
+import type { DegreePlanDraft } from "./useDegreePlanStorage"
 
 interface PlannerHeaderProps {
   appliedSummary?: {
@@ -25,6 +29,14 @@ interface PlannerHeaderProps {
     fromIndex?: number
   } | null
   currentUser?: AuthUser | null
+  drafts?: DegreePlanDraft[]
+  activeDraftId?: string
+  onSwitchDraft?: (draftId: string) => void
+  onCreateDraft?: (name: string, description?: string) => void
+  onDuplicateDraft?: () => void
+  onResetDraft?: () => void
+  isSaving?: boolean
+  lastSaved?: Date | null
 }
 
 const LEGEND_ITEMS = [
@@ -59,7 +71,17 @@ export default function PlannerHeader({
   onResetPlan,
   dragging,
   currentUser,
+  drafts,
+  activeDraftId,
+  onSwitchDraft,
+  onCreateDraft,
+  onDuplicateDraft,
+  onResetDraft,
+  isSaving,
+  lastSaved,
 }: PlannerHeaderProps) {
+  const activeDraft = drafts?.find((d) => d.id === activeDraftId)
+
   return (
     <>
       {/* AI Generated Plan Banner */}
@@ -127,6 +149,113 @@ export default function PlannerHeader({
           <span className="font-mono text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-surface border border-border">
             Advising Mode
           </span>
+        </div>
+      )}
+
+      {/* Multi-Draft Scenario Selector Card */}
+      {drafts && drafts.length > 0 && (
+        <div className="mb-4 p-3.5 bg-surface border border-border rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-2xs">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-navy/10 text-navy">
+                <FolderGit2 className="w-4 h-4" />
+              </div>
+              <div>
+                <label
+                  htmlFor="draft-selector"
+                  className="text-xs font-semibold text-navy block"
+                >
+                  Skenario Rencana Studi
+                </label>
+                <span className="text-[11px] text-muted">
+                  {activeDraft?.description || "Penyimpanan otomatis peramban"}
+                </span>
+              </div>
+            </div>
+
+            {/* Dropdown Selector */}
+            <div className="flex items-center gap-2">
+              <select
+                id="draft-selector"
+                value={activeDraftId}
+                onChange={(e) => onSwitchDraft?.(e.target.value)}
+                className="text-xs font-medium px-3 py-1.5 rounded-lg bg-background border border-border text-navy focus:outline-none focus:ring-1 focus:ring-navy cursor-pointer"
+              >
+                {drafts.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Actions & Status */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Auto-save status indicator */}
+            <div className="flex items-center gap-1.5 text-[11px] font-mono mr-1">
+              {isSaving ? (
+                <span className="text-warning flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-warning animate-pulse" />
+                  Menyimpan...
+                </span>
+              ) : (
+                <span className="text-muted flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-teal-dark" />
+                  {lastSaved
+                    ? `Tersimpan ${lastSaved.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`
+                    : "Tersimpan di peramban"}
+                </span>
+              )}
+            </div>
+
+            {/* Reset Draft to Default */}
+            {onResetDraft && (
+              <button
+                type="button"
+                onClick={onResetDraft}
+                title="Reset susunan skenario saat ini ke default"
+                className="px-2.5 py-1 text-xs font-medium text-navy hover:bg-navy/5 rounded-lg border border-border flex items-center gap-1 cursor-pointer transition-colors"
+              >
+                <RotateCcw className="w-3 h-3 text-muted" />
+                Reset
+              </button>
+            )}
+
+            {/* Duplicate Draft */}
+            {onDuplicateDraft && (
+              <button
+                type="button"
+                onClick={onDuplicateDraft}
+                title="Salin skenario aktif sebagai draft baru"
+                className="px-2.5 py-1 text-xs font-medium text-navy hover:bg-navy/5 rounded-lg border border-border flex items-center gap-1 cursor-pointer transition-colors"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                Salin Skenario
+              </button>
+            )}
+
+            {/* New Draft */}
+            {onCreateDraft && (
+              <button
+                type="button"
+                onClick={() => {
+                  const name = window.prompt(
+                    "Nama skenario / draft baru:",
+                    `Draft ${(drafts?.length || 0) + 1}`,
+                  )
+                  if (name && name.trim()) {
+                    onCreateDraft(name.trim())
+                  }
+                }}
+                title="Buat skenario rencana studi baru"
+                className="px-2.5 py-1 text-xs font-semibold text-white bg-navy hover:bg-navy-light rounded-lg flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Skenario Baru
+              </button>
+            )}
+          </div>
         </div>
       )}
 

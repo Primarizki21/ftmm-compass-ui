@@ -6,6 +6,7 @@ import {
   GraduationCap,
   BookOpen,
   User,
+  AlertTriangle,
 } from "lucide-react"
 import { cn } from "../../utils"
 import { Course } from "../../data"
@@ -21,6 +22,8 @@ export interface CourseQuickModalProps {
   onAddToPlanner: (course: Course) => void
   onOpenDetail: (course: Course) => void
   currentUser?: AuthUser | null
+  demandStats?: Record<string, number>
+  minQuorum?: number
 }
 
 export default function CourseQuickModal({
@@ -31,8 +34,15 @@ export default function CourseQuickModal({
   onAddToPlanner,
   onOpenDetail,
   currentUser,
+  demandStats,
+  minQuorum = 15,
 }: CourseQuickModalProps) {
   if (!course) return null
+
+  const votes = demandStats
+    ? demandStats[course.id] || demandStats[course.code || ""] || 0
+    : 0
+  const isElectiveOpen = course.type === "Wajib" || votes >= minQuorum
 
   return (
     <div
@@ -84,6 +94,20 @@ export default function CourseQuickModal({
               <span className="px-2.5 py-1 bg-gold/20 text-gold rounded-md text-xs font-bold uppercase tracking-wide backdrop-blur-sm border border-gold/30">
                 {course.type}
               </span>
+              {course.type === "Pilihan" && (
+                <span
+                  className={cn(
+                    "px-2.5 py-1 rounded-md text-xs font-bold backdrop-blur-sm",
+                    isElectiveOpen
+                      ? "bg-emerald-500/20 text-emerald-200 border border-emerald-300/40"
+                      : "bg-white/10 text-white/80 border border-white/20",
+                  )}
+                >
+                  {isElectiveOpen
+                    ? "Dibuka Semester Ini"
+                    : "Ditutup Semester Ini"}
+                </span>
+              )}
               <span className="px-2.5 py-1 bg-white/10 rounded-md text-xs font-medium backdrop-blur-sm">
                 {course.parity === "odd" ? "Sem Ganjil" : "Sem Genap"}
               </span>
@@ -107,6 +131,24 @@ export default function CourseQuickModal({
 
         {/* Modal Body */}
         <div className="p-6 overflow-y-auto flex-1 space-y-5">
+          {course.type === "Pilihan" && !isElectiveOpen && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex items-start gap-3">
+              <div className="p-1.5 bg-amber-100 text-amber-800 rounded-lg flex-shrink-0 mt-0.5">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+              <div className="text-xs">
+                <div className="font-bold text-amber-900 mb-0.5">
+                  Kelas Ditutup Semester Ini
+                </div>
+                <p className="text-amber-800 leading-relaxed">
+                  Mata kuliah pilihan ini sedang tidak dibuka kelasnya pada
+                  semester berjalan karena keterbatasan alokasi dosen/ruang.
+                  Mahasiswa dapat memberikan vote Pra-KRS di Course Finder agar
+                  dipertimbangkan untuk dibuka pada semester mendatang.
+                </p>
+              </div>
+            </div>
+          )}
           {course.category === "pdb_univ" && (
             <div className="bg-purple-50 border border-purple-200 rounded-xl p-3.5 flex items-start gap-3">
               <div className="p-1.5 bg-purple-100 text-purple-700 rounded-lg flex-shrink-0 mt-0.5">
@@ -269,17 +311,28 @@ export default function CourseQuickModal({
             <button
               type="button"
               onClick={() => onAddToPlanner(course)}
-              disabled={addedCourseIds.has(course.id)}
+              disabled={addedCourseIds.has(course.id) || !isElectiveOpen}
+              title={
+                !isElectiveOpen
+                  ? "Kelas ditutup pada semester berjalan"
+                  : undefined
+              }
               className={cn(
                 "py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 cursor-pointer",
                 addedCourseIds.has(course.id)
                   ? "bg-teal/10 text-teal border border-teal/30 cursor-default"
-                  : "bg-navy text-white hover:bg-navy-light",
+                  : !isElectiveOpen
+                    ? "bg-muted/20 text-muted border border-border cursor-not-allowed opacity-60"
+                    : "bg-navy text-white hover:bg-navy-light",
               )}
             >
               {addedCourseIds.has(course.id) ? (
                 <>
                   <CheckCircle2 className="w-4 h-4" /> Ditambahkan
+                </>
+              ) : !isElectiveOpen ? (
+                <>
+                  <X className="w-4 h-4" /> Kelas Ditutup
                 </>
               ) : (
                 <>

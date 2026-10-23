@@ -1,6 +1,6 @@
 import { type AuthUser } from "../../services/authService"
 import React from "react"
-import { Course, TIMETABLE_DAYS, ScheduleItem } from "../../data"
+import { type Course, TIMETABLE_DAYS, type ScheduleItem } from "../../data"
 
 export { TIMETABLE_DAYS }
 export const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8] as const
@@ -84,7 +84,7 @@ export const INITIAL_PLAN: Record<number, PlacedCourse[]> = {
       type: "Pilihan",
       desc: "",
       parity: "even",
-      status: "wishlist",
+      status: "planned",
     },
   ],
 }
@@ -94,8 +94,7 @@ export const isCompleted = (c: PlacedCourse): boolean =>
   c.status === "completed"
 
 // Wajib courses cannot be moved across semesters (intra-semester reordering only)
-export const isSemLocked = (c: PlacedCourse): boolean =>
-  c.type === "Wajib" && c.status !== "wishlist"
+export const isSemLocked = (c: PlacedCourse): boolean => c.type === "Wajib"
 
 export const isOdd = (sem: number): boolean => sem % 2 === 1
 

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react"
-import { Send, Bot, Sparkles, AlertCircle } from "lucide-react"
+import { Send, Bot, Sparkles, AlertCircle, RotateCcw } from "lucide-react"
 import { cn } from "../utils"
 import MarkdownRenderer from "../components/MarkdownRenderer"
 import {
@@ -8,8 +8,12 @@ import {
   ChatMessage,
   BACKEND_API_URL,
   BACKEND_STREAM_URL,
+  BACKEND_HEALTH_URL,
+  BACKEND_LEGACY_HEALTH_URL,
   sanitizeErrorMessage,
   QUICK_PROMPTS,
+  INITIAL_CHAT_MESSAGES,
+  INITIAL_STUDENT_PROFILE,
 } from "../components/chatbot/chatService"
 import DegreePlanActionCard from "../components/chatbot/DegreePlanActionCard"
 
@@ -22,35 +26,71 @@ interface ApiChatErrorDetail {
 
 interface ChatbotProps {
   onApplyPlan?: (payload: DegreePlanPayload) => void
+  messages?: ChatMessage[]
+  onMessagesChange?: React.Dispatch<React.SetStateAction<ChatMessage[]>>
+  profile?: StudentProfileState
+  onProfileChange?: React.Dispatch<React.SetStateAction<StudentProfileState>>
+  appliedPlanId?: string | null
+  onAppliedPlanIdChange?: (id: string | null) => void
+  onResetChat?: () => void
 }
 
-export default function Chatbot({ onApplyPlan }: ChatbotProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: "init-1",
-      role: "assistant",
-      content:
-        "Halo! Saya **Compass AI**, asisten akademik pintar di FTMM Universitas Airlangga. 🧭\n\nSaya dapat membantu Anda menyusun **Rencana Studi (Study Planner)** yang dipersonalisasi sesuai minat karir dan aturan prasyarat kurikulum FTMM.\n\nAda yang bisa saya bantu hari ini?",
-    },
-  ])
+export default function Chatbot({
+  onApplyPlan,
+  messages: externalMessages,
+  onMessagesChange: setExternalMessages,
+  profile: externalProfile,
+  onProfileChange: setExternalProfile,
+  appliedPlanId: externalAppliedPlanId,
+  onAppliedPlanIdChange: setExternalAppliedPlanId,
+  onResetChat,
+}: ChatbotProps) {
+  const [internalMessages, setInternalMessages] = useState<ChatMessage[]>(
+    INITIAL_CHAT_MESSAGES,
+  )
+  const messages = externalMessages ?? internalMessages
+  const setMessages = setExternalMessages ?? setInternalMessages
+
+  const [internalProfile, setInternalProfile] = useState<StudentProfileState>(
+    INITIAL_STUDENT_PROFILE,
+  )
+  const profile = externalProfile ?? internalProfile
+  const setProfile = setExternalProfile ?? setInternalProfile
+
+  const [internalAppliedPlanId, setInternalAppliedPlanId] =
+    useState<string | null>(null)
+  const appliedPlanId =
+    externalAppliedPlanId !== undefined
+      ? externalAppliedPlanId
+      : internalAppliedPlanId
+  const setAppliedPlanId = (id: string | null) => {
+    if (setExternalAppliedPlanId) {
+      setExternalAppliedPlanId(id)
+    } else {
+      setInternalAppliedPlanId(id)
+    }
+  }
+
+  const handleReset = () => {
+    if (onResetChat) {
+      onResetChat()
+    } else {
+      setInternalMessages(INITIAL_CHAT_MESSAGES)
+      setInternalProfile(INITIAL_STUDENT_PROFILE)
+      setInternalAppliedPlanId(null)
+    }
+  }
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [profile, setProfile] = useState<StudentProfileState>({
-    program_studi: null,
-    semester_saat_ini: null,
-    riwayat_matkul_lulus: [],
-    minat_fokus: [],
-    target_kelulusan_semester: 8,
-    maks_sks_per_semester: 24,
-    is_confirmed_by_user: false,
-  })
-  const [appliedPlanId, setAppliedPlanId] = useState<string | null>(null)
   const [backendStatus, setBackendStatus] = useState<{
     status?: string
     service?: string
     ollama_online?: boolean
     chatbot_service_online?: boolean
     chatbot_model?: string
+    default_model?: string
+    bonsai_online?: boolean
+    generator_model?: string
     ollama?: {
       online?: boolean
       host?: string
@@ -59,12 +99,31 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
   } | null>(null)
 
   useEffect(() => {
-    fetch("/api/v1/health")
+    fetch(BACKEND_HEALTH_URL, { signal: AbortSignal.timeout(4000) })
       .then((res) =>
-        res.ok ? res.json() : fetch("/api/health").then((r) => r.json()),
+        res.ok
+          ? res.json()
+          : fetch(BACKEND_LEGACY_HEALTH_URL, {
+              signal: AbortSignal.timeout(4000),
+            }).then((r) => (r.ok ? r.json() : null)),
       )
       .then((data) => {
-        if (data) setBackendStatus(data)
+        if (data) {
+          setBackendStatus({
+            ...data,
+            chatbot_service_online:
+              data.chatbot_service_online ??
+              (data.status === "healthy" ||
+                data.status === "ok" ||
+                data.status === "online" ||
+                Boolean(data.ollama_online || data.bonsai_online)),
+            chatbot_model:
+              data.chatbot_model ||
+              data.default_model ||
+              data.generator_model ||
+              "Hybrid Engine",
+          })
+        }
       })
       .catch(() => {})
   }, [])
@@ -304,20 +363,31 @@ export default function Chatbot({ onApplyPlan }: ChatbotProps) {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 relative z-10">
-          <span
-            className={cn(
-              "w-2 h-2 rounded-full",
-              backendStatus?.chatbot_service_online
-                ? "bg-teal animate-pulse"
-                : "bg-warning animate-pulse",
-            )}
-          />
-          <span className="text-xs font-mono text-white/80">
-            {backendStatus?.chatbot_service_online
-              ? `Live • ${backendStatus.chatbot_model || "Hybrid Engine"}`
-              : "Rule Engine Fallback"}
-          </span>
+        <div className="flex items-center gap-2.5 relative z-10">
+          <div className="flex items-center gap-2">
+            <span
+              className={cn(
+                "w-2 h-2 rounded-full",
+                backendStatus?.chatbot_service_online
+                  ? "bg-teal animate-pulse"
+                  : "bg-warning animate-pulse",
+              )}
+            />
+            <span className="text-xs font-mono text-white/80">
+              {backendStatus?.chatbot_service_online
+                ? `Live • ${backendStatus.chatbot_model || "Hybrid Engine"}`
+                : "Rule Engine Fallback"}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={handleReset}
+            title="Reset percakapan ke awal"
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg bg-white/10 hover:bg-white/20 text-white/90 hover:text-white transition-colors cursor-pointer border border-white/10"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Reset Chat</span>
+          </button>
         </div>
       </div>
 
