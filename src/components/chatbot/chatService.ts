@@ -43,10 +43,123 @@ export interface ChatMessage {
   latency_ms?: number
 }
 
-export const BACKEND_API_URL =
-  import.meta.env.VITE_BACKEND_API_URL || "/api/v1/chat"
-export const BACKEND_STREAM_URL =
-  import.meta.env.VITE_BACKEND_STREAM_URL || "/api/v1/chat/stream"
+function resolveBackendApiUrl(rawApiUrl?: string): string {
+  const trimmed = (rawApiUrl || "").trim()
+  if (!trimmed) return "/api/v1/chat"
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    try {
+      const url = new URL(trimmed)
+      if (url.pathname === "" || url.pathname === "/") {
+        return `${url.origin}/api/v1/chat`
+      }
+    } catch {}
+  }
+  return trimmed
+}
+
+function resolveBackendStreamUrl(
+  rawStreamUrl?: string,
+  apiUrl: string = BACKEND_API_URL,
+): string {
+  const trimmedStream = (rawStreamUrl || "").trim()
+  if (trimmedStream) return trimmedStream
+
+  const trimmedApi = apiUrl.trim()
+  if (trimmedApi.startsWith("http://") || trimmedApi.startsWith("https://")) {
+    try {
+      const url = new URL(trimmedApi)
+      if (url.pathname.endsWith("/api/v1/chat")) {
+        const basePath = url.pathname.slice(0, -"/api/v1/chat".length)
+        return `${url.origin}${basePath}/api/v1/chat/stream`
+      }
+      if (url.pathname.endsWith("/api/chat")) {
+        const basePath = url.pathname.slice(0, -"/api/chat".length)
+        return `${url.origin}${basePath}/api/chat/stream`
+      }
+      if (url.pathname.endsWith("/chat")) {
+        const basePath = url.pathname.slice(0, -"/chat".length)
+        return `${url.origin}${basePath}/chat/stream`
+      }
+      const cleanPath = url.pathname.replace(/\/+$/, "")
+      return `${url.origin}${cleanPath}/api/v1/chat/stream`
+    } catch {}
+  }
+
+  return "/api/v1/chat/stream"
+}
+
+export function resolveBackendHealthUrl(
+  apiUrl: string = BACKEND_API_URL,
+): string {
+  const trimmed = apiUrl.trim()
+  if (!trimmed || trimmed === "/api/v1/chat" || trimmed === "/api/chat") {
+    return "/api/v1/health"
+  }
+
+  try {
+    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+      const url = new URL(trimmed)
+      if (url.pathname.endsWith("/api/v1/chat")) {
+        const basePath = url.pathname.slice(0, -"/api/v1/chat".length)
+        return `${url.origin}${basePath}/api/v1/health`
+      }
+      if (url.pathname.endsWith("/api/chat")) {
+        const basePath = url.pathname.slice(0, -"/api/chat".length)
+        return `${url.origin}${basePath}/api/v1/health`
+      }
+      if (url.pathname.endsWith("/chat")) {
+        const basePath = url.pathname.slice(0, -"/chat".length)
+        return `${url.origin}${basePath}/api/v1/health`
+      }
+      const cleanPath = url.pathname.replace(/\/+$/, "")
+      return `${url.origin}${cleanPath}/api/v1/health`
+    }
+  } catch {}
+
+  return "/api/v1/health"
+}
+
+export function resolveBackendLegacyHealthUrl(
+  apiUrl: string = BACKEND_API_URL,
+): string {
+  const trimmed = apiUrl.trim()
+  if (!trimmed || trimmed === "/api/v1/chat" || trimmed === "/api/chat") {
+    return "/api/health"
+  }
+
+  try {
+    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+      const url = new URL(trimmed)
+      if (url.pathname.endsWith("/api/v1/chat")) {
+        const basePath = url.pathname.slice(0, -"/api/v1/chat".length)
+        return `${url.origin}${basePath}/api/health`
+      }
+      if (url.pathname.endsWith("/api/chat")) {
+        const basePath = url.pathname.slice(0, -"/api/chat".length)
+        return `${url.origin}${basePath}/api/health`
+      }
+      if (url.pathname.endsWith("/chat")) {
+        const basePath = url.pathname.slice(0, -"/chat".length)
+        return `${url.origin}${basePath}/health`
+      }
+      const cleanPath = url.pathname.replace(/\/+$/, "")
+      return `${url.origin}${cleanPath}/api/health`
+    }
+  } catch {}
+
+  return "/api/health"
+}
+
+export const BACKEND_API_URL = resolveBackendApiUrl(
+  import.meta.env.VITE_BACKEND_API_URL,
+)
+export const BACKEND_STREAM_URL = resolveBackendStreamUrl(
+  import.meta.env.VITE_BACKEND_STREAM_URL,
+  BACKEND_API_URL,
+)
+export const BACKEND_HEALTH_URL = resolveBackendHealthUrl(BACKEND_API_URL)
+export const BACKEND_LEGACY_HEALTH_URL =
+  resolveBackendLegacyHealthUrl(BACKEND_API_URL)
 
 export function sanitizeErrorMessage(raw?: string | null): string {
   if (!raw) return ""

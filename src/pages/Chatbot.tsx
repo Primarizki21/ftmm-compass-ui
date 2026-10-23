@@ -8,6 +8,8 @@ import {
   ChatMessage,
   BACKEND_API_URL,
   BACKEND_STREAM_URL,
+  BACKEND_HEALTH_URL,
+  BACKEND_LEGACY_HEALTH_URL,
   sanitizeErrorMessage,
   QUICK_PROMPTS,
   INITIAL_CHAT_MESSAGES,
@@ -86,6 +88,9 @@ export default function Chatbot({
     ollama_online?: boolean
     chatbot_service_online?: boolean
     chatbot_model?: string
+    default_model?: string
+    bonsai_online?: boolean
+    generator_model?: string
     ollama?: {
       online?: boolean
       host?: string
@@ -94,12 +99,31 @@ export default function Chatbot({
   } | null>(null)
 
   useEffect(() => {
-    fetch("/api/v1/health")
+    fetch(BACKEND_HEALTH_URL)
       .then((res) =>
-        res.ok ? res.json() : fetch("/api/health").then((r) => r.json()),
+        res.ok
+          ? res.json()
+          : fetch(BACKEND_LEGACY_HEALTH_URL).then((r) =>
+              r.ok ? r.json() : null,
+            ),
       )
       .then((data) => {
-        if (data) setBackendStatus(data)
+        if (data) {
+          setBackendStatus({
+            ...data,
+            chatbot_service_online:
+              data.chatbot_service_online ??
+              (data.status === "healthy" ||
+                data.status === "ok" ||
+                data.status === "online" ||
+                Boolean(data.ollama_online || data.bonsai_online)),
+            chatbot_model:
+              data.chatbot_model ||
+              data.default_model ||
+              data.generator_model ||
+              "Hybrid Engine",
+          })
+        }
       })
       .catch(() => {})
   }, [])
