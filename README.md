@@ -203,7 +203,29 @@ ollama run qwen2.5:7b-instruct
 
 ---
 
-### 4. Menjalankan via Docker Compose (Multi-Container `ftmm-network`)
+### 4. Pengujian Remote Chatbot via Cloudflare Tunnel (Tanpa Backend/LLM Lokal)
+
+Jika rekan tim atau tester ingin menguji respons dan streaming Chatbot AI tanpa perlu menginstal backend FastAPI atau model Ollama lokal:
+
+1. Salin template `.env.example` ke `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+2. Masukkan base URL Cloudflare Tunnel yang dibagikan tim backend:
+   ```bash
+   VITE_BACKEND_API_URL=https://<subdomain>.trycloudflare.com
+   VITE_BACKEND_STREAM_URL=https://<subdomain>.trycloudflare.com
+   ```
+   *(Mendukung base URL domain saja maupun URL endpoint lengkap).*
+3. Jalankan frontend:
+   ```bash
+   pnpm dev
+   ```
+4. Akses halaman **Compass AI** di `http://localhost:8443`. Indikator status di header otomatis menyala hijau (**Live • `<model>`**), menandakan koneksi langsung ke remote backend tunnel berhasil.
+
+---
+
+### 5. Menjalankan via Docker Compose (Multi-Container `ftmm-network`)
 
 Untuk deployment terisolasi berbasis kontainer atau setup di server/VPS baru:
 

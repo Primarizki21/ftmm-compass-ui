@@ -99,13 +99,13 @@ export default function Chatbot({
   } | null>(null)
 
   useEffect(() => {
-    fetch(BACKEND_HEALTH_URL)
+    fetch(BACKEND_HEALTH_URL, { signal: AbortSignal.timeout(4000) })
       .then((res) =>
         res.ok
           ? res.json()
-          : fetch(BACKEND_LEGACY_HEALTH_URL).then((r) =>
-              r.ok ? r.json() : null,
-            ),
+          : fetch(BACKEND_LEGACY_HEALTH_URL, {
+              signal: AbortSignal.timeout(4000),
+            }).then((r) => (r.ok ? r.json() : null)),
       )
       .then((data) => {
         if (data) {
