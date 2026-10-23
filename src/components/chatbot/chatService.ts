@@ -62,7 +62,20 @@ function resolveBackendStreamUrl(
   apiUrl: string = BACKEND_API_URL,
 ): string {
   const trimmedStream = (rawStreamUrl || "").trim()
-  if (trimmedStream) return trimmedStream
+  if (trimmedStream) {
+    if (
+      trimmedStream.startsWith("http://") ||
+      trimmedStream.startsWith("https://")
+    ) {
+      try {
+        const url = new URL(trimmedStream)
+        if (url.pathname === "" || url.pathname === "/") {
+          return `${url.origin}/api/v1/chat/stream`
+        }
+      } catch {}
+    }
+    return trimmedStream
+  }
 
   const trimmedApi = apiUrl.trim()
   if (trimmedApi.startsWith("http://") || trimmedApi.startsWith("https://")) {
