@@ -229,7 +229,7 @@ async def httpx_timeout_handler(request: Request, exc: httpx.TimeoutException):
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status_code=getattr(status, "HTTP_422_UNPROCESSABLE_CONTENT", status.HTTP_422_UNPROCESSABLE_ENTITY),
         content={
             "detail": "Request validation failed",
             "error": {
@@ -255,7 +255,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
         code = "upstream_service_unavailable"
     elif exc.status_code == status.HTTP_504_GATEWAY_TIMEOUT:
         code = "upstream_timeout"
-    elif exc.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY:
+    elif exc.status_code in (getattr(status, "HTTP_422_UNPROCESSABLE_CONTENT", 422), 422):
         code = "validation_error"
     elif exc.status_code == status.HTTP_404_NOT_FOUND:
         code = "not_found"
