@@ -98,7 +98,57 @@ FTMM Compass helps students plan their degree journey across 8 semesters, explor
 
 ## Cara Menjalankan Project
 
-### 1. Prasyarat & Instalasi Tools
+> **Panduan Pengembang Lengkap:** Untuk panduan onboarding mendalam, diagnosa toolchain, arsitektur lingkungan pengembang, dan referensi automasi `Makefile`, baca [**`docs/ONBOARDING.md`**](./docs/ONBOARDING.md).
+
+### 1. Quick Start Automasi (`Makefile` — Direkomendasikan)
+
+Jika Anda menggunakan sistem berbasis POSIX (Linux, macOS, atau Windows WSL2), seluruh alur inisialisasi lingkungan pengembang dan eksekusi server dapat dijalankan secara instan via `Makefile`:
+
+```bash
+# 1. Setup otomatis: verifikasi toolchain, buat .env, pasang pnpm/uv, jalankan DB, migrasi, & seed data
+make setup
+
+# 2. Jalankan Frontend & Backend secara bersamaan (Mode Hybrid: DB di Docker, App di host)
+make dev
+```
+
+Perintah pembantu lainnya:
+- `make doctor` — Memeriksa kesiapan toolchain (Node, pnpm, Python, uv, Docker).
+- `make db-up` / `make db-down` — Menyalakan/menghentikan container PostgreSQL 16.
+- `make db-reset` — Mereset database dari nol (recreate volume, migrasi Alembic, & seeding).
+- `make help` — Menampilkan seluruh daftar perintah automasi yang tersedia.
+
+---
+
+### 2. Dua Mode Menjalankan Aplikasi: Hybrid vs Full Docker
+
+Terdapat dua mode eksekusi yang didukung:
+
+#### Mode A: Hybrid Mode (Sangat Direkomendasikan untuk Daily Coding)
+- **Database**: PostgreSQL 16 berjalan di container Docker (`make db-up` atau `docker compose up -d postgres`).
+- **Frontend & Backend**: Berjalan langsung di host OS (`make dev` atau `pnpm dev:all`).
+- **Keuntungan**:
+  - **Hot Module Replacement (Vite HMR) instan (<50 ms)**: setiap perubahan kode frontend maupun backend langsung tersinkronisasi tanpa lag.
+  - Sangat hemat RAM (<300 MB).
+  - Integrasi LSP, typechecking, dan autocomplete IDE bekerja optimal secara native.
+
+#### Mode B: Full Docker Mode (Untuk QA, Reviewer, atau Deployment Server)
+- Menjalankan seluruh stack (`postgres`, `gateway`, dan `frontend`) terisolasi di dalam container Docker:
+  ```bash
+  make docker-up
+  # atau manual: docker compose up -d --build
+  ```
+- **Catatan Penting Sinkronisasi Kode**:
+  Karena `Dockerfile.backend` dan `Dockerfile.frontend` menyalin (*COPY*) berkas kode sumber ke dalam image saat build time (tanpa host volume bind mount di `docker-compose.yml`), **perubahan kode di host tidak otomatis tersinkronisasi ke dalam kontainer yang sedang berjalan**. Setiap perubahan kode di tengah jalan memerlukan proses rebuild:
+  ```bash
+  docker compose up -d --build
+  # atau hentikan dan nyalakan ulang:
+  make docker-down && make docker-up
+  ```
+
+---
+
+### 3. Prasyarat & Instalasi Toolchain
 
 Sebelum memulai, pastikan perangkat Anda telah terpasang:
 
@@ -117,7 +167,7 @@ Sebelum memulai, pastikan perangkat Anda telah terpasang:
      ```
    - Verifikasi: `pnpm -v`.
 
-3. **Python (v3.10+) & Astral UV (Package Manager Backend)**:
+3. **Python (v3.12+) & Astral UV (Package Manager Backend)**:
    - **Python:** Unduh dari [python.org](https://www.python.org/) atau via package manager bawaan OS.
    - **Astral UV** (pengelola virtual environment & paket Python super cepat):
      - *Linux & macOS:*
@@ -136,12 +186,15 @@ Sebelum memulai, pastikan perangkat Anda telah terpasang:
        ```
      - Verifikasi: `uv --version`.
 
-4. **Ollama (Opsional — untuk LLM Lokal)**:
+4. **Docker Engine & Docker Compose**:
+   - Pastikan Docker Daemon aktif untuk PostgreSQL lokal (`make db-up`) atau full stack container (`make docker-up`).
+
+5. **Ollama (Opsional — untuk LLM Lokal)**:
    - Unduh installer dari [ollama.com](https://ollama.com).
    - Model rekomendasi: `ollama run qwen2.5:3b-instruct` (ringan, ~2 GB) atau `ollama run qwen2.5:7b-instruct`.
    - *(Jika Ollama tidak aktif, backend otomatis menggunakan fallback slot-filling deterministik sehingga aplikasi tetap berjalan lancar).*
 
-5. **AI Chatbot Microservice (Opsional — untuk Inferensi Hybrid RAG-CAG Penuh)**:
+6. **AI Chatbot Microservice (Opsional — untuk Inferensi Hybrid RAG-CAG Penuh)**:
    - Microservice AI berjalan di repositori sibling `ftmm-compass-chatbot`:
      ```bash
      cd ../ftmm-compass-chatbot
@@ -152,10 +205,12 @@ Sebelum memulai, pastikan perangkat Anda telah terpasang:
      ```
    - Microservice akan aktif di `http://localhost:8000` dan terhubung langsung ke Ollama host.
    - *(Jika kontainer Docker tidak diaktifkan, Backend Gateway otomatis beralih ke agen slot-filling lokal sehingga seluruh fitur aplikasi tetap 100% berfungsi tanpa kendala).*
+
 ---
 
-### 2. Menjalankan Sekaligus (Frontend + Backend — Rekomendasi)
+### 4. Menjalankan Manual (Alternatif Tanpa `Makefile`)
 
+#### A. Menjalankan Sekaligus (Frontend + Backend)
 Jalankan perintah berikut untuk mengaktifkan frontend dan backend secara bersamaan lintas OS (Linux, macOS, Windows):
 
 ```bash
@@ -165,7 +220,10 @@ pnpm install
 # 2. Sinkronisasi dependencies backend (otomatis membuat venv via uv)
 uv sync --directory backend
 
-# 3. Jalankan frontend + backend bersamaan
+# 3. Jalankan database PostgreSQL di Docker
+docker compose up -d postgres
+
+# 4. Jalankan frontend + backend bersamaan
 pnpm dev:all
 ```
 
@@ -173,10 +231,7 @@ pnpm dev:all
 - **Dynamic Port Auto-Discovery**: Backend otomatis memindai port kosong (mulai dari 8000 $\rightarrow$ 8001, dst. jika port 8000 sedang dipakai proses lain). Vite dev proxy secara dinamis membaca port aktif dan meneruskan request `/api`.
 - Buka **`http://localhost:8443`** di browser. Login dengan NIM dan password apa saja (simulasi autentikasi).
 
----
-
-### 3. Menjalankan Terpisah (2 Tab Terminal)
-
+#### B. Menjalankan Terpisah (2 Tab Terminal)
 Jika Anda lebih menyukai tab terminal terpisah untuk memantau log masing-masing service:
 
 - **Terminal 1 — Backend FastAPI**:
@@ -200,10 +255,9 @@ ollama run qwen2.5:3b-instruct
 ollama run qwen2.5:7b-instruct
 ```
 
-
 ---
 
-### 4. Pengujian Remote Chatbot via Cloudflare Tunnel (Tanpa Backend/LLM Lokal)
+### 5. Pengujian Remote Chatbot via Cloudflare Tunnel (Tanpa Backend/LLM Lokal)
 
 Jika rekan tim atau tester ingin menguji respons dan streaming Chatbot AI tanpa perlu menginstal backend FastAPI atau model Ollama lokal:
 
@@ -225,7 +279,7 @@ Jika rekan tim atau tester ingin menguji respons dan streaming Chatbot AI tanpa 
 
 ---
 
-### 5. Menjalankan via Docker Compose (Multi-Container `ftmm-network`)
+### 6. Menjalankan via Docker Compose (Multi-Container `ftmm-network`)
 
 Untuk deployment terisolasi berbasis kontainer atau setup di server/VPS baru:
 
@@ -255,13 +309,22 @@ cd ../ftmm-compass-ui && docker compose up -d
   ```bash
   docker compose down && docker compose -f ../ftmm-compass-chatbot/docker-compose.yml down
   ```
----
 
 ## Testing & QA Audit
 
-Proyek ini dilengkapi rangkaian pengujian otomatis untuk memvalidasi fungsi backend dan integritas tipe frontend:
+Proyek ini dilengkapi rangkaian pengujian otomatis untuk memvalidasi fungsi backend, integritas tipe frontend, dan kepatuhan styling:
 
 ```bash
+# ----------------------------------------------------
+# A. Menggunakan Makefile (Cepat & Terintegrasi)
+# ----------------------------------------------------
+make test          # Typecheck TypeScript + Backend API tests + Frontend smoke test
+make lint          # Pemeriksaan format (oxfmt) + typecheck
+make format        # Auto-format seluruh codebase via oxfmt
+
+# ----------------------------------------------------
+# B. Perintah Manual / Spesifik Sub-Sistem
+# ----------------------------------------------------
 # 1. Jalankan unit test logic planner, validator, dan slot-filling agent
 uv run --directory backend python test_backend.py
 
@@ -284,6 +347,7 @@ pnpm format
 ```
 ftmm-compass-ui/
 ├── .github/workflows/ci.yml       # Automated CI pipeline (Node 22 + Python 3.11)
+├── Makefile                       # Developer automation interface (setup, dev, db, test)
 ├── AI_PLANNER_PIPELINE.md         # Dokumentasi detail arsitektur Study Planner Agent
 ├── DESIGN.md                      # Spesifikasi sistem desain & token visual FTMM
 ├── Dockerfile.frontend            # Container image definition untuk React + Vite
@@ -335,10 +399,12 @@ ftmm-compass-ui/
 │   ├── schema_v2_1_rc1.sql        # PostgreSQL 16+ DDL (36 tables, 26 functions, 44 triggers)
 │   ├── schema_v2_1_rc1.dbml       # DBML diagram definition
 │   └── README.md                  # Ringkasan paket skema database
-├── docs/database/                 # Dokumentasi & Audit Skema Database V2.1 RC1
-│   ├── DATABASE_SCHEMA_V2_1_RC1.md    # Spesifikasi arsitektur 36 tabel & rule tree
-│   ├── SCHEMA_VALIDATION_V2_1_RC1.md  # Laporan 97/97 static release audit checks
-│   └── CHANGELOG_V2_TO_V2_1_RC1.md    # Catatan migrasi dari v2 ke v2.1 RC1
+├── docs/                          # Dokumentasi teknis & onboarding
+│   ├── ONBOARDING.md              # Developer Onboarding & Local Setup Guide (Makefile DX)
+│   └── database/                  # Dokumentasi & Audit Skema Database V2.1 RC1
+│       ├── DATABASE_SCHEMA_V2_1_RC1.md    # Spesifikasi arsitektur 36 tabel & rule tree
+│       ├── SCHEMA_VALIDATION_V2_1_RC1.md  # Laporan 97/97 static release audit checks
+│       └── CHANGELOG_V2_TO_V2_1_RC1.md    # Catatan migrasi dari v2 ke v2.1 RC1
 ├── RANCANGAN DIAGRAM AWAL.sql     # Arsip baseline awal PostgreSQL 16 (v2)
 └── SCHEMA_REVIEW.md               # Arsip catatan tinjauan skema v2
 ```
