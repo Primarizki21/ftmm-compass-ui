@@ -4,7 +4,7 @@ services:
     container_name: ftmm-compass-postgres
     restart: unless-stopped
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -77,6 +77,7 @@ services:
 networks:
   default:
   ftmm-network:
+    name: ftmm-network
     external: true
 
 volumes:
