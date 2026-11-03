@@ -3,7 +3,7 @@
 Sumber:
 - database/seed/catalog_canonical.json  (struktur dari tabel Panduan Pendidikan 2024-2025)
 - database/seed/reconciliation.json     (keputusan reviewer + bukti halaman)
-- Ekstrak/catalog_details.json          (opsional, gitignored: deskripsi/CPL; nama dosen tidak di-seed)
+- Ekstrak/derived/catalog_details.json  (opsional, gitignored: deskripsi/CPL; nama dosen tidak di-seed)
 
 Idempoten: aman dijalankan berulang (upsert per kunci alami). Rule prasyarat milik
 seeder (notes diawali 'seed:catalog') dibuat ulang setiap run; rule lain tidak disentuh.
@@ -29,7 +29,7 @@ from database import AsyncSessionLocal
 SEED_DIR = rc.OUT_DIR
 CATALOG_PATH = os.path.join(SEED_DIR, "catalog_canonical.json")
 DECISIONS_PATH = os.path.join(SEED_DIR, "reconciliation.json")
-DETAILS_PATH = os.path.join(rc.EKSTRAK_DIR, "catalog_details.json")
+DETAILS_PATH = os.path.join(rc.EKSTRAK_DIR, "derived", "catalog_details.json")
 PDF_DIR = os.path.join(rc.EKSTRAK_DIR, "pdf")
 RULE_TAG = "seed:catalog"
 

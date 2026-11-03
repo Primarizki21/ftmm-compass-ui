@@ -29,7 +29,8 @@ PDF_DIR = os.path.join(EKSTRAK_DIR, "pdf")
 PANDUAN_FILE = "Panduan Pendidikan FTMM UNAIR 2024-2025.pdf"
 CATALOG_PATH = os.path.join(OUT_DIR, "catalog_canonical.json")
 # Deskripsi, CPL, dan nama dosen tidak di-commit (mengikuti aturan tim untuk Ekstrak/).
-DETAILS_PATH = os.path.join(EKSTRAK_DIR, "catalog_details.json")
+# Subfolder, karena frontend (src/courseData.ts) dan data_loader.py membaca Ekstrak/*.json.
+DETAILS_PATH = os.path.join(EKSTRAK_DIR, "derived", "catalog_details.json")
 TI_OCR_PATH = os.path.join(EKSTRAK_DIR, "ocr", "TI_descriptions.json")
 REPORT_PATH = os.path.join(OUT_DIR, "catalog_build_report.md")
 
@@ -547,6 +548,7 @@ def main():
                 details[f"{prog}:{r['code']}:{r['name']}"] = d
     with open(CATALOG_PATH, "w", encoding="utf-8") as f:
         json.dump(catalog, f, ensure_ascii=False, indent=2)
+    os.makedirs(os.path.dirname(DETAILS_PATH), exist_ok=True)
     with open(DETAILS_PATH, "w", encoding="utf-8") as f:
         json.dump(details, f, ensure_ascii=False, indent=2)
     with open(REPORT_PATH, "w", encoding="utf-8") as f:
