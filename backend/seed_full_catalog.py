@@ -240,6 +240,18 @@ async def seed(session):
                  notes=("kode sementara" if r.get("code_provisional") else
                         "kode dilengkapi dari prodi lain" if r.get("code_inferred") else None)))
     stats["curriculum_courses"] = len(cc_ids)
+    # Baris yang sudah tidak ada di katalog dinonaktifkan (tidak dihapus: bisa dirujuk planner/riwayat).
+    stale_cc = await session.execute(text("""
+        UPDATE curriculum_courses SET is_active = false
+        WHERE curriculum_id = ANY(:cur) AND is_active AND NOT (curriculum_course_id = ANY(:keep))"""),
+        dict(cur=list(curriculum_ids.values()), keep=list(cc_ids.values())))
+    stats["curriculum_courses_deactivated"] = stale_cc.rowcount
+    stale_courses = await session.execute(text("""
+        UPDATE courses c SET is_active = false
+        WHERE c.is_active AND NOT (c.course_id = ANY(:keep))
+          AND NOT EXISTS (SELECT 1 FROM curriculum_courses x WHERE x.course_id = c.course_id AND x.is_active)"""),
+        dict(keep=list(course_ids.values())))
+    stats["courses_deactivated"] = stale_courses.rowcount
 
     # 5. Kelompok pilihan: agama, konsentrasi, dan pool pilihan (untuk node minimum_choice_sks)
     groups = defaultdict(lambda: {"members": set()})

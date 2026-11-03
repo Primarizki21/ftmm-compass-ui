@@ -314,6 +314,36 @@ def parse_program(pages, prog, start_marker, end_marker):
     return rows, totals, notes, slots
 
 
+RELIGIONS = [("I", "Islam"), ("K", "Katolik"), ("P", "Protestan"), ("H", "Hindu"), ("B", "Budha"), ("C", "Konghucu")]
+# TI hanya mencetak satu baris agama generik per slot ('AGI101 Agama I' sem 1, 'AG401 Agama 2' sem 8).
+# Empat prodi lain di Panduan yang sama memakai 6 alternatif AGx101 / AGx401, jadi TI disamakan.
+GENERIC_RELIGION_ROWS = {("TI", "AGI101"): "1", ("TI", "AG401"): "4"}
+
+
+def expand_generic_religion(prog, rows, notes):
+    out = []
+    for r in rows:
+        level = GENERIC_RELIGION_ROWS.get((prog, r["code"]))
+        if not level:
+            out.append(r)
+            continue
+        roman = "I" if level == "1" else "II"
+        main_code = f"AGI{level}01"
+        if r["code"] != main_code:
+            r["code_as_printed"], r["code"] = r["code"], main_code
+        r["code_inferred"] = True
+        out.append(r)
+        for letter, religion in RELIGIONS[1:]:
+            alt = dict(r, code=f"AG{letter}{level}01", name=f"Agama {religion} {roman}", alternative_of=main_code,
+                       code_as_printed=None, json_record_key=None, json_code=None, json_name=None,
+                       prerequisites_raw=[], code_inferred=True)
+            alt.pop("details", None)
+            out.append(alt)
+        notes.append(f"Baris agama generik '{r.get('code_as_printed') or r['code']} {r['name']}' (hal {r['page']}) "
+                     f"diperluas ke 6 alternatif AGx{level}01 seperti prodi lain")
+    return out
+
+
 def merge_codeless(prog, rows, notes):
     """Baris praktikum tanpa kode yang namanya = matkul di atasnya -> komponen praktikum."""
     kept = []
@@ -515,6 +545,7 @@ def main():
         end = f"Struktur Kurikulum Program Studi {PROGRAMS[idx + 1][1]}" if idx + 1 < len(PROGRAMS) else "BAB V"
         rows, totals, notes, slots = parse_program(pages, prog, start, end)
         rows = merge_codeless(prog, rows, notes)
+        rows = expand_generic_religion(prog, rows, notes)
         checks = validate(rows, totals, slots)
         unused = attach_details(prog, rows, json_by_prog[prog])
         fill_missing_prerequisites(prog, rows, notes)

@@ -86,10 +86,6 @@
       "Agama Hindu 2",
       "Agama Hindu II"
     ],
-    "AGI401": [
-      "Agama Islam 2",
-      "Agama Islam II"
-    ],
     "AGK401": [
       "Agama Katolik 2",
       "Agama Katolik II"
@@ -118,7 +114,8 @@
         "TSD sem 1 · Agama Budha · 2 SKS · wajib",
         "RN sem 1 · Agama Budha I · 2 SKS · wajib",
         "TRKB sem 1 · Agama Budha · 2 SKS · wajib",
-        "TE sem 1 · Agama Budha · 2 SKS · wajib"
+        "TE sem 1 · Agama Budha · 2 SKS · wajib",
+        "TI sem 1 · Agama Budha I · 2 SKS · wajib"
       ],
       "suggestion": "kemungkinan matkul sama (beda penulisan) — pilih nama canonical",
       "options": [
@@ -143,7 +140,8 @@
         "TSD sem 1 · Agama Konghucu · 2 SKS · wajib",
         "RN sem 1 · Agama Konghucu I · 2 SKS · wajib",
         "TRKB sem 1 · Agama Konghucu · 2 SKS · wajib",
-        "TE sem 1 · Agama Konghucu · 2 SKS · wajib"
+        "TE sem 1 · Agama Konghucu · 2 SKS · wajib",
+        "TI sem 1 · Agama Konghucu I · 2 SKS · wajib"
       ],
       "suggestion": "kemungkinan matkul sama (beda penulisan) — pilih nama canonical",
       "options": [
@@ -168,7 +166,8 @@
         "TSD sem 1 · Agama Hindu · 2 SKS · wajib",
         "RN sem 1 · Agama Hindu I · 2 SKS · wajib",
         "TRKB sem 1 · Agama Hindu · 2 SKS · wajib",
-        "TE sem 1 · Agama Hindu · 2 SKS · wajib"
+        "TE sem 1 · Agama Hindu · 2 SKS · wajib",
+        "TI sem 1 · Agama Hindu I · 2 SKS · wajib"
       ],
       "suggestion": "kemungkinan matkul sama (beda penulisan) — pilih nama canonical",
       "options": [
@@ -213,13 +212,40 @@
         "evidence": "Tabel struktur Panduan 2024-2025 hal 28-43 (lihat source_findings.md)."
       }
     },
+    "identity_conflict:AGI401": {
+      "type": "identity_conflict",
+      "rows": [
+        "TSD sem 6 · Agama Islam II · 2 SKS · wajib",
+        "RN sem 6 · Agama Islam 2 · 2 SKS · wajib",
+        "TRKB sem 7 · Agama Islam II · 2 SKS · wajib",
+        "TE sem 5 · Agama Islam II · 2 SKS · wajib",
+        "TI sem 8 · Agama 2 · 2 SKS · wajib"
+      ],
+      "suggestion": "kemungkinan matkul sama (beda penulisan) — pilih nama canonical",
+      "options": [
+        "matkul sama, pakai nama canonical (isi di note)",
+        "matkul berbeda, salah satu kode salah",
+        "tahan di staging"
+      ],
+      "decision": {
+        "action": "same",
+        "canonical_name": "Agama Islam 2"
+      },
+      "note": "TI mencetak generik \"AG401 Agama 2\" (Panduan hal 43); disamakan dengan AGI401 prodi lain, alternatif agama ditambahkan. (Darryl, 2026-11-03)",
+      "evidence": "inferred",
+      "pdf_check": {
+        "status": "unverified",
+        "evidence": "Panduan 2024-2025 hal 43 (TI) vs hal 31/34/35/38 (prodi lain)."
+      }
+    },
     "identity_conflict:AGK101": {
       "type": "identity_conflict",
       "rows": [
         "TSD sem 1 · Agama Katolik · 2 SKS · wajib",
         "RN sem 1 · Agama Katolik I · 2 SKS · wajib",
         "TRKB sem 1 · Agama Katolik · 2 SKS · wajib",
-        "TE sem 1 · Agama Katolik · 2 SKS · wajib"
+        "TE sem 1 · Agama Katolik · 2 SKS · wajib",
+        "TI sem 1 · Agama Katolik I · 2 SKS · wajib"
       ],
       "suggestion": "kemungkinan matkul sama (beda penulisan) — pilih nama canonical",
       "options": [
@@ -244,7 +270,8 @@
         "TSD sem 1 · Agama Protestan · 2 SKS · wajib",
         "RN sem 1 · Agama Protestan I · 2 SKS · wajib",
         "TRKB sem 1 · Agama Protestan · 2 SKS · wajib",
-        "TE sem 1 · Agama Protestan · 2 SKS · wajib"
+        "TE sem 1 · Agama Protestan · 2 SKS · wajib",
+        "TI sem 1 · Agama Protestan I · 2 SKS · wajib"
       ],
       "suggestion": "kemungkinan matkul sama (beda penulisan) — pilih nama canonical",
       "options": [
