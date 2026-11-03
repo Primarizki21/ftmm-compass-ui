@@ -97,7 +97,9 @@ def section_lines(pages, start_marker, end_marker):
     # Beberapa baris tabel menempel dalam satu baris teks ('... 5 5 57 MK Pilihan 3 ...').
     chunk = re.sub(rf"[^\S\n]+(?=\d{{1,3}}[^\S\n]+(?:{CODE_RE}|MK Pilihan)\b)", "\n", chunk)
     chunk = chunk.replace(start_marker, "", 1)
-    page, first_on_page = None, False
+    # Halaman tempat tabel dimulai = penanda @@PAGE terakhir sebelum start_marker.
+    before = text.rfind("@@PAGE ", 0, start)
+    page, first_on_page = int(text[before:].split()[1]), False
     for raw in chunk.split("\n"):
         line = raw.strip()
         if line.startswith("@@PAGE"):
@@ -381,8 +383,10 @@ def attach_details(prog, rows, json_rows):
     # JSON TE banyak salah kode, jadi kode saja dipakai paling akhir.
     passes = [
         lambda r, j: MANUAL_JSON_LINKS.get((prog, r["code"])) == j["code"],
-        lambda r, j: j["code"] == r["code"] and similar(j["name"], r["name"]) >= 0.6,
+        # Kode + nama persis dulu: JSON RN memakai MAA103 untuk Kalkulus 1 dan Kalkulus 2.
+        lambda r, j: j["code"] == r["code"] and normalize_name(j["name"]) == normalize_name(r["name"]),
         lambda r, j: normalize_name(j["name"]) == normalize_name(r["name"]),
+        lambda r, j: j["code"] == r["code"] and similar(j["name"], r["name"]) >= 0.6,
         lambda r, j: similar(j["name"], r["name"]) >= 0.85,
         lambda r, j: j["code"] == r["code"],
     ]
@@ -390,7 +394,7 @@ def attach_details(prog, rows, json_rows):
         r["json_record_key"] = None
     for rule_no, rule in enumerate(passes, 1):
         for r in rows:
-            if r["json_record_key"] or r["alternative_of"] and rule_no > 3:
+            if r["json_record_key"] or r["alternative_of"] and rule_no > 4:
                 continue
             j = next((j for j in json_rows if j["record_key"] not in used and rule(r, j)), None)
             if not j:
@@ -400,7 +404,7 @@ def attach_details(prog, rows, json_rows):
             r["json_code"] = j["code"]
             r["json_name"] = j["name"]
             r["json_semester"] = j["semester"]
-            r["json_match"] = ["manual", "kode+nama", "nama", "nama_mirip", "kode_saja"][rule_no - 1]
+            r["json_match"] = ["manual", "kode+nama", "nama", "kode+nama_mirip", "nama_mirip", "kode_saja"][rule_no - 1]
             r["prerequisites_raw"] = j["prerequisites"]
             r["details"] = {k: j["raw"].get(k) for k in ("deskripsi", "capaian_pembelajaran", "dosen_pengampu")}
     unused = [j for j in json_rows if j["record_key"] not in used]

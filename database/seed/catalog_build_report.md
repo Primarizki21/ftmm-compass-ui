@@ -8,7 +8,7 @@
 
 | Semester | SKS terbaca | Tercetak | Cek |
 |---|---|---|---|
-| 1 | 19 | 19 (Jumlah Beban Studi pada Semester 1, hal None) | ✅ |
+| 1 | 19 | 19 (Jumlah Beban Studi pada Semester 1, hal 28) | ✅ |
 | 2 | 20 | 20 (Jumlah Beban Studi pada Semester 2, hal 29) | ✅ |
 | 3 | 20 | 20 (Sub-Jumlah, hal 29) | ✅ |
 | 4 | 20 | 20 (Sub-Jumlah, hal 29) | ✅ |
@@ -95,8 +95,8 @@
 
 | Semester | SKS terbaca | Tercetak | Cek |
 |---|---|---|---|
-| 1 | 19 | 19 (Jumlah, hal None) | ✅ |
-| 2 | 20 | 20 (Jumlah, hal None) | ✅ |
+| 1 | 19 | 19 (Jumlah, hal 37) | ✅ |
+| 2 | 20 | 20 (Jumlah, hal 37) | ✅ |
 | 3 | 19 | 19 (Jumlah, hal 38) | ✅ |
 | 4 | 21 | 21 (Jumlah, hal 38) | ✅ |
 | 5 | 22 | 22 (Jumlah, hal 39) | ✅ |

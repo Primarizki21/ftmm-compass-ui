@@ -10,7 +10,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 28,
           "alternative_of": null,
           "name": "Agama Islam",
           "category": "a",
@@ -23,7 +23,7 @@
           "json_code": "AGI101",
           "json_name": "Agama Islam I",
           "json_semester": 1,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": []
         },
         {
@@ -32,7 +32,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 28,
           "alternative_of": "AGI101",
           "name": "Agama Katolik",
           "category": null,
@@ -42,7 +42,7 @@
           "json_code": "AGK101",
           "json_name": "Agama Katolik I",
           "json_semester": 1,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": []
         },
         {
@@ -51,7 +51,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 28,
           "alternative_of": "AGI101",
           "name": "Agama Protestan",
           "category": null,
@@ -61,7 +61,7 @@
           "json_code": "AGP101",
           "json_name": "Agama Protestan I",
           "json_semester": 1,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": []
         },
         {
@@ -70,7 +70,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 28,
           "alternative_of": "AGI101",
           "name": "Agama Hindu",
           "category": null,
@@ -80,7 +80,7 @@
           "json_code": "AGH101",
           "json_name": "Agama Hindu I",
           "json_semester": 1,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": []
         },
         {
@@ -89,7 +89,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 28,
           "alternative_of": "AGI101",
           "name": "Agama Budha",
           "category": null,
@@ -99,7 +99,7 @@
           "json_code": "AGB101",
           "json_name": "Agama Budha I",
           "json_semester": 1,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": []
         },
         {
@@ -108,7 +108,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 28,
           "alternative_of": "AGI101",
           "name": "Agama Konghucu",
           "category": null,
@@ -118,7 +118,7 @@
           "json_code": "AGC101",
           "json_name": "Agama Konghucu I",
           "json_semester": 1,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": []
         },
         {
@@ -127,7 +127,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 28,
           "alternative_of": null,
           "name": "Pancasila",
           "category": "a",
@@ -149,7 +149,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 28,
           "alternative_of": null,
           "name": "Kewarganegaraan",
           "category": "a",
@@ -171,7 +171,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 28,
           "alternative_of": null,
           "name": "Bahasa Indonesia",
           "category": "a",
@@ -193,7 +193,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 28,
           "alternative_of": null,
           "name": "Data dan Pustaka",
           "category": "a",
@@ -215,7 +215,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 28,
           "alternative_of": null,
           "name": "Biologi Dasar",
           "category": "d",
@@ -237,7 +237,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 28,
           "alternative_of": null,
           "name": "Kimia Dasar",
           "category": "d",
@@ -259,7 +259,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 28,
           "alternative_of": null,
           "name": "Pengantar Statistika",
           "category": "b",
@@ -281,7 +281,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 28,
           "alternative_of": null,
           "name": "Pengantar Pemrograman",
           "category": "b",
@@ -303,7 +303,7 @@
           "semester": 2,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 28,
           "alternative_of": null,
           "name": "Logika dan Pemikiran Kritis",
           "category": "a",
@@ -325,7 +325,7 @@
           "semester": 2,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 28,
           "alternative_of": null,
           "name": "Pengantar Kolaborasi Keilmuan",
           "category": "a",
@@ -347,7 +347,7 @@
           "semester": 2,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 28,
           "alternative_of": null,
           "name": "Komunikasi dan Pengembangan Diri",
           "category": "a",
@@ -1875,7 +1875,7 @@
           "parsed": 19,
           "printed": 19,
           "label": "Jumlah Beban Studi pada Semester 1",
-          "page": null,
+          "page": 28,
           "ok": true
         },
         {
@@ -2253,7 +2253,7 @@
           "json_code": "MNM106",
           "json_name": "Komunikasi dan Pengembangan Diri",
           "json_semester": 2,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": []
         },
         {
@@ -2271,14 +2271,12 @@
             3,
             3
           ],
-          "json_record_key": "MK-031#31",
+          "json_record_key": "MK-017#17",
           "json_code": "MAA103",
-          "json_name": "Kalkulus 2",
-          "json_semester": 3,
-          "json_match": "nama_mirip",
-          "prerequisites_raw": [
-            "Kalkulus 1"
-          ]
+          "json_name": "Kalkulus 1",
+          "json_semester": 2,
+          "json_match": "nama",
+          "prerequisites_raw": []
         },
         {
           "no": 12,
@@ -2367,7 +2365,7 @@
           "json_code": "RND101",
           "json_name": "Pengantar Nanoteknologi 1",
           "json_semester": 2,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": []
         },
         {
@@ -2599,7 +2597,7 @@
           "json_code": "RND201",
           "json_name": "Pengantar Nanoteknologi 2",
           "json_semester": 3,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": [
             "Pengantar Nanoteknologi 1"
           ]
@@ -2619,12 +2617,14 @@
             3,
             3
           ],
-          "json_record_key": "MK-017#17",
+          "json_record_key": "MK-031#31",
           "json_code": "MAA103",
-          "json_name": "Kalkulus 1",
-          "json_semester": 2,
+          "json_name": "Kalkulus 2",
+          "json_semester": 3,
           "json_match": "kode+nama",
-          "prerequisites_raw": []
+          "prerequisites_raw": [
+            "Kalkulus 1"
+          ]
         },
         {
           "no": 27,
@@ -2717,7 +2717,7 @@
           "json_code": "RNA202",
           "json_name": "Teknik Karakterisasi Material 1",
           "json_semester": 4,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": []
         },
         {
@@ -2765,7 +2765,7 @@
           "json_code": "RNA201",
           "json_name": "Spektroskopi",
           "json_semester": 4,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": []
         },
         {
@@ -3090,7 +3090,7 @@
           "json_code": "RNT301",
           "json_name": "Pengantar Nanobiomedis",
           "json_semester": 5,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": [
             "Biologi Sel dan Molekuler",
             "Aplikasi Nanoteknologi"
@@ -3115,7 +3115,7 @@
           "json_code": "RNM301",
           "json_name": "Pengantar Rekayasa Material",
           "json_semester": 5,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": [
             "Teori Zat Padat"
           ]
@@ -3230,7 +3230,7 @@
           "json_code": "RNS303",
           "json_name": "Praktikum Nanoteknologi 4",
           "json_semester": 6,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": [
             "Praktikum Nanoteknologi 3"
           ]
@@ -3301,7 +3301,7 @@
           "json_code": "RNS302",
           "json_name": "Aplikasi Nanoteknologi dalam Industri",
           "json_semester": 5,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": []
         },
         {
@@ -3837,7 +3837,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 34,
           "alternative_of": null,
           "name": "Agama Islam",
           "category": "a",
@@ -3851,7 +3851,7 @@
           "json_code": "AGI101",
           "json_name": "Agama Islam I",
           "json_semester": 1,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": []
         },
         {
@@ -3860,7 +3860,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 34,
           "alternative_of": "AGI101",
           "name": "Agama Katolik",
           "category": null,
@@ -3870,7 +3870,7 @@
           "json_code": "AGK101",
           "json_name": "Agama Katolik I",
           "json_semester": 1,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": []
         },
         {
@@ -3879,7 +3879,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 34,
           "alternative_of": "AGI101",
           "name": "Agama Protestan",
           "category": null,
@@ -3889,7 +3889,7 @@
           "json_code": "AGP101",
           "json_name": "Agama Protestan I",
           "json_semester": 1,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": []
         },
         {
@@ -3908,7 +3908,7 @@
           "json_code": "AGH101",
           "json_name": "Agama Hindu I",
           "json_semester": 1,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": []
         },
         {
@@ -3927,7 +3927,7 @@
           "json_code": "AGB101",
           "json_name": "Agama Budha I",
           "json_semester": 1,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": []
         },
         {
@@ -3946,7 +3946,7 @@
           "json_code": "AGC101",
           "json_name": "Agama Konghucu I",
           "json_semester": 1,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": []
         },
         {
@@ -4176,7 +4176,7 @@
           "json_code": "MNM107",
           "json_name": "Kolaborasi Keilmuan",
           "json_semester": 2,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": []
         },
         {
@@ -4366,7 +4366,7 @@
           "json_code": "RKD101",
           "json_name": "Computer Aided Design (CAD)",
           "json_semester": 3,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": [
             "Fisika Dasar I",
             "Mekanika Teknik"
@@ -4490,7 +4490,7 @@
           "json_code": "SIR201",
           "json_name": "Pemrograman Orientasi Objek",
           "json_semester": 3,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": [
             "Struktur Data"
           ]
@@ -4515,7 +4515,7 @@
           "json_code": "SIR203",
           "json_name": "Pemrograman Orientasi Objek (Praktikum)",
           "json_semester": 3,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": [
             "Struktur Data"
           ]
@@ -4737,7 +4737,7 @@
           "json_code": "RKS201",
           "json_name": "Sistem Tertanam dan Internet of Things (IoT)",
           "json_semester": 4,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": [
             "Elektronika"
           ]
@@ -5389,7 +5389,7 @@
           "json_code": "RKS308",
           "json_name": "Robot Terbang (Aerial Robotics)",
           "json_semester": 5,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": [
             "CAD, Dasar Pemrograman dan Rangkaian Listrik"
           ]
@@ -5615,7 +5615,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 37,
           "alternative_of": null,
           "name": "Agama Islam",
           "category": "a",
@@ -5630,7 +5630,7 @@
           "json_code": "AGI101",
           "json_name": "Agama Islam 1",
           "json_semester": 1,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": []
         },
         {
@@ -5639,7 +5639,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 37,
           "alternative_of": "AGI101",
           "name": "Agama Katolik",
           "category": null,
@@ -5649,7 +5649,7 @@
           "json_code": "AGK101",
           "json_name": "Agama Katolik 1",
           "json_semester": 1,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": []
         },
         {
@@ -5658,7 +5658,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 37,
           "alternative_of": "AGI101",
           "name": "Agama Protestan",
           "category": null,
@@ -5668,7 +5668,7 @@
           "json_code": "AGP101",
           "json_name": "Agama Protestan 1",
           "json_semester": 1,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": []
         },
         {
@@ -5677,7 +5677,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 37,
           "alternative_of": "AGI101",
           "name": "Agama Hindu",
           "category": null,
@@ -5687,7 +5687,7 @@
           "json_code": "AGH101",
           "json_name": "Agama Hindu 1",
           "json_semester": 1,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": []
         },
         {
@@ -5696,7 +5696,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 37,
           "alternative_of": "AGI101",
           "name": "Agama Budha",
           "category": null,
@@ -5706,7 +5706,7 @@
           "json_code": "AGB101",
           "json_name": "Agama Buddha 1",
           "json_semester": 1,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": []
         },
         {
@@ -5715,7 +5715,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 37,
           "alternative_of": "AGI101",
           "name": "Agama Konghucu",
           "category": null,
@@ -5725,7 +5725,7 @@
           "json_code": "AGC101",
           "json_name": "Agama Khonghucu 1",
           "json_semester": 1,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": []
         },
         {
@@ -5734,7 +5734,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 37,
           "alternative_of": null,
           "name": "Pancasila",
           "category": "a",
@@ -5758,7 +5758,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 37,
           "alternative_of": null,
           "name": "Kewarganegaraan",
           "category": "a",
@@ -5782,7 +5782,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 37,
           "alternative_of": null,
           "name": "Bahasa Indonesia",
           "category": "a",
@@ -5806,7 +5806,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 37,
           "alternative_of": null,
           "name": "Data dan Pustaka",
           "category": "a",
@@ -5830,7 +5830,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 37,
           "alternative_of": null,
           "name": "Biologi Dasar",
           "category": "c",
@@ -5854,7 +5854,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 37,
           "alternative_of": null,
           "name": "Kimia Dasar",
           "category": "c",
@@ -5878,7 +5878,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 37,
           "alternative_of": null,
           "name": "Fisika Dasar 1",
           "category": "c",
@@ -5902,7 +5902,7 @@
           "semester": 1,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 37,
           "alternative_of": null,
           "name": "Matematika",
           "category": "c",
@@ -5926,7 +5926,7 @@
           "semester": 2,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 37,
           "alternative_of": null,
           "name": "Logika dan Pemikiran Kritis",
           "category": "a",
@@ -5950,7 +5950,7 @@
           "semester": 2,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 37,
           "alternative_of": null,
           "name": "Pengantar Kolaborasi Keilmuan",
           "category": "a",
@@ -5974,7 +5974,7 @@
           "semester": 2,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 37,
           "alternative_of": null,
           "name": "Komunikasi dan Pengembangan Diri",
           "category": "a",
@@ -5998,7 +5998,7 @@
           "semester": 2,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 37,
           "alternative_of": null,
           "name": "Aljabar Linier dan Sistem Diskrit",
           "category": "b",
@@ -6024,7 +6024,7 @@
           "semester": 2,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 37,
           "alternative_of": null,
           "name": "Pengantar Kecerdasan Buatan",
           "category": "b",
@@ -6048,7 +6048,7 @@
           "semester": 2,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 37,
           "alternative_of": null,
           "name": "Pengantar Teknologi Maju",
           "category": "b",
@@ -6072,7 +6072,7 @@
           "semester": 2,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 37,
           "alternative_of": null,
           "name": "Fisika Dasar 2",
           "category": "c",
@@ -6098,7 +6098,7 @@
           "semester": 2,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 37,
           "alternative_of": null,
           "name": "Instrumentasi Besaran Listrik",
           "category": "b",
@@ -6122,7 +6122,7 @@
           "semester": 2,
           "block": "wajib",
           "concentration": null,
-          "page": null,
+          "page": 37,
           "alternative_of": null,
           "name": "Matematika Lanjut",
           "category": "c",
@@ -6649,7 +6649,7 @@
           "json_code": "TEE204",
           "json_name": "Praktikum Rangkaian Elektronika",
           "json_semester": 4,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": [
             "Rangkaian Elektronika"
           ]
@@ -7597,7 +7597,7 @@
           "json_code": "TEL407",
           "json_name": "Standar dan Regulasi Sistem Tenaga",
           "json_semester": 7,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": [
             "Analisis Sistem Tenaga Listrik"
           ],
@@ -8023,7 +8023,7 @@
           "parsed": 19,
           "printed": 19,
           "label": "Jumlah",
-          "page": null,
+          "page": 37,
           "ok": true
         },
         {
@@ -8031,7 +8031,7 @@
           "parsed": 20,
           "printed": 20,
           "label": "Jumlah",
-          "page": null,
+          "page": 37,
           "ok": true
         },
         {
@@ -8416,7 +8416,7 @@
           "json_code": "PHP103",
           "json_name": "Logika dan Pemikiran Kritis",
           "json_semester": 2,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": []
         },
         {
@@ -9409,7 +9409,7 @@
           "json_code": "KNJ401",
           "json_name": "Kuliah Kerja Nyata / KKN",
           "json_semester": 8,
-          "json_match": "kode+nama",
+          "json_match": "kode+nama_mirip",
           "prerequisites_raw": []
         },
         {

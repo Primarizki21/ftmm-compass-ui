@@ -265,8 +265,9 @@ class CurriculumCourse(Base):
         nullable=False,
     )
     credits_total: Mapped[int] = mapped_column(SmallInteger, nullable=False)
-    recommended_semester: Mapped[int] = mapped_column(SmallInteger, nullable=False)
-    term: Mapped[str] = mapped_column(String(20), nullable=False)
+    # NULL hanya untuk MK pilihan tanpa semester tetap (migrasi b3f1c2d4e5a6).
+    recommended_semester: Mapped[Optional[int]] = mapped_column(SmallInteger, nullable=True)
+    term: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     course_type: Mapped[str] = mapped_column(String(30), nullable=False)
     course_scope: Mapped[str] = mapped_column(String(30), nullable=False, default="program_studi")
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
