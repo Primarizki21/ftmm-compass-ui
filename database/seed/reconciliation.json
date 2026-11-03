@@ -1,0 +1,1067 @@
+{
+  "_readme": "Isi 'decision' per item. Item dengan decision null akan ditahan di staging (catalog_source_records status needs_review) dan prasyaratnya tetap 'unresolved'. File ini aman di-generate ulang: decision, note & policies lama dipertahankan.",
+  "_decision_formats": {
+    "invalid_code": [
+      {
+        "action": "hold"
+      },
+      {
+        "action": "recode",
+        "code": "<KODE>"
+      }
+    ],
+    "internal_duplicate": [
+      {
+        "keep": "<record_key>",
+        "hold": [
+          "<record_key>"
+        ]
+      }
+    ],
+    "identity_conflict": [
+      {
+        "action": "same",
+        "canonical_name": "<nama>"
+      },
+      {
+        "action": "hold",
+        "programs": [
+          "<PRODI>"
+        ]
+      }
+    ],
+    "prerequisite": [
+      {
+        "action": "accept"
+      },
+      {
+        "action": "override",
+        "leaves": [
+          "<leaf>"
+        ]
+      },
+      {
+        "action": "advisory",
+        "leaves": [
+          "<leaf>"
+        ]
+      },
+      {
+        "action": "unresolved"
+      }
+    ]
+  },
+  "review_status": {
+    "status": "pdf_checked",
+    "basis": "Struktur katalog dari tabel Panduan Pendidikan 2024-2025 (identik 2022-2025); keputusan dicek ke dokumen kurikulum 2021 & Panduan. Lihat database/seed/source_findings.md.",
+    "rule": "Seeder hanya boleh menandai verified untuk item ber-evidence 'pdf'."
+  },
+  "provisional_codes": {
+    "RKKX301": "TRKB Sistem Temu Kembali Informasi; dokumen resmi menulis RKK301 (dobel dengan Pembelajaran Mesin).",
+    "RNSX301": "RN Nanoteknologi terapan 2 (Praktikum); baris tanpa kode di Panduan hal 33, penerus RNS301."
+  },
+  "policies": {
+    "sks_verbs_completed": [
+      "lulus",
+      "menempuh"
+    ],
+    "sks_verbs_attempted": [
+      "mengambil"
+    ],
+    "verify_auto_parsed_prerequisites": false,
+    "verifier_email_env": "CATALOG_VERIFIER_EMAIL",
+    "verify_after_pdf_check": true,
+    "sks_verbs_note": "Panduan Pendidikan 2021-2025 tidak mendefinisikan \"menempuh X sks\"; tafsiran \"sudah lulus\" tetap keputusan reviewer, bukan fakta dokumen."
+  },
+  "cosmetic_aliases": {
+    "AGB401": [
+      "Agama Budha 2",
+      "Agama Budha II"
+    ],
+    "AGC401": [
+      "Agama Konghucu 2",
+      "Agama Konghucu II"
+    ],
+    "AGH401": [
+      "Agama Hindu 2",
+      "Agama Hindu II"
+    ],
+    "AGI401": [
+      "Agama Islam 2",
+      "Agama Islam II"
+    ],
+    "AGK401": [
+      "Agama Katolik 2",
+      "Agama Katolik II"
+    ],
+    "AGP401": [
+      "Agama Protestan 2",
+      "Agama Protestan II"
+    ],
+    "FID101": [
+      "Fisika Dasar 1",
+      "Fisika Dasar I"
+    ],
+    "FID104": [
+      "Fisika Dasar 2",
+      "Fisika Dasar II"
+    ],
+    "PNJ302": [
+      "Metode Penelitian",
+      "Metode penelitian"
+    ]
+  },
+  "items": {
+    "identity_conflict:AGB101": {
+      "type": "identity_conflict",
+      "rows": [
+        "TSD sem 1 · Agama Budha · 2 SKS · wajib",
+        "RN sem 1 · Agama Budha I · 2 SKS · wajib",
+        "TRKB sem 1 · Agama Budha · 2 SKS · wajib",
+        "TE sem 1 · Agama Budha · 2 SKS · wajib"
+      ],
+      "suggestion": "kemungkinan matkul sama (beda penulisan) — pilih nama canonical",
+      "options": [
+        "matkul sama, pakai nama canonical (isi di note)",
+        "matkul berbeda, salah satu kode salah",
+        "tahan di staging"
+      ],
+      "decision": {
+        "action": "same",
+        "canonical_name": "Agama Budha 1"
+      },
+      "note": "Matkul sama; nama lain jadi alias, SKS per prodi. Ejaan mengikuti dokumen resmi ('Budha'). (Darryl, 2026-11-03)",
+      "evidence": "pdf",
+      "pdf_check": {
+        "status": "confirmed",
+        "evidence": "Tabel struktur Panduan 2024-2025 hal 28-43 (lihat source_findings.md)."
+      }
+    },
+    "identity_conflict:AGC101": {
+      "type": "identity_conflict",
+      "rows": [
+        "TSD sem 1 · Agama Konghucu · 2 SKS · wajib",
+        "RN sem 1 · Agama Konghucu I · 2 SKS · wajib",
+        "TRKB sem 1 · Agama Konghucu · 2 SKS · wajib",
+        "TE sem 1 · Agama Konghucu · 2 SKS · wajib"
+      ],
+      "suggestion": "kemungkinan matkul sama (beda penulisan) — pilih nama canonical",
+      "options": [
+        "matkul sama, pakai nama canonical (isi di note)",
+        "matkul berbeda, salah satu kode salah",
+        "tahan di staging"
+      ],
+      "decision": {
+        "action": "same",
+        "canonical_name": "Agama Konghucu 1"
+      },
+      "note": "Matkul sama; nama lain jadi alias, SKS per prodi. Ejaan mengikuti dokumen resmi ('Konghucu'). (Darryl, 2026-11-03)",
+      "evidence": "pdf",
+      "pdf_check": {
+        "status": "confirmed",
+        "evidence": "Tabel struktur Panduan 2024-2025 hal 28-43 (lihat source_findings.md)."
+      }
+    },
+    "identity_conflict:AGH101": {
+      "type": "identity_conflict",
+      "rows": [
+        "TSD sem 1 · Agama Hindu · 2 SKS · wajib",
+        "RN sem 1 · Agama Hindu I · 2 SKS · wajib",
+        "TRKB sem 1 · Agama Hindu · 2 SKS · wajib",
+        "TE sem 1 · Agama Hindu · 2 SKS · wajib"
+      ],
+      "suggestion": "kemungkinan matkul sama (beda penulisan) — pilih nama canonical",
+      "options": [
+        "matkul sama, pakai nama canonical (isi di note)",
+        "matkul berbeda, salah satu kode salah",
+        "tahan di staging"
+      ],
+      "decision": {
+        "action": "same",
+        "canonical_name": "Agama Hindu 1"
+      },
+      "note": "Matkul sama; nama lain jadi alias, SKS per prodi. Variasi Agama Hindu / Agama Hindu I. (Darryl, 2026-11-03)",
+      "evidence": "pdf",
+      "pdf_check": {
+        "status": "confirmed",
+        "evidence": "Tabel struktur Panduan 2024-2025 hal 28-43 (lihat source_findings.md)."
+      }
+    },
+    "identity_conflict:AGI101": {
+      "type": "identity_conflict",
+      "rows": [
+        "TSD sem 1 · Agama Islam · 2 SKS · wajib",
+        "RN sem 1 · Agama Islam I · 2 SKS · wajib",
+        "TRKB sem 1 · Agama Islam · 2 SKS · wajib",
+        "TE sem 1 · Agama Islam · 2 SKS · wajib",
+        "TI sem 1 · Agama I · 2 SKS · wajib"
+      ],
+      "suggestion": "kemungkinan matkul sama (beda penulisan) — pilih nama canonical",
+      "options": [
+        "matkul sama, pakai nama canonical (isi di note)",
+        "matkul berbeda, salah satu kode salah",
+        "tahan di staging"
+      ],
+      "decision": {
+        "action": "same",
+        "canonical_name": "Agama Islam 1"
+      },
+      "note": "Matkul sama; nama lain jadi alias, SKS per prodi. Nama per dokumen: Agama Islam / Agama Islam I / Agama I (TI). (Darryl, 2026-11-03)",
+      "evidence": "pdf",
+      "pdf_check": {
+        "status": "confirmed",
+        "evidence": "Tabel struktur Panduan 2024-2025 hal 28-43 (lihat source_findings.md)."
+      }
+    },
+    "identity_conflict:AGK101": {
+      "type": "identity_conflict",
+      "rows": [
+        "TSD sem 1 · Agama Katolik · 2 SKS · wajib",
+        "RN sem 1 · Agama Katolik I · 2 SKS · wajib",
+        "TRKB sem 1 · Agama Katolik · 2 SKS · wajib",
+        "TE sem 1 · Agama Katolik · 2 SKS · wajib"
+      ],
+      "suggestion": "kemungkinan matkul sama (beda penulisan) — pilih nama canonical",
+      "options": [
+        "matkul sama, pakai nama canonical (isi di note)",
+        "matkul berbeda, salah satu kode salah",
+        "tahan di staging"
+      ],
+      "decision": {
+        "action": "same",
+        "canonical_name": "Agama Katolik 1"
+      },
+      "note": "Matkul sama; nama lain jadi alias, SKS per prodi. Variasi Agama Katolik / Agama Katolik I. (Darryl, 2026-11-03)",
+      "evidence": "pdf",
+      "pdf_check": {
+        "status": "confirmed",
+        "evidence": "Tabel struktur Panduan 2024-2025 hal 28-43 (lihat source_findings.md)."
+      }
+    },
+    "identity_conflict:AGP101": {
+      "type": "identity_conflict",
+      "rows": [
+        "TSD sem 1 · Agama Protestan · 2 SKS · wajib",
+        "RN sem 1 · Agama Protestan I · 2 SKS · wajib",
+        "TRKB sem 1 · Agama Protestan · 2 SKS · wajib",
+        "TE sem 1 · Agama Protestan · 2 SKS · wajib"
+      ],
+      "suggestion": "kemungkinan matkul sama (beda penulisan) — pilih nama canonical",
+      "options": [
+        "matkul sama, pakai nama canonical (isi di note)",
+        "matkul berbeda, salah satu kode salah",
+        "tahan di staging"
+      ],
+      "decision": {
+        "action": "same",
+        "canonical_name": "Agama Protestan 1"
+      },
+      "note": "Matkul sama; nama lain jadi alias, SKS per prodi. Variasi Agama Protestan / Agama Protestan I. (Darryl, 2026-11-03)",
+      "evidence": "pdf",
+      "pdf_check": {
+        "status": "confirmed",
+        "evidence": "Tabel struktur Panduan 2024-2025 hal 28-43 (lihat source_findings.md)."
+      }
+    },
+    "identity_conflict:FID105": {
+      "type": "identity_conflict",
+      "rows": [
+        "RN sem 3 · Praktikum Fisika Dasar 2 · 1 SKS · wajib",
+        "TI sem 2 · Fisika Dasar II (Praktikum) · 1 SKS · wajib"
+      ],
+      "suggestion": "kemungkinan matkul sama (beda penulisan) — pilih nama canonical",
+      "options": [
+        "matkul sama, pakai nama canonical (isi di note)",
+        "matkul berbeda, salah satu kode salah",
+        "tahan di staging"
+      ],
+      "decision": {
+        "action": "same",
+        "canonical_name": "Praktikum Fisika Dasar 2"
+      },
+      "note": "Matkul sama; nama lain jadi alias, SKS per prodi. RN 'Praktikum Fisika Dasar 2' = TI 'Fisika Dasar II (Praktikum)'. (Darryl, 2026-11-03)",
+      "evidence": "pdf",
+      "pdf_check": {
+        "status": "confirmed",
+        "evidence": "Tabel struktur Panduan 2024-2025 hal 28-43 (lihat source_findings.md)."
+      }
+    },
+    "identity_conflict:KID105": {
+      "type": "identity_conflict",
+      "rows": [
+        "RN sem 1 · Kimia Dasar · 2 SKS · wajib",
+        "TRKB sem 1 · Kimia Dasar · 2 SKS · wajib",
+        "TE sem 1 · Kimia Dasar · 2 SKS · wajib",
+        "TI sem 1 · Kimia · 2 SKS · wajib"
+      ],
+      "suggestion": "kemungkinan matkul sama (beda penulisan) — pilih nama canonical",
+      "options": [
+        "matkul sama, pakai nama canonical (isi di note)",
+        "matkul berbeda, salah satu kode salah",
+        "tahan di staging"
+      ],
+      "decision": {
+        "action": "same",
+        "canonical_name": "Kimia Dasar"
+      },
+      "note": "Matkul sama; nama lain jadi alias, SKS per prodi. TI menulis 'Kimia'. (Darryl, 2026-11-03)",
+      "evidence": "pdf",
+      "pdf_check": {
+        "status": "confirmed",
+        "evidence": "Tabel struktur Panduan 2024-2025 hal 28-43 (lihat source_findings.md)."
+      }
+    },
+    "identity_conflict:KLJ301": {
+      "type": "identity_conflict",
+      "rows": [
+        "TSD sem 6 · Praktek Kerja Lapangan · 2 SKS · wajib",
+        "RN sem 7 · Praktek Kerja Lapangan · 2 SKS · wajib",
+        "TE sem 6 · Praktek Kerja Lapangan · 2 SKS · wajib",
+        "TI sem 7 · PKL · 2 SKS · wajib"
+      ],
+      "suggestion": "kemungkinan matkul sama (beda penulisan) — pilih nama canonical",
+      "options": [
+        "matkul sama, pakai nama canonical (isi di note)",
+        "matkul berbeda, salah satu kode salah",
+        "tahan di staging"
+      ],
+      "decision": {
+        "action": "same",
+        "canonical_name": "Praktek Kerja Lapangan"
+      },
+      "note": "Matkul sama; nama lain jadi alias, SKS per prodi. TI menulis 'PKL'. (Darryl, 2026-11-03)",
+      "evidence": "pdf",
+      "pdf_check": {
+        "status": "confirmed",
+        "evidence": "Tabel struktur Panduan 2024-2025 hal 28-43 (lihat source_findings.md)."
+      }
+    },
+    "identity_conflict:KNJ401": {
+      "type": "identity_conflict",
+      "rows": [
+        "TSD sem 7 · KKN-BBM · 3 SKS · wajib",
+        "RN sem 7 · Kuliah Kerja Nyata · 3 SKS · wajib",
+        "TE sem 7 · Kuliah Kerja Nyata · 3 SKS · wajib",
+        "TI sem 8 · Kuliah Kerja Nyata · 3 SKS · wajib"
+      ],
+      "suggestion": "kemungkinan matkul sama (beda penulisan) — pilih nama canonical",
+      "options": [
+        "matkul sama, pakai nama canonical (isi di note)",
+        "matkul berbeda, salah satu kode salah",
+        "tahan di staging"
+      ],
+      "decision": {
+        "action": "same",
+        "canonical_name": "Kuliah Kerja Nyata"
+      },
+      "note": "Matkul sama; nama lain jadi alias, SKS per prodi. TSD menulis 'KKN-BBM'. (Darryl, 2026-11-03)",
+      "evidence": "pdf",
+      "pdf_check": {
+        "status": "confirmed",
+        "evidence": "Tabel struktur Panduan 2024-2025 hal 28-43 (lihat source_findings.md)."
+      }
+    },
+    "identity_conflict:MAL104": {
+      "type": "identity_conflict",
+      "rows": [
+        "TRKB sem 2 · Aljabar Linier · 3 SKS · wajib",
+        "TE sem 2 · Aljabar Linier dan Sistem Diskrit · 3 SKS · wajib"
+      ],
+      "suggestion": "kemungkinan matkul sama (beda penulisan) — pilih nama canonical",
+      "options": [
+        "matkul sama, pakai nama canonical (isi di note)",
+        "matkul berbeda, salah satu kode salah",
+        "tahan di staging"
+      ],
+      "decision": {
+        "action": "same",
+        "canonical_name": "Aljabar Linier dan Sistem Diskrit"
+      },
+      "note": "Matkul sama; nama lain jadi alias, SKS per prodi. TRKB 'Aljabar Linier', TE 'Aljabar Linier dan Sistem Diskrit', keduanya 3 sks. (Darryl, 2026-11-03)",
+      "evidence": "pdf",
+      "pdf_check": {
+        "status": "confirmed",
+        "evidence": "Tabel struktur Panduan 2024-2025 hal 28-43 (lihat source_findings.md)."
+      }
+    },
+    "identity_conflict:MAS243": {
+      "type": "identity_conflict",
+      "rows": [
+        "TRKB sem 4 · Probabilitas, Statistika dan Proses Stokastik · 3 SKS · wajib",
+        "TE sem 5 · Probabilitas, Statistik dan Proses Stokastik · 4 SKS · wajib"
+      ],
+      "suggestion": "nama mirip tapi SKS beda — cek PDF",
+      "options": [
+        "matkul sama, pakai nama canonical (isi di note)",
+        "matkul berbeda, salah satu kode salah",
+        "tahan di staging"
+      ],
+      "decision": {
+        "action": "same",
+        "canonical_name": "Probabilitas, Statistika dan Proses Stokastik"
+      },
+      "note": "Matkul sama; nama lain jadi alias, SKS per prodi. SKS beda per prodi: TRKB 3, TE 4 (Panduan hal 35 & 38). (Darryl, 2026-11-03)",
+      "evidence": "pdf",
+      "pdf_check": {
+        "status": "confirmed",
+        "evidence": "Tabel struktur Panduan 2024-2025 hal 28-43 (lihat source_findings.md)."
+      }
+    },
+    "identity_conflict:MNM106": {
+      "type": "identity_conflict",
+      "rows": [
+        "TSD sem 2 · Komunikasi dan Pengembangan Diri · 2 SKS · wajib",
+        "RN sem 1 · Kemampuan Komunikasi dan Pengembangan Diri · 2 SKS · wajib",
+        "TRKB sem 2 · Komunikasi dan Pengembangan Diri · 2 SKS · wajib",
+        "TE sem 2 · Komunikasi dan Pengembangan Diri · 2 SKS · wajib",
+        "TI sem 2 · Komunikasi dan Pengembangan Diri · 2 SKS · wajib"
+      ],
+      "suggestion": "kemungkinan matkul sama (beda penulisan) — pilih nama canonical",
+      "options": [
+        "matkul sama, pakai nama canonical (isi di note)",
+        "matkul berbeda, salah satu kode salah",
+        "tahan di staging"
+      ],
+      "decision": {
+        "action": "same",
+        "canonical_name": "Komunikasi dan Pengembangan Diri"
+      },
+      "note": "Matkul sama; nama lain jadi alias, SKS per prodi. RN menulis 'Kemampuan Komunikasi dan Pengembangan Diri'. (Darryl, 2026-11-03)",
+      "evidence": "pdf",
+      "pdf_check": {
+        "status": "confirmed",
+        "evidence": "Tabel struktur Panduan 2024-2025 hal 28-43 (lihat source_findings.md)."
+      }
+    },
+    "identity_conflict:PHP103": {
+      "type": "identity_conflict",
+      "rows": [
+        "TSD sem 2 · Logika dan Pemikiran Kritis · 2 SKS · wajib",
+        "RN sem 1 · Logika dan Pemikiran Kritis · 2 SKS · wajib",
+        "TRKB sem 2 · Logika dan Pemikiran Kritis · 2 SKS · wajib",
+        "TE sem 2 · Logika dan Pemikiran Kritis · 2 SKS · wajib",
+        "TI sem 2 · Logika dan Pemikiran Kiritis · 2 SKS · wajib"
+      ],
+      "suggestion": "kemungkinan matkul sama (beda penulisan) — pilih nama canonical",
+      "options": [
+        "matkul sama, pakai nama canonical (isi di note)",
+        "matkul berbeda, salah satu kode salah",
+        "tahan di staging"
+      ],
+      "decision": {
+        "action": "same",
+        "canonical_name": "Logika dan Pemikiran Kritis"
+      },
+      "note": "Matkul sama; nama lain jadi alias, SKS per prodi. TI salah ketik 'Kiritis'. (Darryl, 2026-11-03)",
+      "evidence": "pdf",
+      "pdf_check": {
+        "status": "confirmed",
+        "evidence": "Tabel struktur Panduan 2024-2025 hal 28-43 (lihat source_findings.md)."
+      }
+    },
+    "identity_conflict:SIA105": {
+      "type": "identity_conflict",
+      "rows": [
+        "TRKB sem 2 · Dasar Pemrograman · 3 SKS · wajib",
+        "TE sem 3 · Pemrograman Komputer · 3 SKS · wajib"
+      ],
+      "suggestion": "kemungkinan matkul BERBEDA — salah satu kode kemungkinan salah, cek PDF",
+      "options": [
+        "matkul sama, pakai nama canonical (isi di note)",
+        "matkul berbeda, salah satu kode salah",
+        "tahan di staging"
+      ],
+      "decision": {
+        "action": "same",
+        "canonical_name": "Dasar Pemrograman"
+      },
+      "note": "Matkul sama; nama lain jadi alias, SKS per prodi. TE Tabel 4.2 hal 43: SIA105 Dasar Pemrograman + SIA106 digabung menjadi 'Pemrograman Komputer' 3 sks; Panduan tetap memakai SIA105 di TE & TRKB. Alias: Pemrograman Komputer. (Darryl, 2026-11-03)",
+      "evidence": "pdf",
+      "pdf_check": {
+        "status": "confirmed",
+        "evidence": "Tabel struktur Panduan 2024-2025 hal 28-43 (lihat source_findings.md)."
+      }
+    },
+    "identity_conflict:TNM102": {
+      "type": "identity_conflict",
+      "rows": [
+        "TSD sem 3 · Teknologi Hijau · 2 SKS · wajib",
+        "TRKB sem 3 · Teknologi Hijau · 2 SKS · wajib",
+        "TE sem 3 · Green Technology · 2 SKS · wajib",
+        "TI sem 7 · Teknologi Hijau · 2 SKS · wajib"
+      ],
+      "suggestion": "kemungkinan matkul sama (beda penulisan) — pilih nama canonical",
+      "options": [
+        "matkul sama, pakai nama canonical (isi di note)",
+        "matkul berbeda, salah satu kode salah",
+        "tahan di staging"
+      ],
+      "decision": {
+        "action": "same",
+        "canonical_name": "Teknologi Hijau"
+      },
+      "note": "Matkul sama; nama lain jadi alias, SKS per prodi. TE menulis 'Green Technology'. (Darryl, 2026-11-03)",
+      "evidence": "pdf",
+      "pdf_check": {
+        "status": "confirmed",
+        "evidence": "Tabel struktur Panduan 2024-2025 hal 28-43 (lihat source_findings.md)."
+      }
+    },
+    "prerequisite:RN:PNJ499:P34-75-PNJ499": {
+      "type": "prerequisite",
+      "raw_expression": "Lulus Proposal Penelitian",
+      "proposed_leaves": [],
+      "unresolved": [
+        {
+          "text": "Proposal Penelitian",
+          "reason": "nama tidak cocok persis dengan matkul di prodi ini",
+          "candidates": [
+            "PNJ302 (metode penelitian)",
+            "PNJ495 (proposal skripsi)"
+          ]
+        }
+      ],
+      "options": [
+        "setujui usulan",
+        "koreksi (isi di note)",
+        "biarkan unresolved"
+      ],
+      "decision": {
+        "action": "override",
+        "leaves": [
+          {
+            "node_type": "course_passed",
+            "course_code": "PNJ495",
+            "source": "Lulus Proposal Penelitian"
+          }
+        ]
+      },
+      "note": "Proposal Penelitian (dokumen 2021, 2 sks sem 7) = PNJ495 Proposal Skripsi (Panduan, 2 sks sem 7). (Darryl, 2026-11-03)",
+      "evidence": "pdf",
+      "pdf_check": {
+        "status": "confirmed",
+        "evidence": "Kurikulum RN 2021 PDF hal 46 baris 72; Panduan hal 34 baris 72."
+      }
+    },
+    "prerequisite:RN:RND202:P33-36-RND202": {
+      "type": "prerequisite",
+      "raw_expression": "Fisika Dasar | Kimia Dasar",
+      "proposed_leaves": [
+        {
+          "node_type": "course_passed",
+          "course_code": "KID105",
+          "source": "Kimia Dasar"
+        }
+      ],
+      "unresolved": [
+        {
+          "text": "Fisika Dasar",
+          "reason": "nama ada di prodi lain, tidak di kurikulum ini",
+          "candidates": [
+            "TSD:FID113"
+          ]
+        }
+      ],
+      "options": [
+        "setujui usulan",
+        "koreksi (isi di note)",
+        "biarkan unresolved"
+      ],
+      "decision": {
+        "action": "override",
+        "leaves": [
+          {
+            "node_type": "course_passed",
+            "course_code": "KID105",
+            "source": "Kimia Dasar"
+          },
+          {
+            "node_type": "course_passed",
+            "course_code": "FID101",
+            "source": "Fisika Dasar"
+          }
+        ]
+      },
+      "note": "'Fisika Dasar' = FID101 Fisika Dasar 1, konsisten dengan 'Kimia Dasar' = KID105 (yang pertama di serinya). Tafsiran; rule tidak di-verify. (Darryl, 2026-11-03)",
+      "evidence": "inferred",
+      "pdf_check": {
+        "status": "unverified",
+        "evidence": "Tidak ada di tabel RN 2021 maupun Panduan."
+      }
+    },
+    "prerequisite:RN:RNM202:P33-50-RNM202": {
+      "type": "prerequisite",
+      "raw_expression": "Fisika Dasar 1 & 2 | Kimia Dasar 1 & 2",
+      "proposed_leaves": [
+        {
+          "node_type": "course_passed",
+          "course_code": "FID101",
+          "source": "Fisika Dasar 1 & 2"
+        },
+        {
+          "node_type": "course_passed",
+          "course_code": "FID104",
+          "source": "Fisika Dasar 1 & 2"
+        },
+        {
+          "node_type": "course_passed",
+          "course_code": "KID103",
+          "source": "Kimia Dasar 1 & 2"
+        }
+      ],
+      "unresolved": [
+        {
+          "text": "Kimia Dasar 1",
+          "reason": "nama tidak cocok persis dengan matkul di prodi ini",
+          "candidates": [
+            "KID103 (kimia dasar 2)",
+            "KID105 (kimia dasar)",
+            "FID101 (fisika dasar 1)"
+          ]
+        }
+      ],
+      "options": [
+        "setujui usulan",
+        "koreksi (isi di note)",
+        "biarkan unresolved"
+      ],
+      "decision": {
+        "action": "override",
+        "leaves": [
+          {
+            "node_type": "course_passed",
+            "course_code": "FID101",
+            "source": "Fisika Dasar 1 & 2"
+          },
+          {
+            "node_type": "course_passed",
+            "course_code": "FID104",
+            "source": "Fisika Dasar 1 & 2"
+          },
+          {
+            "node_type": "course_passed",
+            "course_code": "KID103",
+            "source": "Kimia Dasar 1 & 2"
+          },
+          {
+            "node_type": "course_passed",
+            "course_code": "KID105",
+            "source": "Kimia Dasar 1 & 2"
+          }
+        ]
+      },
+      "note": "Kimia Dasar 1 = KID105 Kimia Dasar. (Darryl, 2026-11-03)",
+      "evidence": "pdf",
+      "pdf_check": {
+        "status": "confirmed",
+        "evidence": "Panduan hal 32."
+      }
+    },
+    "prerequisite:RN:RNT301:P33-51-RNT301": {
+      "type": "prerequisite",
+      "raw_expression": "Biologi Sel dan Molekuler | Aplikasi Nanoteknologi",
+      "proposed_leaves": [
+        {
+          "node_type": "course_passed",
+          "course_code": "BIS201",
+          "source": "Biologi Sel dan Molekuler"
+        }
+      ],
+      "unresolved": [
+        {
+          "text": "Aplikasi Nanoteknologi",
+          "reason": "nama tidak cocok persis dengan matkul di prodi ini",
+          "candidates": [
+            "FID205 (fisika nanoteknologi)",
+            "RNS302 (aplikasi nanoteknologi dalam industri)",
+            "RND201 (dasar nanoteknologi 2)"
+          ]
+        }
+      ],
+      "options": [
+        "setujui usulan",
+        "koreksi (isi di note)",
+        "biarkan unresolved"
+      ],
+      "decision": {
+        "action": "override",
+        "leaves": [
+          {
+            "node_type": "course_passed",
+            "course_code": "BIS201",
+            "source": "Biologi Sel dan Molekuler"
+          },
+          {
+            "node_type": "course_passed",
+            "course_code": "RNS302",
+            "source": "Aplikasi Nanoteknologi"
+          }
+        ]
+      },
+      "note": "Aplikasi Nanoteknologi = RNS302 (dokumen 2021: 'Aplikasi Nanoteknologi dalam industri'; Panduan: 'Nanoteknologi Industri'). (Darryl, 2026-11-03)",
+      "evidence": "pdf",
+      "pdf_check": {
+        "status": "confirmed",
+        "evidence": "Kurikulum RN 2021 PDF hal 45; Panduan hal 34."
+      }
+    },
+    "prerequisite:RN:RNT303:P34-62-RNT303": {
+      "type": "prerequisite",
+      "raw_expression": "Pengantar Nanoteknologi 1 & 2 | Fisika Modern",
+      "proposed_leaves": [
+        {
+          "node_type": "course_passed",
+          "course_code": "RND101",
+          "source": "Pengantar Nanoteknologi 1 & 2"
+        },
+        {
+          "node_type": "course_passed",
+          "course_code": "RND201",
+          "source": "Pengantar Nanoteknologi 1 & 2"
+        }
+      ],
+      "unresolved": [
+        {
+          "text": "Fisika Modern",
+          "reason": "nama tidak cocok persis dengan matkul di prodi ini",
+          "candidates": [
+            "FID104 (fisika dasar 2)",
+            "FID101 (fisika dasar 1)"
+          ]
+        }
+      ],
+      "options": [
+        "setujui usulan",
+        "koreksi (isi di note)",
+        "biarkan unresolved"
+      ],
+      "decision": {
+        "action": "advisory",
+        "leaves": [
+          {
+            "node_type": "course_passed",
+            "course_code": "RND101",
+            "source": "Pengantar Nanoteknologi 1 & 2"
+          },
+          {
+            "node_type": "course_passed",
+            "course_code": "RND201",
+            "source": "Pengantar Nanoteknologi 1 & 2"
+          },
+          {
+            "node_type": "course_passed",
+            "course_code": "RND204",
+            "source": "Fisika Modern",
+            "inferred": true
+          }
+        ]
+      },
+      "note": "'Fisika Modern' tidak ada di kurikulum RN; isi materinya (kuantum, atom, zat padat) paling dekat dengan RND204 Nanosains Kuantum. Rule tetap unresolved: hanya saran, tidak memblokir Planner. (Darryl, 2026-11-03)",
+      "evidence": "inferred",
+      "pdf_check": {
+        "status": "unverified",
+        "evidence": "Tidak ada 'Fisika Modern' di tabel RN 2021 maupun Panduan; RND204 di Panduan hal 33."
+      }
+    },
+    "prerequisite:RN:RNT402:P34-74-RNT402": {
+      "type": "prerequisite",
+      "raw_expression": "Fisika Modern",
+      "proposed_leaves": [],
+      "unresolved": [
+        {
+          "text": "Fisika Modern",
+          "reason": "nama tidak cocok persis dengan matkul di prodi ini",
+          "candidates": [
+            "FID104 (fisika dasar 2)",
+            "FID101 (fisika dasar 1)"
+          ]
+        }
+      ],
+      "options": [
+        "setujui usulan",
+        "koreksi (isi di note)",
+        "biarkan unresolved"
+      ],
+      "decision": {
+        "action": "advisory",
+        "leaves": [
+          {
+            "node_type": "course_passed",
+            "course_code": "RND204",
+            "source": "Fisika Modern",
+            "inferred": true
+          }
+        ]
+      },
+      "note": "'Fisika Modern' tidak ada di kurikulum RN; isi materinya (kuantum, atom, zat padat) paling dekat dengan RND204 Nanosains Kuantum. Rule tetap unresolved: hanya saran, tidak memblokir Planner. (Darryl, 2026-11-03)",
+      "evidence": "inferred",
+      "pdf_check": {
+        "status": "unverified",
+        "evidence": "Tidak ada 'Fisika Modern' di tabel RN 2021 maupun Panduan; RND204 di Panduan hal 33."
+      }
+    },
+    "prerequisite:TRKB:RKK301:P36-36-RKK301": {
+      "type": "prerequisite",
+      "raw_expression": "Matematika Diskrit | PBO | Kecerdasan Buatan | Probabilitas, | Statistika, dan Proses Stokastik",
+      "proposed_leaves": [
+        {
+          "node_type": "course_passed",
+          "course_code": "MAL204",
+          "source": "Matematika Diskrit"
+        },
+        {
+          "node_type": "course_passed",
+          "course_code": "MAT302",
+          "source": "Kecerdasan Buatan"
+        },
+        {
+          "node_type": "course_passed",
+          "course_code": "MAS243",
+          "source": "Probabilitas, Statistika, dan Proses Stokastik"
+        }
+      ],
+      "unresolved": [
+        {
+          "text": "PBO",
+          "reason": "nama tidak cocok persis dengan matkul di prodi ini"
+        }
+      ],
+      "options": [
+        "setujui usulan",
+        "koreksi (isi di note)",
+        "biarkan unresolved"
+      ],
+      "decision": {
+        "action": "override",
+        "leaves": [
+          {
+            "node_type": "course_passed",
+            "course_code": "MAL204",
+            "source": "Matematika Diskrit"
+          },
+          {
+            "node_type": "course_passed",
+            "course_code": "MAT302",
+            "source": "Kecerdasan Buatan"
+          },
+          {
+            "node_type": "course_passed",
+            "course_code": "MAS243",
+            "source": "Probabilitas, Statistika, dan Proses Stokastik"
+          },
+          {
+            "node_type": "course_passed",
+            "course_code": "SIR201",
+            "source": "PBO"
+          }
+        ]
+      },
+      "note": "PBO = SIR201 Pemrograman Berorientasi Objek. (Darryl, 2026-11-03)",
+      "evidence": "pdf",
+      "pdf_check": {
+        "status": "confirmed",
+        "evidence": "Panduan hal 35."
+      }
+    },
+    "prerequisite:TRKB:RKK302:P36-37-RKK302": {
+      "type": "prerequisite",
+      "raw_expression": "Matematika Diskrit | PBO | Kecerdasan Buatan | Probabilitas, | Statistika, dan Proses Stokastik",
+      "proposed_leaves": [
+        {
+          "node_type": "course_passed",
+          "course_code": "MAL204",
+          "source": "Matematika Diskrit"
+        },
+        {
+          "node_type": "course_passed",
+          "course_code": "MAT302",
+          "source": "Kecerdasan Buatan"
+        },
+        {
+          "node_type": "course_passed",
+          "course_code": "MAS243",
+          "source": "Probabilitas, Statistika, dan Proses Stokastik"
+        }
+      ],
+      "unresolved": [
+        {
+          "text": "PBO",
+          "reason": "nama tidak cocok persis dengan matkul di prodi ini"
+        }
+      ],
+      "options": [
+        "setujui usulan",
+        "koreksi (isi di note)",
+        "biarkan unresolved"
+      ],
+      "decision": {
+        "action": "override",
+        "leaves": [
+          {
+            "node_type": "course_passed",
+            "course_code": "MAL204",
+            "source": "Matematika Diskrit"
+          },
+          {
+            "node_type": "course_passed",
+            "course_code": "MAT302",
+            "source": "Kecerdasan Buatan"
+          },
+          {
+            "node_type": "course_passed",
+            "course_code": "MAS243",
+            "source": "Probabilitas, Statistika, dan Proses Stokastik"
+          },
+          {
+            "node_type": "course_passed",
+            "course_code": "SIR201",
+            "source": "PBO"
+          }
+        ]
+      },
+      "note": "PBO = SIR201 Pemrograman Berorientasi Objek. (Darryl, 2026-11-03)",
+      "evidence": "pdf",
+      "pdf_check": {
+        "status": "confirmed",
+        "evidence": "Panduan hal 35."
+      }
+    },
+    "prerequisite:TRKB:RKS301:P36-38-RKS301": {
+      "type": "prerequisite",
+      "raw_expression": "CAD",
+      "proposed_leaves": [],
+      "unresolved": [
+        {
+          "text": "CAD",
+          "reason": "nama tidak cocok persis dengan matkul di prodi ini"
+        }
+      ],
+      "options": [
+        "setujui usulan",
+        "koreksi (isi di note)",
+        "biarkan unresolved"
+      ],
+      "decision": {
+        "action": "override",
+        "leaves": [
+          {
+            "node_type": "course_passed",
+            "course_code": "RKD101",
+            "source": "CAD"
+          }
+        ]
+      },
+      "note": "CAD = RKD101 Computer Aided Design. (Darryl, 2026-11-03)",
+      "evidence": "pdf",
+      "pdf_check": {
+        "status": "confirmed",
+        "evidence": "Panduan hal 35."
+      }
+    },
+    "prerequisite:TRKB:RKS308:P36-56-RKS308": {
+      "type": "prerequisite",
+      "raw_expression": "CAD, Dasar Pemrograman dan Rangkaian Listrik",
+      "proposed_leaves": [
+        {
+          "node_type": "course_passed",
+          "course_code": "SIA105",
+          "source": "CAD, Dasar Pemrograman dan Rangkaian Listrik"
+        },
+        {
+          "node_type": "course_passed",
+          "course_code": "TML306",
+          "source": "CAD, Dasar Pemrograman dan Rangkaian Listrik"
+        }
+      ],
+      "unresolved": [
+        {
+          "text": "CAD",
+          "reason": "nama tidak cocok persis dengan matkul di prodi ini"
+        }
+      ],
+      "options": [
+        "setujui usulan",
+        "koreksi (isi di note)",
+        "biarkan unresolved"
+      ],
+      "decision": {
+        "action": "override",
+        "leaves": [
+          {
+            "node_type": "course_passed",
+            "course_code": "SIA105",
+            "source": "CAD, Dasar Pemrograman dan Rangkaian Listrik"
+          },
+          {
+            "node_type": "course_passed",
+            "course_code": "TML306",
+            "source": "CAD, Dasar Pemrograman dan Rangkaian Listrik"
+          },
+          {
+            "node_type": "course_passed",
+            "course_code": "RKD101",
+            "source": "CAD"
+          }
+        ]
+      },
+      "note": "CAD = RKD101 Computer Aided Design. (Darryl, 2026-11-03)",
+      "evidence": "pdf",
+      "pdf_check": {
+        "status": "confirmed",
+        "evidence": "Panduan hal 35."
+      }
+    },
+    "prerequisite:TSD:SID207:P29-33-SID207": {
+      "type": "prerequisite",
+      "raw_expression": "Eksplorasi dan Visualisasi Data dan Algoritma | Pemrograman I",
+      "proposed_leaves": [
+        {
+          "node_type": "course_passed",
+          "course_code": "SID205",
+          "source": "Eksplorasi dan Visualisasi Data dan Algoritma"
+        }
+      ],
+      "unresolved": [
+        {
+          "text": "Algoritma",
+          "reason": "nama tidak cocok persis dengan matkul di prodi ini"
+        },
+        {
+          "text": "Pemrograman I",
+          "reason": "nama tidak cocok persis dengan matkul di prodi ini",
+          "candidates": [
+            "MAA311 (pemrograman linier)",
+            "SIA303 (pemrograman lanjut)",
+            "SIA107 (algoritma pemrograman 1)"
+          ]
+        }
+      ],
+      "options": [
+        "setujui usulan",
+        "koreksi (isi di note)",
+        "biarkan unresolved"
+      ],
+      "decision": {
+        "action": "override",
+        "leaves": [
+          {
+            "node_type": "course_passed",
+            "course_code": "SID205",
+            "source": "Eksplorasi dan Visualisasi Data"
+          },
+          {
+            "node_type": "course_passed",
+            "course_code": "SIA107",
+            "source": "Algoritma Pemrograman I"
+          }
+        ]
+      },
+      "note": "Teks terpotong PDF; = Eksplorasi dan Visualisasi Data + Algoritma Pemrograman I. (Darryl, 2026-11-03)",
+      "evidence": "pdf",
+      "pdf_check": {
+        "status": "confirmed",
+        "evidence": "Kurikulum TSD 2021 hal 38-39 (SID205, SIA107)."
+      }
+    }
+  }
+}
