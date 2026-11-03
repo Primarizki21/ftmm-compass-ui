@@ -20,11 +20,11 @@ keputusan diisi di `reconciliation.json`.
 
 | Prodi | File | Baris | Tahun | SHA-256 |
 |---|---|---|---|---|
-| TSD | Panduan Pendidikan FTMM UNAIR 2024-2025.pdf | 411 | - | `-` |
-| RN | Panduan Pendidikan FTMM UNAIR 2024-2025.pdf | 411 | - | `-` |
-| TRKB | Panduan Pendidikan FTMM UNAIR 2024-2025.pdf | 411 | - | `-` |
-| TE | Panduan Pendidikan FTMM UNAIR 2024-2025.pdf | 411 | - | `-` |
-| TI | Panduan Pendidikan FTMM UNAIR 2024-2025.pdf | 411 | - | `-` |
+| TSD | Panduan Pendidikan FTMM UNAIR 2024-2025.pdf | 82 | - | `-` |
+| RN | Panduan Pendidikan FTMM UNAIR 2024-2025.pdf | 79 | - | `-` |
+| TRKB | Panduan Pendidikan FTMM UNAIR 2024-2025.pdf | 72 | - | `-` |
+| TE | Panduan Pendidikan FTMM UNAIR 2024-2025.pdf | 95 | - | `-` |
+| TI | Panduan Pendidikan FTMM UNAIR 2024-2025.pdf | 83 | - | `-` |
 
 ## 1. Kode format tidak valid
 
