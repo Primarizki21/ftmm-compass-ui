@@ -147,4 +147,6 @@ tapi tidak dianggap resmi dan tidak memblokir Planner. Ganti di `reconciliation.
 Huruf **X** pada kode sementara menandai placeholder: tetap lolos CHECK format kode, tapi
 tidak mungkin bentrok dengan kode resmi.
 
+| TI agama (ditemukan saat review akhir) | 'AGI101 Agama I' & 'AG401 Agama 2' diperluas ke 6 alternatif AGx101 (sem 1) / AGx401 (sem 8), `unverified` | Tabel TI hanya mencetak satu baris generik; tanpa ini mahasiswa TI non-Muslim tidak punya MK agama. Empat prodi lain di Panduan yang sama memakai 6 alternatif |
+
 - Teks prasyarat RN/TE/TI berasal dari JSON (dokumen 2021 scan); belum dicek per halaman.

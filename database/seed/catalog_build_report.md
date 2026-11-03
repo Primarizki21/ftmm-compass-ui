@@ -114,7 +114,7 @@
 
 ## TI
 
-- Baris tabel: **73** (tertahan: 0)
+- Baris tabel: **83** (tertahan: 0)
 - Punya detail dari JSON: **54**
 - Baris JSON tanpa pasangan di Panduan: **0**
 
@@ -130,5 +130,7 @@
 | 8 | 16 | 16 (Jumlah, hal 43) | ✅ |
 
 **Catatan:**
+- Baris agama generik 'AGI101 Agama I' (hal 41) diperluas ke 6 alternatif AGx101 seperti prodi lain
+- Baris agama generik 'AG401 Agama 2' (hal 43) diperluas ke 6 alternatif AGx401 seperti prodi lain
 - 19 MK pilihan diberi semester dari deskripsi dokumen 2021 hal 138: 'Semester: Mata Kuliah Pilihan'
 

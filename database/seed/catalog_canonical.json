@@ -8096,11 +8096,132 @@
             0,
             2
           ],
+          "code_inferred": true,
           "json_record_key": "MK-003#3",
           "json_code": "AGI101",
           "json_name": "Agama I",
           "json_semester": 1,
           "json_match": "kode+nama",
+          "prerequisites_raw": []
+        },
+        {
+          "no": 1,
+          "code": "AGK101",
+          "semester": 1,
+          "block": "wajib",
+          "concentration": null,
+          "page": 41,
+          "alternative_of": "AGI101",
+          "name": "Agama Katolik I",
+          "category": "a",
+          "credits": 2,
+          "credit_parts": [
+            2,
+            0,
+            0,
+            2
+          ],
+          "code_inferred": true,
+          "code_as_printed": null,
+          "json_record_key": null,
+          "json_code": null,
+          "json_name": null,
+          "prerequisites_raw": []
+        },
+        {
+          "no": 1,
+          "code": "AGP101",
+          "semester": 1,
+          "block": "wajib",
+          "concentration": null,
+          "page": 41,
+          "alternative_of": "AGI101",
+          "name": "Agama Protestan I",
+          "category": "a",
+          "credits": 2,
+          "credit_parts": [
+            2,
+            0,
+            0,
+            2
+          ],
+          "code_inferred": true,
+          "code_as_printed": null,
+          "json_record_key": null,
+          "json_code": null,
+          "json_name": null,
+          "prerequisites_raw": []
+        },
+        {
+          "no": 1,
+          "code": "AGH101",
+          "semester": 1,
+          "block": "wajib",
+          "concentration": null,
+          "page": 41,
+          "alternative_of": "AGI101",
+          "name": "Agama Hindu I",
+          "category": "a",
+          "credits": 2,
+          "credit_parts": [
+            2,
+            0,
+            0,
+            2
+          ],
+          "code_inferred": true,
+          "code_as_printed": null,
+          "json_record_key": null,
+          "json_code": null,
+          "json_name": null,
+          "prerequisites_raw": []
+        },
+        {
+          "no": 1,
+          "code": "AGB101",
+          "semester": 1,
+          "block": "wajib",
+          "concentration": null,
+          "page": 41,
+          "alternative_of": "AGI101",
+          "name": "Agama Budha I",
+          "category": "a",
+          "credits": 2,
+          "credit_parts": [
+            2,
+            0,
+            0,
+            2
+          ],
+          "code_inferred": true,
+          "code_as_printed": null,
+          "json_record_key": null,
+          "json_code": null,
+          "json_name": null,
+          "prerequisites_raw": []
+        },
+        {
+          "no": 1,
+          "code": "AGC101",
+          "semester": 1,
+          "block": "wajib",
+          "concentration": null,
+          "page": 41,
+          "alternative_of": "AGI101",
+          "name": "Agama Konghucu I",
+          "category": "a",
+          "credits": 2,
+          "credit_parts": [
+            2,
+            0,
+            0,
+            2
+          ],
+          "code_inferred": true,
+          "code_as_printed": null,
+          "json_record_key": null,
+          "json_code": null,
+          "json_name": null,
           "prerequisites_raw": []
         },
         {
@@ -9364,7 +9485,7 @@
         },
         {
           "no": 54,
-          "code": "AG401",
+          "code": "AGI401",
           "semester": 8,
           "block": "wajib",
           "concentration": null,
@@ -9379,6 +9500,8 @@
             0,
             2
           ],
+          "code_as_printed": "AG401",
+          "code_inferred": true,
           "json_record_key": "MK-052#52",
           "json_code": "AGI102",
           "json_name": "Agama II",
@@ -9387,6 +9510,126 @@
           "prerequisites_raw": [
             "AGI101"
           ]
+        },
+        {
+          "no": 54,
+          "code": "AGK401",
+          "semester": 8,
+          "block": "wajib",
+          "concentration": null,
+          "page": 43,
+          "alternative_of": "AGI401",
+          "name": "Agama Katolik II",
+          "category": "a",
+          "credits": 2,
+          "credit_parts": [
+            2,
+            0,
+            0,
+            2
+          ],
+          "code_as_printed": null,
+          "code_inferred": true,
+          "json_record_key": null,
+          "json_code": null,
+          "json_name": null,
+          "prerequisites_raw": []
+        },
+        {
+          "no": 54,
+          "code": "AGP401",
+          "semester": 8,
+          "block": "wajib",
+          "concentration": null,
+          "page": 43,
+          "alternative_of": "AGI401",
+          "name": "Agama Protestan II",
+          "category": "a",
+          "credits": 2,
+          "credit_parts": [
+            2,
+            0,
+            0,
+            2
+          ],
+          "code_as_printed": null,
+          "code_inferred": true,
+          "json_record_key": null,
+          "json_code": null,
+          "json_name": null,
+          "prerequisites_raw": []
+        },
+        {
+          "no": 54,
+          "code": "AGH401",
+          "semester": 8,
+          "block": "wajib",
+          "concentration": null,
+          "page": 43,
+          "alternative_of": "AGI401",
+          "name": "Agama Hindu II",
+          "category": "a",
+          "credits": 2,
+          "credit_parts": [
+            2,
+            0,
+            0,
+            2
+          ],
+          "code_as_printed": null,
+          "code_inferred": true,
+          "json_record_key": null,
+          "json_code": null,
+          "json_name": null,
+          "prerequisites_raw": []
+        },
+        {
+          "no": 54,
+          "code": "AGB401",
+          "semester": 8,
+          "block": "wajib",
+          "concentration": null,
+          "page": 43,
+          "alternative_of": "AGI401",
+          "name": "Agama Budha II",
+          "category": "a",
+          "credits": 2,
+          "credit_parts": [
+            2,
+            0,
+            0,
+            2
+          ],
+          "code_as_printed": null,
+          "code_inferred": true,
+          "json_record_key": null,
+          "json_code": null,
+          "json_name": null,
+          "prerequisites_raw": []
+        },
+        {
+          "no": 54,
+          "code": "AGC401",
+          "semester": 8,
+          "block": "wajib",
+          "concentration": null,
+          "page": 43,
+          "alternative_of": "AGI401",
+          "name": "Agama Konghucu II",
+          "category": "a",
+          "credits": 2,
+          "credit_parts": [
+            2,
+            0,
+            0,
+            2
+          ],
+          "code_as_printed": null,
+          "code_inferred": true,
+          "json_record_key": null,
+          "json_code": null,
+          "json_name": null,
+          "prerequisites_raw": []
         },
         {
           "no": 55,
@@ -9865,6 +10108,8 @@
         }
       ],
       "notes": [
+        "Baris agama generik 'AGI101 Agama I' (hal 41) diperluas ke 6 alternatif AGx101 seperti prodi lain",
+        "Baris agama generik 'AG401 Agama 2' (hal 43) diperluas ke 6 alternatif AGx401 seperti prodi lain",
         "19 MK pilihan diberi semester dari deskripsi dokumen 2021 hal 138: 'Semester: Mata Kuliah Pilihan'"
       ],
       "total_checks": [

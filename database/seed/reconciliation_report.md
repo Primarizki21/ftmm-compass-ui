@@ -5,26 +5,26 @@ keputusan diisi di `reconciliation.json`.
 
 ## Ringkasan
 
-- Baris mata kuliah: **401**
-- Kode unik lintas prodi: **284**
+- Baris mata kuliah: **411**
+- Kode unik lintas prodi: **283**
 - Kode dipakai ≥2 prodi: **46**
 - Kode format tidak valid: **0**
 - Duplikat kode dalam satu prodi: **0**
-- Konflik identitas (kode sama, nama beda): **16**
-- Variasi kosmetik nama (otomatis jadi alias): **9**
+- Konflik identitas (kode sama, nama beda): **17**
+- Variasi kosmetik nama (otomatis jadi alias): **8**
 - Beda SKS antar prodi untuk matkul yang sama (wajar, disimpan per kurikulum): **6**
 - Matkul berprasyarat: **216** — terpetakan otomatis **205**, perlu review **11**
-- Total item keputusan untuk reviewer: **27**
+- Total item keputusan untuk reviewer: **28**
 
 ## Sumber
 
 | Prodi | File | Baris | Tahun | SHA-256 |
 |---|---|---|---|---|
-| TSD | Panduan Pendidikan FTMM UNAIR 2024-2025.pdf | 401 | - | `-` |
-| RN | Panduan Pendidikan FTMM UNAIR 2024-2025.pdf | 401 | - | `-` |
-| TRKB | Panduan Pendidikan FTMM UNAIR 2024-2025.pdf | 401 | - | `-` |
-| TE | Panduan Pendidikan FTMM UNAIR 2024-2025.pdf | 401 | - | `-` |
-| TI | Panduan Pendidikan FTMM UNAIR 2024-2025.pdf | 401 | - | `-` |
+| TSD | Panduan Pendidikan FTMM UNAIR 2024-2025.pdf | 411 | - | `-` |
+| RN | Panduan Pendidikan FTMM UNAIR 2024-2025.pdf | 411 | - | `-` |
+| TRKB | Panduan Pendidikan FTMM UNAIR 2024-2025.pdf | 411 | - | `-` |
+| TE | Panduan Pendidikan FTMM UNAIR 2024-2025.pdf | 411 | - | `-` |
+| TI | Panduan Pendidikan FTMM UNAIR 2024-2025.pdf | 411 | - | `-` |
 
 ## 1. Kode format tidak valid
 
@@ -45,32 +45,43 @@ Kode sama tapi nama berbeda secara substansi. `courses.course_code` UNIQUE globa
   - RN sem 1 · Agama Budha I · 2 SKS · wajib
   - TRKB sem 1 · Agama Budha · 2 SKS · wajib
   - TE sem 1 · Agama Budha · 2 SKS · wajib
+  - TI sem 1 · Agama Budha I · 2 SKS · wajib
 - **`AGC101`** — _kemungkinan matkul sama (beda penulisan) — pilih nama canonical_
   - TSD sem 1 · Agama Konghucu · 2 SKS · wajib
   - RN sem 1 · Agama Konghucu I · 2 SKS · wajib
   - TRKB sem 1 · Agama Konghucu · 2 SKS · wajib
   - TE sem 1 · Agama Konghucu · 2 SKS · wajib
+  - TI sem 1 · Agama Konghucu I · 2 SKS · wajib
 - **`AGH101`** — _kemungkinan matkul sama (beda penulisan) — pilih nama canonical_
   - TSD sem 1 · Agama Hindu · 2 SKS · wajib
   - RN sem 1 · Agama Hindu I · 2 SKS · wajib
   - TRKB sem 1 · Agama Hindu · 2 SKS · wajib
   - TE sem 1 · Agama Hindu · 2 SKS · wajib
+  - TI sem 1 · Agama Hindu I · 2 SKS · wajib
 - **`AGI101`** — _kemungkinan matkul sama (beda penulisan) — pilih nama canonical_
   - TSD sem 1 · Agama Islam · 2 SKS · wajib
   - RN sem 1 · Agama Islam I · 2 SKS · wajib
   - TRKB sem 1 · Agama Islam · 2 SKS · wajib
   - TE sem 1 · Agama Islam · 2 SKS · wajib
   - TI sem 1 · Agama I · 2 SKS · wajib
+- **`AGI401`** — _kemungkinan matkul sama (beda penulisan) — pilih nama canonical_
+  - TSD sem 6 · Agama Islam II · 2 SKS · wajib
+  - RN sem 6 · Agama Islam 2 · 2 SKS · wajib
+  - TRKB sem 7 · Agama Islam II · 2 SKS · wajib
+  - TE sem 5 · Agama Islam II · 2 SKS · wajib
+  - TI sem 8 · Agama 2 · 2 SKS · wajib
 - **`AGK101`** — _kemungkinan matkul sama (beda penulisan) — pilih nama canonical_
   - TSD sem 1 · Agama Katolik · 2 SKS · wajib
   - RN sem 1 · Agama Katolik I · 2 SKS · wajib
   - TRKB sem 1 · Agama Katolik · 2 SKS · wajib
   - TE sem 1 · Agama Katolik · 2 SKS · wajib
+  - TI sem 1 · Agama Katolik I · 2 SKS · wajib
 - **`AGP101`** — _kemungkinan matkul sama (beda penulisan) — pilih nama canonical_
   - TSD sem 1 · Agama Protestan · 2 SKS · wajib
   - RN sem 1 · Agama Protestan I · 2 SKS · wajib
   - TRKB sem 1 · Agama Protestan · 2 SKS · wajib
   - TE sem 1 · Agama Protestan · 2 SKS · wajib
+  - TI sem 1 · Agama Protestan I · 2 SKS · wajib
 - **`FID105`** — _kemungkinan matkul sama (beda penulisan) — pilih nama canonical_
   - RN sem 3 · Praktikum Fisika Dasar 2 · 1 SKS · wajib
   - TI sem 2 · Fisika Dasar II (Praktikum) · 1 SKS · wajib
@@ -123,7 +134,6 @@ Dianggap matkul yang sama; nama pertama jadi canonical, sisanya masuk `course_al
 - `AGB401`: Agama Budha 2 / Agama Budha II
 - `AGC401`: Agama Konghucu 2 / Agama Konghucu II
 - `AGH401`: Agama Hindu 2 / Agama Hindu II
-- `AGI401`: Agama Islam 2 / Agama Islam II
 - `AGK401`: Agama Katolik 2 / Agama Katolik II
 - `AGP401`: Agama Protestan 2 / Agama Protestan II
 - `FID101`: Fisika Dasar 1 / Fisika Dasar I
