@@ -510,7 +510,7 @@ def write_report(result, decisions):
         "|---|---|---|---|---|",
     ]
     for s in result["sources"]:
-        n = sum(1 for r in rows if r["source_file"] == s["file_name"])
+        n = sum(1 for r in rows if r["source_file"] == s["file_name"] and r["program"] == s["program_code"])
         checksum = s.get("checksum_sha256", "")[:12] or "-"
         lines.append(f"| {s['program_code']} | {s['file_name']} | {n} | {s.get('academic_year_label') or '-'} | `{checksum}` |")
 

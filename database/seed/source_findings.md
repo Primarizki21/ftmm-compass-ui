@@ -120,14 +120,14 @@ Diputuskan (Darryl): struktur katalog diambil dari **tabel Panduan Pendidikan 20
    pilihan/pilihan_terbatas. Slot tabel TI: MK Pilihan 1 sem 6, 2 sem 7, 3-4 sem 8.
 3. **RN baris tanpa kode**: "Sintesis Nanokomposit (Praktikum)" → praktikum RNM201 dan
    "Fabrikasi divais nano (Praktikum)" → praktikum RNT302 (pola tabel sama dengan baris
-   31/34/41/49). "Nanoteknologi terapan 2 (Praktikum)" 3 sks sem 6 **ditahan** — tidak
-   punya induk dan tidak punya kode.
+   31/34/41/49). "Nanoteknologi terapan 2 (Praktikum)" 3 sks sem 6 tidak punya induk
+   dan tidak punya kode → diberi kode sementara RNSX301 (lihat tabel asumsi di bawah).
 4. **Deskripsi kosong**: 14 matkul TSD diambil dari dokumen TSD 2021 (teks). 19 pilihan
    TI diambil dari OCR (`Ekstrak/ocr/TI_descriptions.json`, kualitas OCR mentah —
    perlu dikoreksi sebelum ditampilkan).
 5. **Commit**: hanya struktur (`catalog_canonical.json`, `reconciliation.json`,
    transkripsi tabel, laporan). Deskripsi, CPL, nama dosen, dan OCR disimpan di
-   `Ekstrak/catalog_details.json` & `Ekstrak/ocr/` (gitignored) mengikuti aturan tim.
+   `Ekstrak/derived/catalog_details.json` & `Ekstrak/ocr/` (gitignored) mengikuti aturan tim.
 6. **Versi RN**: tetap Panduan 2024-2025 (terbaru, identik 3 edisi, sudah membetulkan
    MAA102/KKJ302). Konfirmasi Kaprodi RN dianjurkan tapi tidak memblokir seeding.
 
