@@ -42,7 +42,22 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    # Gagal kalau masih ada pilihan tanpa semester; isi semesternya dulu.
+    # Skema lama tidak bisa menyimpan MK pilihan tanpa semester; beri pesan actionable.
+    op.execute("""
+    DO $$
+    DECLARE n bigint;
+    BEGIN
+        SELECT count(*) INTO n FROM curriculum_courses
+        WHERE recommended_semester IS NULL OR term IS NULL;
+        IF n > 0 THEN
+            RAISE EXCEPTION
+                'downgrade b3f1c2d4e5a6 butuh % baris MK pilihan ber-semester. '
+                'Isi recommended_semester/term manual. Pada DB dev, reset katalog '
+                '(CASCADE ikut menghapus degree_plan_items & student_course_records): '
+                'TRUNCATE curriculum_courses CASCADE; python seed_full_catalog.py', n;
+        END IF;
+    END $$;
+    """)
     op.execute("""
     ALTER TABLE curriculum_courses
         DROP CONSTRAINT IF EXISTS curriculum_courses_semester_term_check,
