@@ -1,0 +1,604 @@
+# Verifikasi Ekstrak JSON terhadap PDF Resmi
+
+Dibuat otomatis oleh `backend/verify_catalog_sources.py`. Parser tabel PDF tidak sempurna:
+setiap temuan di bawah harus dikonfirmasi manual ke halaman yang disebut.
+
+- Baris JSON: **369** — cocok di semua aspek: **216**, ada temuan: **153**
+- Kode ada di PDF tapi tidak ada di JSON: **60**
+
+## TSD
+
+Temuan: 12 baris
+
+- `AGI101` Agama Islam I · JSON 2 SKS sem 1 → **nama beda**
+  - Panduan 2022-2023 hal 28: Agama Islam · 2 SKS sem 1
+  - Panduan 2023-2024 hal 28: Agama Islam · 2 SKS sem 1
+  - Panduan 2024-2025 hal 28: Agama Islam · 2 SKS sem 1
+  - Kurikulum 2021 hal 37: Agama Islam · 2 SKS sem 1
+- `AGP101` Agama Protestan I · JSON 2 SKS sem 1 → **kode tidak ditemukan di tabel PDF**
+- `AGH101` Agama Hindu I · JSON 2 SKS sem 1 → **kode tidak ditemukan di tabel PDF**
+- `AGB101` Agama Budha I · JSON 2 SKS sem 1 → **kode tidak ditemukan di tabel PDF**
+- `AGC101` Agama Konghucu I · JSON 2 SKS sem 1 → **kode tidak ditemukan di tabel PDF**
+- `MAS104` Metode Statistika · JSON 3 SKS sem 2 → **kode tidak ditemukan di tabel PDF**
+  - nama sama dengan kode lain: `MAS204` (Panduan 2022-2023 hal 29, 4 SKS sem 2)
+  - nama sama dengan kode lain: `MAS204` (Panduan 2023-2024 hal 29, 4 SKS sem 2)
+  - nama sama dengan kode lain: `MAS204` (Panduan 2024-2025 hal 29, 4 SKS sem 2)
+  - nama sama dengan kode lain: `MAS204` (Kurikulum 2021 hal 38, 4 SKS sem 2)
+- `SIA107` Algoritma Pemrograman I · JSON 2 SKS sem 2 → **SKS beda**
+  - Panduan 2022-2023 hal 29: Algoritma Pemrograman I · 3 SKS sem 2
+  - Panduan 2023-2024 hal 29: Algoritma Pemrograman I · 3 SKS sem 2
+  - Panduan 2024-2025 hal 29: Algoritma Pemrograman I · 3 SKS sem 2
+  - Kurikulum 2021 hal 38: Algoritma Pemrograman I · 3 SKS sem 2
+- `MAS207` Data Mining I · JSON 4 SKS sem 4 → **kode tidak ditemukan di tabel PDF**
+  - nama sama dengan kode lain: `SID207` (Panduan 2022-2023 hal 29, 4 SKS sem 4)
+  - nama sama dengan kode lain: `SID207` (Panduan 2023-2024 hal 29, 4 SKS sem 4)
+  - nama sama dengan kode lain: `SID207` (Panduan 2024-2025 hal 29, 4 SKS sem 4)
+  - nama sama dengan kode lain: `SID207` (Kurikulum 2021 hal 39, 4 SKS sem 4)
+- `BAE312` Bahasa Inggris II · JSON 2 SKS sem 3 → **semester beda**
+  - Panduan 2022-2023 hal 30: Bahasa Inggris II · 2 SKS sem 5
+  - Panduan 2023-2024 hal 30: Bahasa Inggris II · 2 SKS sem 5
+  - Panduan 2024-2025 hal 30: Bahasa Inggris II · 2 SKS sem 5
+  - Kurikulum 2021 hal 40: Bahasa Inggris II · 2 SKS sem 5
+- `AGK401` Agama Katolik II · JSON 2 SKS sem 6 → **SKS beda**
+  - Panduan 2022-2023 hal 30: Agama Katolik II a AGP401 Agama Protestan II a AGH401 Agama Hindu II a AGB401 Agama Budha II a AGK401 Agama Konghucu II · 53 SKS sem 6
+  - Panduan 2023-2024 hal 30: Agama Katolik II a AGP401 Agama Protestan II a AGH401 Agama Hindu II a AGB401 Agama Budha II a AGK401 Agama Konghucu II · 53 SKS sem 6
+  - Panduan 2024-2025 hal 30: Agama Katolik II a AGP401 Agama Protestan II a AGH401 Agama Hindu II a AGB401 Agama Budha II a AGK401 Agama Konghucu II · 53 SKS sem 6
+  - Kurikulum 2021 hal 40: Agama Katolik II a AGP401 Agama Protestan II a AGH401 Agama Hindu II a AGB401 Agama Budha II a AGK401 Agama Konghucu II · 53 SKS sem 6
+- `AGH401` Agama Hindu II · JSON 2 SKS sem 6 → **kode tidak ditemukan di tabel PDF**
+- `AGB401` Agama Buddha II · JSON 2 SKS sem 6 → **kode tidak ditemukan di tabel PDF**
+
+**Ada di PDF, tidak ada di JSON (14):**
+
+- `KNJ401` KKN-BBM · 3 SKS sem 7 (Kurikulum 2021 hal 41, Panduan 2022-2023 hal 31, Panduan 2023-2024 hal 31, Panduan 2024-2025 hal 31)
+- `MAS204` Metode Statistika · 4 SKS sem 2 (Kurikulum 2021 hal 38, Panduan 2022-2023 hal 29, Panduan 2023-2024 hal 29, Panduan 2024-2025 hal 29)
+- `MAS247` Analisis Data Medis · 3 SKS sem 4 (Kurikulum 2021 hal 39, Panduan 2022-2023 hal 30, Panduan 2023-2024 hal 30, Panduan 2024-2025 hal 30)
+- `MAS330` Analisis Ketahanan Hidup · 3 SKS sem 5 (Kurikulum 2021 hal 40, Panduan 2022-2023 hal 30, Panduan 2023-2024 hal 30, Panduan 2024-2025 hal 30)
+- `MAS332` Pemodelan Runtun Waktu · 3 SKS sem 6 (Kurikulum 2021 hal 40, Panduan 2022-2023 hal 31, Panduan 2023-2024 hal 31, Panduan 2024-2025 hal 31)
+- `MAS334` Official Statistics · 3 SKS sem 6 (Kurikulum 2021 hal 41, Panduan 2022-2023 hal 31, Panduan 2023-2024 hal 31, Panduan 2024-2025 hal 31)
+- `MAS422` Pemodelan Data Eksperimen · 3 SKS sem 7 (Kurikulum 2021 hal 41, Panduan 2022-2023 hal 31, Panduan 2023-2024 hal 31, Panduan 2024-2025 hal 31)
+- `MAT110` Matematika Lanjut · 3 SKS sem 3 (Kurikulum 2021 hal 38, Panduan 2022-2023 hal 29, Panduan 2023-2024 hal 29, Panduan 2024-2025 hal 29)
+- `MNW401` Kewirausahaan · 2 SKS sem 7 (Kurikulum 2021 hal 41, Panduan 2022-2023 hal 31, Panduan 2023-2024 hal 31, Panduan 2024-2025 hal 31)
+- `PNJ302` Metode Penelitian · 2 SKS sem 6 (Kurikulum 2021 hal 40, Panduan 2022-2023 hal 30, Panduan 2023-2024 hal 30, Panduan 2024-2025 hal 30)
+- `SIA206` Algoritma Pemrograman II · 3 SKS sem 3 (Kurikulum 2021 hal 38, Panduan 2022-2023 hal 29, Panduan 2023-2024 hal 29, Panduan 2024-2025 hal 29)
+- `SIC306` Machine Learning · 3 SKS sem 6 (Kurikulum 2021 hal 40, Panduan 2022-2023 hal 31, Panduan 2023-2024 hal 31, Panduan 2024-2025 hal 31)
+- `SID201` Basis Data · 4 SKS sem 5 (Kurikulum 2021 hal 39, Panduan 2022-2023 hal 30, Panduan 2023-2024 hal 30, Panduan 2024-2025 hal 30)
+- `SID207` Data Mining I · 4 SKS sem 4 (Kurikulum 2021 hal 39, Panduan 2022-2023 hal 29, Panduan 2023-2024 hal 29, Panduan 2024-2025 hal 29)
+
+## RN
+
+Temuan: 47 baris
+
+- `AGP101` Agama Protestan 1 · JSON 2 SKS sem 1 → **kode tidak ditemukan di tabel PDF**
+- `AGH101` Agama Hindu 1 · JSON 2 SKS sem 1 → **kode tidak ditemukan di tabel PDF**
+- `AGB101` Agama Budha 1 · JSON 2 SKS sem 1 → **kode tidak ditemukan di tabel PDF**
+- `AGC101` Agama Konghucu 1 · JSON 2 SKS sem 1 → **kode tidak ditemukan di tabel PDF**
+- `BID103` Praktikum Biologi Dasar 1 · JSON 1 SKS sem 1 → **kode tidak ditemukan di tabel PDF**
+- `KID102` Praktikum Kimia Dasar 1 · JSON 1 SKS sem 1 → **SKS beda, semester beda**
+  - Panduan 2022-2023 hal 32: Praktikum Kimia Dasar · 3 SKS sem 2
+  - Panduan 2023-2024 hal 32: Praktikum Kimia Dasar · 3 SKS sem 2
+  - Panduan 2024-2025 hal 32: Praktikum Kimia Dasar · 3 SKS sem 2
+- `FID101` Fisika Dasar 1 · JSON 2 SKS sem 1 → **SKS beda, semester beda**
+  - Panduan 2022-2023 hal 32: Fisika Dasar · 5 SKS sem 2
+  - Panduan 2023-2024 hal 32: Fisika Dasar · 5 SKS sem 2
+  - Panduan 2024-2025 hal 32: Fisika Dasar · 5 SKS sem 2
+- `FID102` Praktikum Fisika Dasar 1 · JSON 1 SKS sem 1 → **SKS beda, semester beda**
+  - Panduan 2022-2023 hal 32: Praktikum Fisika Dasar · 3 SKS sem 2
+  - Panduan 2023-2024 hal 32: Praktikum Fisika Dasar · 3 SKS sem 2
+  - Panduan 2024-2025 hal 32: Praktikum Fisika Dasar · 3 SKS sem 2
+- `BA1101` Bahasa Indonesia · JSON 2 SKS sem 1 → **kode tidak ditemukan di tabel PDF**
+  - nama sama dengan kode lain: `BAI101` (Panduan 2022-2023 hal 32, 2 SKS sem 1)
+  - nama sama dengan kode lain: `BAI101` (Panduan 2023-2024 hal 32, 2 SKS sem 1)
+  - nama sama dengan kode lain: `BAI101` (Panduan 2024-2025 hal 32, 2 SKS sem 1)
+- `MAA103` Kalkulus 1 · JSON 2 SKS sem 2 → **nama beda, SKS beda, semester beda**
+  - Panduan 2022-2023 hal 32: Kalkulus · 8 SKS sem 3
+  - Panduan 2023-2024 hal 32: Kalkulus · 8 SKS sem 3
+  - Panduan 2024-2025 hal 32: Kalkulus · 8 SKS sem 3
+- `KID103` Kimia Dasar 2 · JSON 2 SKS sem 2 → **nama beda, SKS beda**
+  - Panduan 2022-2023 hal 32: Kimia Dasar · 6 SKS sem 2
+  - Panduan 2023-2024 hal 32: Kimia Dasar · 6 SKS sem 2
+  - Panduan 2024-2025 hal 32: Kimia Dasar · 6 SKS sem 2
+- `KID104` Praktikum Kimia Dasar 2 · JSON 1 SKS sem 3 → **SKS beda**
+  - Panduan 2022-2023 hal 32: Praktikum Kimia Dasar · 4 SKS sem 3
+  - Panduan 2023-2024 hal 32: Praktikum Kimia Dasar · 4 SKS sem 3
+  - Panduan 2024-2025 hal 32: Praktikum Kimia Dasar · 4 SKS sem 3
+- `FID104` Fisika Dasar 2 · JSON 2 SKS sem 2 → **SKS beda, semester beda**
+  - Panduan 2022-2023 hal 32: Fisika Dasar · 6 SKS sem 3
+  - Panduan 2023-2024 hal 32: Fisika Dasar · 6 SKS sem 3
+  - Panduan 2024-2025 hal 32: Fisika Dasar · 6 SKS sem 3
+- `FID105` Praktikum Fisika Dasar 2 · JSON 1 SKS sem 2 → **SKS beda, semester beda**
+  - Panduan 2022-2023 hal 32: Praktikum Fisika Dasar · 4 SKS sem 3
+  - Panduan 2023-2024 hal 32: Praktikum Fisika Dasar · 4 SKS sem 3
+  - Panduan 2024-2025 hal 32: Praktikum Fisika Dasar · 4 SKS sem 3
+- `RND101` Pengantar Nanoteknologi 1 · JSON 2 SKS sem 2 → **nama beda, SKS beda**
+  - Panduan 2022-2023 hal 32: Dasar Nanoteknologi · 5 SKS sem 2
+  - Panduan 2023-2024 hal 32: Dasar Nanoteknologi · 5 SKS sem 2
+  - Panduan 2024-2025 hal 32: Dasar Nanoteknologi · 5 SKS sem 2
+- `PHP103` Logika dan Pemikiran Kritis · JSON 2 SKS sem 2 → **semester beda**
+  - Panduan 2022-2023 hal 32: Logika dan Pemikiran Kritis · 2 SKS sem 1
+  - Panduan 2023-2024 hal 32: Logika dan Pemikiran Kritis · 2 SKS sem 1
+  - Panduan 2024-2025 hal 32: Logika dan Pemikiran Kritis · 2 SKS sem 1
+- `MNM107` Pengantar Kolaborasi Keilmuan · JSON 2 SKS sem 2 → **semester beda**
+  - Panduan 2022-2023 hal 32: Pengantar Kolaborasi Keilmuan · 2 SKS sem 1
+  - Panduan 2023-2024 hal 32: Pengantar Kolaborasi Keilmuan · 2 SKS sem 1
+  - Panduan 2024-2025 hal 32: Pengantar Kolaborasi Keilmuan · 2 SKS sem 1
+- `MNM106` Komunikasi dan Pengembangan Diri · JSON 2 SKS sem 2 → **nama beda, semester beda**
+  - Panduan 2022-2023 hal 32: Kemampuan Komunikasi dan Pengembangan Diri · 2 SKS sem 1
+  - Panduan 2023-2024 hal 32: Kemampuan Komunikasi dan Pengembangan Diri · 2 SKS sem 1
+  - Panduan 2024-2025 hal 32: Kemampuan Komunikasi dan Pengembangan Diri · 2 SKS sem 1
+- `RNS201` Praktikum Nanoteknologi 1 · JSON 1 SKS sem 3 → **nama beda, SKS beda**
+  - Panduan 2022-2023 hal 32: Sintesis Nanomaterial 1 (Praktikum) · 3 SKS sem 3
+  - Panduan 2023-2024 hal 32: Sintesis Nanomaterial 1 (Praktikum) · 3 SKS sem 3
+  - Panduan 2024-2025 hal 32: Sintesis Nanomaterial 1 (Praktikum) · 3 SKS sem 3
+- `BAE110` Bahasa Inggris · JSON 2 SKS sem 3 → **semester beda**
+  - Panduan 2022-2023 hal 32: Bahasa Inggris · 2 SKS sem 2
+  - Panduan 2023-2024 hal 32: Bahasa Inggris · 2 SKS sem 2
+  - Panduan 2024-2025 hal 32: Bahasa Inggris · 2 SKS sem 2
+- `RND201` Pengantar Nanoteknologi 2 · JSON 2 SKS sem 3 → **nama beda, SKS beda**
+  - Panduan 2022-2023 hal 32: Dasar Nanoteknologi · 6 SKS sem 3
+  - Panduan 2023-2024 hal 32: Dasar Nanoteknologi · 6 SKS sem 3
+  - Panduan 2024-2025 hal 32: Dasar Nanoteknologi · 6 SKS sem 3
+- `MAA103` Kalkulus 2 · JSON 3 SKS sem 3 → **nama beda, SKS beda**
+  - Panduan 2022-2023 hal 32: Kalkulus · 8 SKS sem 3
+  - Panduan 2023-2024 hal 32: Kalkulus · 8 SKS sem 3
+  - Panduan 2024-2025 hal 32: Kalkulus · 8 SKS sem 3
+- `TNM102` Teknologi Hijau · JSON 2 SKS sem 3 → **kode tidak ditemukan di tabel PDF**
+- `BIS201` Biologi Sel dan Molekuler · JSON 3 SKS sem 3 → **SKS beda, semester beda**
+  - Panduan 2022-2023 hal 32: Biologi Sel dan Molekuler · 2 SKS sem 2
+  - Panduan 2023-2024 hal 32: Biologi Sel dan Molekuler · 2 SKS sem 2
+  - Panduan 2024-2025 hal 32: Biologi Sel dan Molekuler · 2 SKS sem 2
+- `FID201` Fisika Nanoteknologi · JSON 3 SKS sem 3 → **kode tidak ditemukan di tabel PDF**
+  - nama sama dengan kode lain: `FID205` (Panduan 2022-2023 hal 32, 2 SKS sem 3)
+  - nama sama dengan kode lain: `FID205` (Panduan 2023-2024 hal 32, 2 SKS sem 3)
+  - nama sama dengan kode lain: `FID205` (Panduan 2024-2025 hal 32, 2 SKS sem 3)
+- `RNM201` Nanokomposit dan Polimer · JSON 2 SKS sem 3 → **semester beda**
+  - Panduan 2022-2023 hal 33: Nanokomposit dan Polimer · 2 SKS sem 4
+  - Panduan 2023-2024 hal 33: Nanokomposit dan Polimer · 2 SKS sem 4
+  - Panduan 2024-2025 hal 33: Nanokomposit dan Polimer · 2 SKS sem 4
+- `RNS202` Praktikum Nanoteknologi 2 · JSON 1 SKS sem 4 → **nama beda, SKS beda**
+  - Panduan 2022-2023 hal 33: Sintesis Nanomaterial 2 (Praktikum) · 3 SKS sem 4
+  - Panduan 2023-2024 hal 33: Sintesis Nanomaterial 2 (Praktikum) · 3 SKS sem 4
+  - Panduan 2024-2025 hal 33: Sintesis Nanomaterial 2 (Praktikum) · 3 SKS sem 4
+- `RNA201` Spektroskopi · JSON 3 SKS sem 4 → **SKS beda**
+  - Panduan 2022-2023 hal 33: Spektroskopi Nanoteknologi · 2 SKS sem 4
+  - Panduan 2023-2024 hal 33: Spektroskopi Nanoteknologi · 2 SKS sem 4
+  - Panduan 2024-2025 hal 33: Spektroskopi Nanoteknologi · 2 SKS sem 4
+- `RND202` Kinetika dan Termodinamika · JSON 3 SKS sem 4 → **SKS beda**
+  - Panduan 2022-2023 hal 33: Kinetika dan Termodinamika · 2 SKS sem 4
+  - Panduan 2023-2024 hal 33: Kinetika dan Termodinamika · 2 SKS sem 4
+  - Panduan 2024-2025 hal 33: Kinetika dan Termodinamika · 2 SKS sem 4
+- `RNM202` Nanoteknologi Karbon · JSON 3 SKS sem 4 → **SKS beda, semester beda**
+  - Panduan 2022-2023 hal 33: Nanoteknologi Karbon · 2 SKS sem 5
+  - Panduan 2023-2024 hal 33: Nanoteknologi Karbon · 2 SKS sem 5
+  - Panduan 2024-2025 hal 33: Nanoteknologi Karbon · 2 SKS sem 5
+- `RNA202` Teknik Karakterisasi Material 1 · JSON 2 SKS sem 4 → **semester beda**
+  - Panduan 2022-2023 hal 32: Teknik Karakterisasi Material · 2 SKS sem 3
+  - Panduan 2023-2024 hal 32: Teknik Karakterisasi Material · 2 SKS sem 3
+  - Panduan 2024-2025 hal 32: Teknik Karakterisasi Material · 2 SKS sem 3
+- `FIT214` Komputasi Nanoteknologi 1 · JSON 3 SKS sem 4 → **kode tidak ditemukan di tabel PDF**
+- `RNS301` Praktikum Nanoteknologi 3 · JSON 1 SKS sem 5 → **nama beda, SKS beda**
+  - Panduan 2022-2023 hal 33: Nanoteknologi terapan 1 (Praktikum) · 3 SKS sem 5
+  - Panduan 2023-2024 hal 33: Nanoteknologi terapan 1 (Praktikum) · 3 SKS sem 5
+  - Panduan 2024-2025 hal 33: Nanoteknologi terapan 1 (Praktikum) · 3 SKS sem 5
+- `RNK301` Komputasi Nanoteknologi 2 · JSON 3 SKS sem 5 → **kode tidak ditemukan di tabel PDF**
+- `RNS302` Aplikasi Nanoteknologi dalam Industri · JSON 2 SKS sem 5 → **nama beda, semester beda**
+  - Panduan 2022-2023 hal 34: Nanoteknologi Industri · 2 SKS sem 6
+  - Panduan 2023-2024 hal 34: Nanoteknologi Industri · 2 SKS sem 6
+  - Panduan 2024-2025 hal 34: Nanoteknologi Industri · 2 SKS sem 6
+- `RNT301` Pengantar Nanobiomedis · JSON 3 SKS sem 5 → **nama beda, SKS beda**
+  - Panduan 2022-2023 hal 33: Nanobiomedis · 2 SKS sem 5
+  - Panduan 2023-2024 hal 33: Nanobiomedis · 2 SKS sem 5
+  - Panduan 2024-2025 hal 33: Nanobiomedis · 2 SKS sem 5
+- `RNM301` Pengantar Rekayasa Material · JSON 3 SKS sem 5 → **nama beda, SKS beda**
+  - Panduan 2022-2023 hal 33: Rekayasa Material · 2 SKS sem 5
+  - Panduan 2023-2024 hal 33: Rekayasa Material · 2 SKS sem 5
+  - Panduan 2024-2025 hal 33: Rekayasa Material · 2 SKS sem 5
+- `RNA301` Teknik Karakterisasi Material 2 · JSON 2 SKS sem 5 → **kode tidak ditemukan di tabel PDF**
+- `RNT302` Nanoelektronik, Fotonik dan Sensor · JSON 3 SKS sem 5 → **SKS beda**
+  - Panduan 2022-2023 hal 33: Nanoelektronik, Fotonik, dan Sensor · 2 SKS sem 5
+  - Panduan 2023-2024 hal 33: Nanoelektronik, Fotonik, dan Sensor · 2 SKS sem 5
+  - Panduan 2024-2025 hal 33: Nanoelektronik, Fotonik, dan Sensor · 2 SKS sem 5
+- `RNT303` Nanoteknologi Konversi dan Penyimpanan Energi · JSON 3 SKS sem 5 → **SKS beda, semester beda**
+  - Panduan 2022-2023 hal 34: Nanoteknologi Konversi dan penyimpanan Energi · 2 SKS sem 6
+  - Panduan 2023-2024 hal 34: Nanoteknologi Konversi dan penyimpanan Energi · 2 SKS sem 6
+  - Panduan 2024-2025 hal 34: Nanoteknologi Konversi dan penyimpanan Energi · 2 SKS sem 6
+- `RNS303` Praktikum Nanoteknologi 4 · JSON 1 SKS sem 6 → **nama beda, SKS beda**
+  - Panduan 2022-2023 hal 33: Perancangan Rekayasa Nanoteknologi · 4 SKS sem 6
+  - Panduan 2023-2024 hal 33: Perancangan Rekayasa Nanoteknologi · 4 SKS sem 6
+  - Panduan 2024-2025 hal 33: Perancangan Rekayasa Nanoteknologi · 4 SKS sem 6
+- `AGI401` Agama Islam 2 · JSON 2 SKS sem 6 → **nama beda**
+  - Panduan 2022-2023 hal 34: Agama Islam · 2 SKS sem 6
+  - Panduan 2023-2024 hal 34: Agama Islam · 2 SKS sem 6
+  - Panduan 2024-2025 hal 34: Agama Islam · 2 SKS sem 6
+- `AGH401` Agama Hindu 2 · JSON 2 SKS sem 6 → **nama beda**
+  - Panduan 2022-2023 hal 34: Agama Hindu · 2 SKS sem 6
+  - Panduan 2023-2024 hal 34: Agama Hindu · 2 SKS sem 6
+  - Panduan 2024-2025 hal 34: Agama Hindu · 2 SKS sem 6
+- `KKJ301` Magang Industri · JSON 4 SKS sem 6 → **kode tidak ditemukan di tabel PDF**
+  - nama sama dengan kode lain: `KKJ302` (Panduan 2022-2023 hal 34, 4 SKS sem 6)
+  - nama sama dengan kode lain: `KKJ302` (Panduan 2023-2024 hal 34, 4 SKS sem 6)
+  - nama sama dengan kode lain: `KKJ302` (Panduan 2024-2025 hal 34, 4 SKS sem 6)
+- `PNJ498` Proposal Penelitian · JSON 2 SKS sem 7 → **kode tidak ditemukan di tabel PDF**
+- `RNT401` Nano dan Mikro Emulsi · JSON 3 SKS sem 7 → **SKS beda**
+  - Panduan 2022-2023 hal 34: Nano dan Mikro Emulsi · 2 SKS sem 7
+  - Panduan 2023-2024 hal 34: Nano dan Mikro Emulsi · 2 SKS sem 7
+  - Panduan 2024-2025 hal 34: Nano dan Mikro Emulsi · 2 SKS sem 7
+- `PNJ499` Skripsi · JSON 6 SKS sem 8 → **kode tidak ditemukan di tabel PDF**
+
+**Ada di PDF, tidak ada di JSON (9):**
+
+- `BAI101` Bahasa Indonesia · 2 SKS sem 1 (Panduan 2022-2023 hal 32, Panduan 2023-2024 hal 32, Panduan 2024-2025 hal 32)
+- `BID104` Praktikum Biologi Dasar · 3 SKS sem 2 (Panduan 2022-2023 hal 32, Panduan 2023-2024 hal 32, Panduan 2024-2025 hal 32)
+- `FID205` Fisika Nanoteknologi · 2 SKS sem 3 (Panduan 2022-2023 hal 32, Panduan 2023-2024 hal 32, Panduan 2024-2025 hal 32)
+- `KKJ302` Magang Industri · 4 SKS sem 6 (Panduan 2022-2023 hal 34, Panduan 2023-2024 hal 34, Panduan 2024-2025 hal 34)
+- `MAA102` Kalkulus · 7 SKS sem 2 (Panduan 2022-2023 hal 32, Panduan 2023-2024 hal 32, Panduan 2024-2025 hal 32)
+- `PNJ302` Metode penelitian · 2 SKS sem 6 (Panduan 2022-2023 hal 34, Panduan 2023-2024 hal 34, Panduan 2024-2025 hal 34)
+- `PNJ495` Proposal Skripsi · 2 SKS sem 7 (Panduan 2022-2023 hal 34, Panduan 2023-2024 hal 34, Panduan 2024-2025 hal 34)
+- `RNK202` Komputasi Rekayasa Nanomaterial · 2 SKS sem 4 (Panduan 2022-2023 hal 33, Panduan 2023-2024 hal 33, Panduan 2024-2025 hal 33)
+- `RNK302` Pemodelan dan Simulasi Nanomaterial · 2 SKS sem 5 (Panduan 2022-2023 hal 33, Panduan 2023-2024 hal 33, Panduan 2024-2025 hal 33)
+
+## TRKB
+
+Temuan: 15 baris
+
+- `AGI101` Agama Islam I · JSON 2 SKS sem 1 → **nama beda**
+  - Panduan 2022-2023 hal 34: Agama Islam · 2 SKS sem 1
+  - Panduan 2023-2024 hal 34: Agama Islam · 2 SKS sem 1
+  - Panduan 2024-2025 hal 34: Agama Islam · 2 SKS sem 1
+  - Kurikulum 2021 hal 35: Agama Islam · 2 SKS sem 1
+- `AGP101` Agama Protestan I · JSON 2 SKS sem 1 → **kode tidak ditemukan di tabel PDF**
+- `AGB101` Agama Budha I · JSON 2 SKS sem 1 → **kode tidak ditemukan di tabel PDF**
+- `AGC101` Agama Konghucu I · JSON 2 SKS sem 1 → **kode tidak ditemukan di tabel PDF**
+- `MNM107` Kolaborasi Keilmuan · JSON 2 SKS sem 2 → **nama beda**
+  - Kurikulum 2021 hal 35: Pengantar Kolaborasi Keilmuan · 2 SKS sem 2
+- `FIA304` Sistem Kontrol · JSON 4 SKS sem 4 → **SKS beda**
+  - Panduan 2022-2023 hal 35: Sistem Kontrol · 3 SKS sem 4
+  - Panduan 2023-2024 hal 35: Sistem Kontrol · 3 SKS sem 4
+  - Panduan 2024-2025 hal 35: Sistem Kontrol · 3 SKS sem 4
+  - Kurikulum 2021 hal 36: Sistem Kontrol · 3 SKS sem 4
+- `PNT497` Metodologi Penelitian · JSON 2 SKS sem 5 → **kode tidak ditemukan di tabel PDF**
+- `PNJ` Topik Khusus Robotika dan Kecerdasan Buatan · JSON 2 SKS sem 6 → **kode tidak ditemukan di tabel PDF**
+  - nama sama dengan kode lain: `PNJ304` (Panduan 2022-2023 hal 36, 3 SKS sem 6)
+  - nama sama dengan kode lain: `PNJ304` (Panduan 2023-2024 hal 36, 3 SKS sem 6)
+  - nama sama dengan kode lain: `PNJ304` (Panduan 2024-2025 hal 36, 3 SKS sem 6)
+  - nama sama dengan kode lain: `PNJ304` (Kurikulum 2021 hal 36, 3 SKS sem 6)
+- `PNT499` Skripsi · JSON 6 SKS sem 7 → **kode tidak ditemukan di tabel PDF**
+  - nama sama dengan kode lain: `PNJ499` (Panduan 2022-2023 hal 36, 6 SKS sem 7)
+  - nama sama dengan kode lain: `PNJ499` (Panduan 2023-2024 hal 36, 6 SKS sem 7)
+  - nama sama dengan kode lain: `PNJ499` (Panduan 2024-2025 hal 36, 6 SKS sem 7)
+  - nama sama dengan kode lain: `PNJ499` (Kurikulum 2021 hal 37, 6 SKS sem 7)
+- `AGK401` Agama Katolik II · JSON 2 SKS sem 7 → **kode tidak ditemukan di tabel PDF**
+- `AGP401` Agama Protestan II · JSON 2 SKS sem 7 → **SKS beda**
+  - Panduan 2022-2023 hal 36: Agama Protestan II a AGK401 Agama Katolik II a AGB401 Agama Budha II a AGH401 Agama Hindu II a AGC401 Agama Konghucu II a Sub Jumlah 8 0 8 sks Pilihan · 55 SKS sem 7
+  - Panduan 2023-2024 hal 36: Agama Protestan II a AGK401 Agama Katolik II a AGB401 Agama Budha II a AGH401 Agama Hindu II a AGC401 Agama Konghucu II a Sub Jumlah 8 0 8 sks Pilihan · 55 SKS sem 7
+  - Panduan 2024-2025 hal 36: Agama Protestan II a AGK401 Agama Katolik II a AGB401 Agama Budha II a AGH401 Agama Hindu II a AGC401 Agama Konghucu II a Sub Jumlah 8 0 8 sks Pilihan · 55 SKS sem 7
+  - Kurikulum 2021 hal 37: Agama Protestan II a AGK401 Agama Katolik II a AGB401 Agama Budha II a AGH401 Agama Hindu II a AGC401 Agama Konghucu II a Sub Jumlah 8 0 8 sks Pilihan · 55 SKS sem 7
+- `AGH401` Agama Hindu II · JSON 2 SKS sem 7 → **kode tidak ditemukan di tabel PDF**
+- `AGB401` Agama Buddha II · JSON 2 SKS sem 7 → **kode tidak ditemukan di tabel PDF**
+- `AGC401` Agama Konghucu II · JSON 2 SKS sem 7 → **kode tidak ditemukan di tabel PDF**
+- `RKS308` Robot Terbang (Aerial Robotics) · JSON 3 SKS sem 5 → **semester beda**
+  - Panduan 2022-2023 hal 36: Robot Terbang · 3 SKS sem 7
+  - Panduan 2023-2024 hal 36: Robot Terbang · 3 SKS sem 7
+  - Panduan 2024-2025 hal 36: Robot Terbang · 3 SKS sem 7
+  - Kurikulum 2021 hal 37: Robot Terbang · 3 SKS sem 7
+
+**Ada di PDF, tidak ada di JSON (3):**
+
+- `PNJ302` Metode Penelitian · 2 SKS sem 5 (Kurikulum 2021 hal 36, Panduan 2022-2023 hal 36, Panduan 2023-2024 hal 36, Panduan 2024-2025 hal 36)
+- `PNJ304` Topik Khusus Robotika dan Kecerdasan Buatan · 3 SKS sem 6 (Kurikulum 2021 hal 36, Panduan 2022-2023 hal 36, Panduan 2023-2024 hal 36, Panduan 2024-2025 hal 36)
+- `PNJ499` Skripsi · 6 SKS sem 7 (Kurikulum 2021 hal 37, Panduan 2022-2023 hal 36, Panduan 2023-2024 hal 36, Panduan 2024-2025 hal 36)
+
+## TE
+
+Temuan: 65 baris
+
+- `AGI101` Agama Islam 1 · JSON 2 SKS sem 1 → **nama beda**
+  - Panduan 2022-2023 hal 37: Agama Islam · 2 SKS sem 1
+  - Panduan 2023-2024 hal 37: Agama Islam · 2 SKS sem 1
+  - Panduan 2024-2025 hal 37: Agama Islam · 2 SKS sem 1
+- `AGP101` Agama Protestan 1 · JSON 2 SKS sem 1 → **kode tidak ditemukan di tabel PDF**
+- `AGH101` Agama Hindu 1 · JSON 2 SKS sem 1 → **kode tidak ditemukan di tabel PDF**
+- `AGB101` Agama Buddha 1 · JSON 2 SKS sem 1 → **kode tidak ditemukan di tabel PDF**
+- `AGC101` Agama Khonghucu 1 · JSON 2 SKS sem 1 → **kode tidak ditemukan di tabel PDF**
+- `FID103` Fisika Dasar 1 · JSON 3 SKS sem 1 → **SKS beda**
+  - Panduan 2022-2023 hal 37: Fisika Dasar 1 · 2 SKS sem 1
+  - Panduan 2023-2024 hal 37: Fisika Dasar 1 · 2 SKS sem 1
+  - Panduan 2024-2025 hal 37: Fisika Dasar 1 · 2 SKS sem 1
+- `BHP103` Logika dan Pemikiran Kritis · JSON 2 SKS sem 1 → **kode tidak ditemukan di tabel PDF**
+  - nama sama dengan kode lain: `PHP103` (Panduan 2022-2023 hal 37, 2 SKS sem 2)
+  - nama sama dengan kode lain: `PHP103` (Panduan 2023-2024 hal 37, 2 SKS sem 2)
+  - nama sama dengan kode lain: `PHP103` (Panduan 2024-2025 hal 37, 2 SKS sem 2)
+- `FID104` Fisika Dasar 2 · JSON 3 SKS sem 2 → **SKS beda**
+  - Panduan 2022-2023 hal 37: Fisika Dasar 2 · 2 SKS sem 2
+  - Panduan 2023-2024 hal 37: Fisika Dasar 2 · 2 SKS sem 2
+  - Panduan 2024-2025 hal 37: Fisika Dasar 2 · 2 SKS sem 2
+- `SPL201` Instrumentasi Besaran Listrik · JSON 2 SKS sem 2 → **kode tidak ditemukan di tabel PDF**
+  - nama sama dengan kode lain: `TEL101` (Panduan 2022-2023 hal 37, 2 SKS sem 2)
+  - nama sama dengan kode lain: `TEL101` (Panduan 2023-2024 hal 37, 2 SKS sem 2)
+  - nama sama dengan kode lain: `TEL101` (Panduan 2024-2025 hal 37, 2 SKS sem 2)
+- `SPL202` Praktikum Instrumentasi Besaran Listrik · JSON 1 SKS sem 2 → **kode tidak ditemukan di tabel PDF**
+  - nama sama dengan kode lain: `TEL201` (Panduan 2022-2023 hal 38, 1 SKS sem 2)
+  - nama sama dengan kode lain: `TEL201` (Panduan 2023-2024 hal 38, 1 SKS sem 2)
+  - nama sama dengan kode lain: `TEL201` (Panduan 2024-2025 hal 38, 1 SKS sem 2)
+- `SIA105` Pemrograman Komputer · JSON 2 SKS sem 2 → **SKS beda**
+  - Panduan 2022-2023 hal 38: Pemrograman Komputer · 3 SKS sem 2
+  - Panduan 2023-2024 hal 38: Pemrograman Komputer · 3 SKS sem 2
+  - Panduan 2024-2025 hal 38: Pemrograman Komputer · 3 SKS sem 2
+- `SIA106` Praktikum Pemrograman Komputer · JSON 1 SKS sem 2 → **kode tidak ditemukan di tabel PDF**
+- `TNM102` Green Technology · JSON 2 SKS sem 3 → **semester beda**
+  - Panduan 2022-2023 hal 38: Green Technology · 2 SKS sem 2
+  - Panduan 2023-2024 hal 38: Green Technology · 2 SKS sem 2
+  - Panduan 2024-2025 hal 38: Green Technology · 2 SKS sem 2
+- `TET201` Dasar Sistem dan Jaringan Telekomunikasi · JSON 2 SKS sem 3 → **semester beda**
+  - Panduan 2022-2023 hal 38: Dasar Sistem dan Jaringan Telekomunikasi · 2 SKS sem 2
+  - Panduan 2023-2024 hal 38: Dasar Sistem dan Jaringan Telekomunikasi · 2 SKS sem 2
+  - Panduan 2024-2025 hal 38: Dasar Sistem dan Jaringan Telekomunikasi · 2 SKS sem 2
+- `TBE201` Rangkaian Listrik · JSON 3 SKS sem 3 → **kode tidak ditemukan di tabel PDF**
+  - nama sama dengan kode lain: `TEE201` (Panduan 2022-2023 hal 38, 4 SKS sem 2)
+  - nama sama dengan kode lain: `TEE201` (Panduan 2023-2024 hal 38, 4 SKS sem 2)
+  - nama sama dengan kode lain: `TEE201` (Panduan 2024-2025 hal 38, 4 SKS sem 2)
+- `MAT207` Persamaan Diferensial Biasa dan Parsial · JSON 3 SKS sem 3 → **kode tidak ditemukan di tabel PDF**
+- `TEK201` Teknik Sistem Digital · JSON 3 SKS sem 3 → **SKS beda, semester beda**
+  - Panduan 2022-2023 hal 38: Teknik Sistem Digital · 2 SKS sem 2
+  - Panduan 2023-2024 hal 38: Teknik Sistem Digital · 2 SKS sem 2
+  - Panduan 2024-2025 hal 38: Teknik Sistem Digital · 2 SKS sem 2
+- `TES201` Sistem Mikroprosesor dan Mikrokontroler · JSON 3 SKS sem 3 → **SKS beda, semester beda**
+  - Panduan 2022-2023 hal 38: Sistem Mikroprosesor dan Mikrokontroler · 2 SKS sem 2
+  - Panduan 2023-2024 hal 38: Sistem Mikroprosesor dan Mikrokontroler · 2 SKS sem 2
+  - Panduan 2024-2025 hal 38: Sistem Mikroprosesor dan Mikrokontroler · 2 SKS sem 2
+- `TEK202` Praktikum Teknik Sistem Digital · JSON 1 SKS sem 3 → **semester beda**
+  - Panduan 2022-2023 hal 38: Praktikum Teknik Sistem Digital · 1 SKS sem 4
+  - Panduan 2023-2024 hal 38: Praktikum Teknik Sistem Digital · 1 SKS sem 4
+  - Panduan 2024-2025 hal 38: Praktikum Teknik Sistem Digital · 1 SKS sem 4
+- `TES202` Praktikum Sistem Mikroprosesor dan Mikrokontroler · JSON 1 SKS sem 3 → **SKS beda, semester beda**
+  - Panduan 2022-2023 hal 38: Praktikum Sistem Mikroprosesor dan Mikrokontroler · 2 SKS sem 4
+  - Panduan 2023-2024 hal 38: Praktikum Sistem Mikroprosesor dan Mikrokontroler · 2 SKS sem 4
+  - Panduan 2024-2025 hal 38: Praktikum Sistem Mikroprosesor dan Mikrokontroler · 2 SKS sem 4
+- `TBE202` Praktikum Rangkaian Listrik · JSON 1 SKS sem 3 → **kode tidak ditemukan di tabel PDF**
+  - nama sama dengan kode lain: `TEE202` (Panduan 2022-2023 hal 38, 1 SKS sem 4)
+  - nama sama dengan kode lain: `TEE202` (Panduan 2023-2024 hal 38, 1 SKS sem 4)
+  - nama sama dengan kode lain: `TEE202` (Panduan 2024-2025 hal 38, 1 SKS sem 4)
+- `TET202` Praktikum Sistem dan Jaringan Telekomunikasi · JSON 1 SKS sem 3 → **semester beda**
+  - Panduan 2022-2023 hal 38: Praktikum Sistem dan Jaringan Telekomunikasi · 1 SKS sem 4
+  - Panduan 2023-2024 hal 38: Praktikum Sistem dan Jaringan Telekomunikasi · 1 SKS sem 4
+  - Panduan 2024-2025 hal 38: Praktikum Sistem dan Jaringan Telekomunikasi · 1 SKS sem 4
+- `TBO201` Medan Elektromagnetik · JSON 3 SKS sem 4 → **kode tidak ditemukan di tabel PDF**
+  - nama sama dengan kode lain: `TEU201` (Panduan 2022-2023 hal 38, 4 SKS sem 4)
+  - nama sama dengan kode lain: `TEU201` (Panduan 2023-2024 hal 38, 4 SKS sem 4)
+  - nama sama dengan kode lain: `TEU201` (Panduan 2024-2025 hal 38, 4 SKS sem 4)
+- `TES203` Sistem Kontrol · JSON 3 SKS sem 4 → **nama beda**
+  - Panduan 2022-2023 hal 38: Sinyal dan Sistem · 3 SKS sem 4
+  - Panduan 2023-2024 hal 38: Sinyal dan Sistem · 3 SKS sem 4
+  - Panduan 2024-2025 hal 38: Sinyal dan Sistem · 3 SKS sem 4
+  - nama sama dengan kode lain: `TEL203` (Panduan 2022-2023 hal 38, 3 SKS sem 4)
+  - nama sama dengan kode lain: `TEL203` (Panduan 2023-2024 hal 38, 3 SKS sem 4)
+  - nama sama dengan kode lain: `TEL203` (Panduan 2024-2025 hal 38, 3 SKS sem 4)
+- `TEE202` Sistem Tenaga Listrik · JSON 3 SKS sem 4 → **nama beda, SKS beda**
+  - Panduan 2022-2023 hal 38: Praktikum Rangkaian Listrik · 1 SKS sem 4
+  - Panduan 2023-2024 hal 38: Praktikum Rangkaian Listrik · 1 SKS sem 4
+  - Panduan 2024-2025 hal 38: Praktikum Rangkaian Listrik · 1 SKS sem 4
+  - nama sama dengan kode lain: `TEL202` (Panduan 2022-2023 hal 38, 3 SKS sem 4)
+  - nama sama dengan kode lain: `TEL202` (Panduan 2023-2024 hal 38, 3 SKS sem 4)
+  - nama sama dengan kode lain: `TEL202` (Panduan 2024-2025 hal 38, 3 SKS sem 4)
+- `TRS203` Sinyal dan Sistem · JSON 3 SKS sem 4 → **kode tidak ditemukan di tabel PDF**
+  - nama sama dengan kode lain: `TES203` (Panduan 2022-2023 hal 38, 3 SKS sem 4)
+  - nama sama dengan kode lain: `TES203` (Panduan 2023-2024 hal 38, 3 SKS sem 4)
+  - nama sama dengan kode lain: `TES203` (Panduan 2024-2025 hal 38, 3 SKS sem 4)
+- `TPB203` Rangkaian Elektronika · JSON 3 SKS sem 4 → **kode tidak ditemukan di tabel PDF**
+- `TEL204` Praktikum Sistem Kontrol · JSON 1 SKS sem 4 → **semester beda**
+  - Panduan 2022-2023 hal 38: Praktikum Sistem Kontrol · 1 SKS sem 5
+  - Panduan 2023-2024 hal 38: Praktikum Sistem Kontrol · 1 SKS sem 5
+  - Panduan 2024-2025 hal 38: Praktikum Sistem Kontrol · 1 SKS sem 5
+- `TES204` Praktikum Sistem Tenaga Listrik · JSON 1 SKS sem 4 → **semester beda**
+  - Panduan 2022-2023 hal 38: Praktikum Sistem Tenaga Listrik · 1 SKS sem 5
+  - Panduan 2023-2024 hal 38: Praktikum Sistem Tenaga Listrik · 1 SKS sem 5
+  - Panduan 2024-2025 hal 38: Praktikum Sistem Tenaga Listrik · 1 SKS sem 5
+- `TEE204` Praktikum Rangkaian Elektronika · JSON 1 SKS sem 4 → **semester beda**
+  - Panduan 2022-2023 hal 38: Praktikum Rangkain Elektronika · 1 SKS sem 5
+  - Panduan 2023-2024 hal 38: Praktikum Rangkain Elektronika · 1 SKS sem 5
+  - Panduan 2024-2025 hal 38: Praktikum Rangkain Elektronika · 1 SKS sem 5
+- `MAT201` Metode Numerik · JSON 3 SKS sem 4 → **semester beda**
+  - Panduan 2022-2023 hal 38: Metode Numerik · 3 SKS sem 5
+  - Panduan 2023-2024 hal 38: Metode Numerik · 3 SKS sem 5
+  - Panduan 2024-2025 hal 38: Metode Numerik · 3 SKS sem 5
+- `MAS243` Probabilitas, Statistik dan Proses Stokastik · JSON 3 SKS sem 4 → **SKS beda, semester beda**
+  - Panduan 2022-2023 hal 38: Probabilitas, Statistik dan Proses Stokastik · 4 SKS sem 5
+  - Panduan 2023-2024 hal 38: Probabilitas, Statistik dan Proses Stokastik · 4 SKS sem 5
+  - Panduan 2024-2025 hal 38: Probabilitas, Statistik dan Proses Stokastik · 4 SKS sem 5
+- `AGK401` Agama Katolik 2 · JSON 2 SKS sem 5 → **kode tidak ditemukan di tabel PDF**
+- `AGP401` Agama Protestan 2 · JSON 2 SKS sem 5 → **kode tidak ditemukan di tabel PDF**
+- `AGH401` Agama Hindu 2 · JSON 2 SKS sem 5 → **kode tidak ditemukan di tabel PDF**
+- `AGB401` Agama Buddha 2 · JSON 2 SKS sem 5 → **kode tidak ditemukan di tabel PDF**
+- `AGC401` Agama Khonghucu 2 · JSON 2 SKS sem 5 → **kode tidak ditemukan di tabel PDF**
+- `KLI301` Praktik Kerja Lapangan · JSON 2 SKS sem 6 → **kode tidak ditemukan di tabel PDF**
+- `TEL307` Pengaman Sistem Tenaga Listrik · JSON 3 SKS sem 6 → **SKS beda**
+  - Panduan 2022-2023 hal 39: Pengaman Sistem Tenaga Listrik · 2 SKS sem 6
+  - Panduan 2023-2024 hal 39: Pengaman Sistem Tenaga Listrik · 2 SKS sem 6
+  - Panduan 2024-2025 hal 39: Pengaman Sistem Tenaga Listrik · 2 SKS sem 6
+- `TES305` Kontrol Digital · JSON 3 SKS sem 6 → **SKS beda**
+  - Panduan 2022-2023 hal 39: Kontrol Digital · 2 SKS sem 6
+  - Panduan 2023-2024 hal 39: Kontrol Digital · 2 SKS sem 6
+  - Panduan 2024-2025 hal 39: Kontrol Digital · 2 SKS sem 6
+- `PNJ401` Proposal Skripsi · JSON 2 SKS sem 7 → **kode tidak ditemukan di tabel PDF**
+- `KKN401` Kuliah Kerja Nyata · JSON 3 SKS sem 7 → **kode tidak ditemukan di tabel PDF**
+- `PNJ402` Skripsi · JSON 6 SKS sem 8 → **kode tidak ditemukan di tabel PDF**
+- `TEL401` Operasi Optimum Sistem Tenaga Listrik · JSON 3 SKS sem 7 → **semester beda**
+  - Panduan 2022-2023 hal 40: Operasi Optimum Sistem Tenaga Listrik · 3 SKS sem 8
+  - Panduan 2023-2024 hal 40: Operasi Optimum Sistem Tenaga Listrik · 3 SKS sem 8
+  - Panduan 2024-2025 hal 40: Operasi Optimum Sistem Tenaga Listrik · 3 SKS sem 8
+- `TEL402` Perencanaan Sistem Tenaga Listrik · JSON 2 SKS sem 7 → **SKS beda, semester beda**
+  - Panduan 2022-2023 hal 40: Perencanaan Sistem Tenaga Listrik · 3 SKS sem 8
+  - Panduan 2023-2024 hal 40: Perencanaan Sistem Tenaga Listrik · 3 SKS sem 8
+  - Panduan 2024-2025 hal 40: Perencanaan Sistem Tenaga Listrik · 3 SKS sem 8
+- `TEL403` Dinamika dan Stabilitas Sistem Tenaga Listrik · JSON 3 SKS sem 7 → **semester beda**
+  - Panduan 2022-2023 hal 40: Dinamika dan Stabilitas Sistem Tenaga Listrik · 3 SKS sem 8
+  - Panduan 2023-2024 hal 40: Dinamika dan Stabilitas Sistem Tenaga Listrik · 3 SKS sem 8
+  - Panduan 2024-2025 hal 40: Dinamika dan Stabilitas Sistem Tenaga Listrik · 3 SKS sem 8
+- `TEL404` Kualitas Daya Listrik · JSON 3 SKS sem 7 → **semester beda**
+  - Panduan 2022-2023 hal 40: Kualitas Daya Listrik · 3 SKS sem 8
+  - Panduan 2023-2024 hal 40: Kualitas Daya Listrik · 3 SKS sem 8
+  - Panduan 2024-2025 hal 40: Kualitas Daya Listrik · 3 SKS sem 8
+- `TEL405` Pemeliharaan Peralatan Listrik · JSON 2 SKS sem 7 → **semester beda**
+  - Panduan 2022-2023 hal 40: Pemeliharaan Peralatan Listrik · 2 SKS sem 8
+  - Panduan 2023-2024 hal 40: Pemeliharaan Peralatan Listrik · 2 SKS sem 8
+  - Panduan 2024-2025 hal 40: Pemeliharaan Peralatan Listrik · 2 SKS sem 8
+- `TEL406` Energi Baru dan Terbarukan · JSON 3 SKS sem 7 → **semester beda**
+  - Panduan 2022-2023 hal 40: Energi Baru dan Terbarukan · 3 SKS sem 8
+  - Panduan 2023-2024 hal 40: Energi Baru dan Terbarukan · 3 SKS sem 8
+  - Panduan 2024-2025 hal 40: Energi Baru dan Terbarukan · 3 SKS sem 8
+- `TEL407` Standar dan Regulasi Sistem Tenaga · JSON 2 SKS sem 7 → **nama beda, semester beda**
+  - Panduan 2022-2023 hal 40: Standart dan Regulasi Sistem Tenaga · 2 SKS sem 8
+  - Panduan 2023-2024 hal 40: Standart dan Regulasi Sistem Tenaga · 2 SKS sem 8
+  - Panduan 2024-2025 hal 40: Standart dan Regulasi Sistem Tenaga · 2 SKS sem 8
+- `TEL408` Topik Khusus Sistem Tenaga · JSON 2 SKS sem 7 → **semester beda**
+  - Panduan 2022-2023 hal 40: Topik Khusus Sistem Tenaga · 2 SKS sem 8
+  - Panduan 2023-2024 hal 40: Topik Khusus Sistem Tenaga · 2 SKS sem 8
+  - Panduan 2024-2025 hal 40: Topik Khusus Sistem Tenaga · 2 SKS sem 8
+- `TES401` Kontrol Cerdas · JSON 2 SKS sem 7 → **semester beda**
+  - Panduan 2022-2023 hal 40: Kontrol Cerdas · 2 SKS sem 8
+  - Panduan 2023-2024 hal 40: Kontrol Cerdas · 2 SKS sem 8
+  - Panduan 2024-2025 hal 40: Kontrol Cerdas · 2 SKS sem 8
+- `TES402` Kontrol Penggerak Elektrik · JSON 3 SKS sem 7 → **semester beda**
+  - Panduan 2022-2023 hal 40: Kontrol Penggerak Elektrik · 3 SKS sem 8
+  - Panduan 2023-2024 hal 40: Kontrol Penggerak Elektrik · 3 SKS sem 8
+  - Panduan 2024-2025 hal 40: Kontrol Penggerak Elektrik · 3 SKS sem 8
+- `TES403` Kontrol Sistem Proses · JSON 2 SKS sem 7 → **semester beda**
+  - Panduan 2022-2023 hal 40: Kontrol Sistem Proses · 2 SKS sem 8
+  - Panduan 2023-2024 hal 40: Kontrol Sistem Proses · 2 SKS sem 8
+  - Panduan 2024-2025 hal 40: Kontrol Sistem Proses · 2 SKS sem 8
+- `TES404` Kontrol Biomedis · JSON 3 SKS sem 7 → **semester beda**
+  - Panduan 2022-2023 hal 40: Kontrol Biomedis · 3 SKS sem 8
+  - Panduan 2023-2024 hal 40: Kontrol Biomedis · 3 SKS sem 8
+  - Panduan 2024-2025 hal 40: Kontrol Biomedis · 3 SKS sem 8
+- `TES405` Pengolahan Sinyal Kontrol · JSON 2 SKS sem 7 → **semester beda**
+  - Panduan 2022-2023 hal 40: Pengolahan Sinyal Kontrol · 2 SKS sem 8
+  - Panduan 2023-2024 hal 40: Pengolahan Sinyal Kontrol · 2 SKS sem 8
+  - Panduan 2024-2025 hal 40: Pengolahan Sinyal Kontrol · 2 SKS sem 8
+- `TES406` Kontrol Adaptif · JSON 2 SKS sem 7 → **semester beda**
+  - Panduan 2022-2023 hal 40: Kontrol Adaptif · 2 SKS sem 8
+  - Panduan 2023-2024 hal 40: Kontrol Adaptif · 2 SKS sem 8
+  - Panduan 2024-2025 hal 40: Kontrol Adaptif · 2 SKS sem 8
+- `TES407` Mekatronika · JSON 3 SKS sem 7 → **semester beda**
+  - Panduan 2022-2023 hal 40: Mekatronika · 3 SKS sem 8
+  - Panduan 2023-2024 hal 40: Mekatronika · 3 SKS sem 8
+  - Panduan 2024-2025 hal 40: Mekatronika · 3 SKS sem 8
+- `TES408` Kendali Otomotif · JSON 2 SKS sem 7 → **semester beda**
+  - Panduan 2022-2023 hal 40: Kendali Otomotif · 2 SKS sem 8
+  - Panduan 2023-2024 hal 40: Kendali Otomotif · 2 SKS sem 8
+  - Panduan 2024-2025 hal 40: Kendali Otomotif · 2 SKS sem 8
+- `TES409` Topik Khusus Sistem Kontrol · JSON 2 SKS sem 7 → **semester beda**
+  - Panduan 2022-2023 hal 40: Topik Khusus Sistem Kontrol · 2 SKS sem 8
+  - Panduan 2023-2024 hal 40: Topik Khusus Sistem Kontrol · 2 SKS sem 8
+  - Panduan 2024-2025 hal 40: Topik Khusus Sistem Kontrol · 2 SKS sem 8
+- `MNK204` Manajemen Proyek · JSON 2 SKS sem 5 → **semester beda**
+  - Panduan 2022-2023 hal 40: Manajemen Proyek · 2 SKS sem 8
+  - Panduan 2023-2024 hal 40: Manajemen Proyek · 2 SKS sem 8
+  - Panduan 2024-2025 hal 40: Manajemen Proyek · 2 SKS sem 8
+- `KMK201` Kesehatan dan Keselamatan Kerja · JSON 2 SKS sem 5 → **semester beda**
+  - Panduan 2022-2023 hal 40: Kesehatan dan Keselamatan Kerja · 2 SKS sem 8
+  - Panduan 2023-2024 hal 40: Kesehatan dan Keselamatan Kerja · 2 SKS sem 8
+  - Panduan 2024-2025 hal 40: Kesehatan dan Keselamatan Kerja · 2 SKS sem 8
+- `MAT112` MATLAB/SIMULINK · JSON 2 SKS sem 5 → **semester beda**
+  - Panduan 2022-2023 hal 40: MATLAB/SIMULINK · 2 SKS sem 8
+  - Panduan 2023-2024 hal 40: MATLAB/SIMULINK · 2 SKS sem 8
+  - Panduan 2024-2025 hal 40: MATLAB/SIMULINK · 2 SKS sem 8
+- `TEU401` Desain dan Implementasi Gambar Teknik · JSON 2 SKS sem 5 → **semester beda**
+  - Panduan 2022-2023 hal 40: Desain dan implementasi gambar Teknik · 2 SKS sem 8
+  - Panduan 2023-2024 hal 40: Desain dan implementasi gambar Teknik · 2 SKS sem 8
+  - Panduan 2024-2025 hal 40: Desain dan implementasi gambar Teknik · 2 SKS sem 8
+- `TEU402` Instalasi Listrik · JSON 2 SKS sem 5 → **kode tidak ditemukan di tabel PDF**
+
+**Ada di PDF, tidak ada di JSON (9):**
+
+- `MAA207` Persamaan Differensial Biasa dan Parsial · 3 SKS sem 2 (Panduan 2022-2023 hal 38, Panduan 2023-2024 hal 38, Panduan 2024-2025 hal 38)
+- `PHP103` Logika dan Pemikiran Kritis · 2 SKS sem 2 (Panduan 2022-2023 hal 37, Panduan 2023-2024 hal 37, Panduan 2024-2025 hal 37)
+- `TEE201` Rangkaian Listrik · 4 SKS sem 2 (Panduan 2022-2023 hal 38, Panduan 2023-2024 hal 38, Panduan 2024-2025 hal 38)
+- `TEE203` Rangkain Elektronika · 3 SKS sem 4 (Panduan 2022-2023 hal 38, Panduan 2023-2024 hal 38, Panduan 2024-2025 hal 38)
+- `TEL101` Instrumentasi Besaran Listrik · 2 SKS sem 2 (Panduan 2022-2023 hal 37, Panduan 2023-2024 hal 37, Panduan 2024-2025 hal 37)
+- `TEL201` Praktikum Instrumentasi Besaran Listrik · 1 SKS sem 2 (Panduan 2022-2023 hal 38, Panduan 2023-2024 hal 38, Panduan 2024-2025 hal 38)
+- `TEL202` Sistem Tenaga Listrik · 3 SKS sem 4 (Panduan 2022-2023 hal 38, Panduan 2023-2024 hal 38, Panduan 2024-2025 hal 38)
+- `TEL203` Sistem Kontrol · 3 SKS sem 4 (Panduan 2022-2023 hal 38, Panduan 2023-2024 hal 38, Panduan 2024-2025 hal 38)
+- `TEU201` Medan Elektromagnetik · 4 SKS sem 4 (Panduan 2022-2023 hal 38, Panduan 2023-2024 hal 38, Panduan 2024-2025 hal 38)
+
+## TI
+
+Temuan: 14 baris
+
+- `KID107` Kimia · JSON 2 SKS sem 1 → **kode tidak ditemukan di tabel PDF**
+  - nama sama dengan kode lain: `KID105` (Panduan 2022-2023 hal 41, 2 SKS sem 1)
+  - nama sama dengan kode lain: `KID105` (Panduan 2023-2024 hal 41, 2 SKS sem 1)
+  - nama sama dengan kode lain: `KID105` (Panduan 2024-2025 hal 41, 2 SKS sem 1)
+- `TIA101` Analisis Biaya · JSON 2 SKS sem 4 → **semester beda**
+  - Panduan 2022-2023 hal 42: Analisis Biaya · 2 SKS sem 3
+  - Panduan 2023-2024 hal 42: Analisis Biaya · 2 SKS sem 3
+  - Panduan 2024-2025 hal 42: Analisis Biaya · 2 SKS sem 3
+- `BAE110` Bahasa Inggris · JSON 2 SKS sem 4 → **semester beda**
+  - Panduan 2022-2023 hal 42: Bahasa Inggris · 2 SKS sem 3
+  - Panduan 2023-2024 hal 42: Bahasa Inggris · 2 SKS sem 3
+  - Panduan 2024-2025 hal 42: Bahasa Inggris · 2 SKS sem 3
+- `TIU201` Otomasi Industri · JSON 2 SKS sem 4 → **semester beda**
+  - Panduan 2022-2023 hal 42: Otomasi Industri · 2 SKS sem 3
+  - Panduan 2023-2024 hal 42: Otomasi Industri · 2 SKS sem 3
+  - Panduan 2024-2025 hal 42: Otomasi Industri · 2 SKS sem 3
+- `TID201` Penelitian Operasi Dasar · JSON 3 SKS sem 4 → **semester beda**
+  - Panduan 2022-2023 hal 42: Penelitian Operasi Dasar · 3 SKS sem 3
+  - Panduan 2023-2024 hal 42: Penelitian Operasi Dasar · 3 SKS sem 3
+  - Panduan 2024-2025 hal 42: Penelitian Operasi Dasar · 3 SKS sem 3
+- `TIA202` Pengukuran Kerja · JSON 3 SKS sem 4 → **semester beda**
+  - Panduan 2022-2023 hal 42: Pengukuran Kerja · 3 SKS sem 3
+  - Panduan 2023-2024 hal 42: Pengukuran Kerja · 3 SKS sem 3
+  - Panduan 2024-2025 hal 42: Pengukuran Kerja · 3 SKS sem 3
+- `TIS202` Sistem Manufaktur · JSON 3 SKS sem 4 → **semester beda**
+  - Panduan 2022-2023 hal 42: Sistem Manufaktur · 3 SKS sem 3
+  - Panduan 2023-2024 hal 42: Sistem Manufaktur · 3 SKS sem 3
+  - Panduan 2024-2025 hal 42: Sistem Manufaktur · 3 SKS sem 3
+- `TID202` Statistik Industri · JSON 3 SKS sem 4 → **semester beda**
+  - Panduan 2022-2023 hal 42: Statistik Industri · 3 SKS sem 3
+  - Panduan 2023-2024 hal 42: Statistik Industri · 3 SKS sem 3
+  - Panduan 2024-2025 hal 42: Statistik Industri · 3 SKS sem 3
+- `PNT497` Metodologi Penyelesaian Masalah · JSON 2 SKS sem 6 → **kode tidak ditemukan di tabel PDF**
+  - nama sama dengan kode lain: `PNJ303` (Panduan 2022-2023 hal 42, 2 SKS sem 6)
+  - nama sama dengan kode lain: `PNJ303` (Panduan 2023-2024 hal 42, 2 SKS sem 6)
+  - nama sama dengan kode lain: `PNJ303` (Panduan 2024-2025 hal 42, 2 SKS sem 6)
+- `KLT301` Praktik Kerja Lapangan / PKL · JSON 2 SKS sem 7 → **kode tidak ditemukan di tabel PDF**
+- `PNJ401` Proposal Skripsi · JSON 1 SKS sem 7 → **kode tidak ditemukan di tabel PDF**
+  - nama sama dengan kode lain: `PNJ495` (Panduan 2022-2023 hal 42, 1 SKS sem 7)
+  - nama sama dengan kode lain: `PNJ495` (Panduan 2023-2024 hal 42, 1 SKS sem 7)
+  - nama sama dengan kode lain: `PNJ495` (Panduan 2024-2025 hal 42, 1 SKS sem 7)
+- `TNM102` Teknologi Hijau · JSON 2 SKS sem 7 → **SKS beda**
+  - Panduan 2022-2023 hal 43: Teknologi Hijau c 2 0 0 2 53 MK Pilihan 2 · 3 SKS sem 7
+  - Panduan 2023-2024 hal 43: Teknologi Hijau c 2 0 0 2 53 MK Pilihan 2 · 3 SKS sem 7
+  - Panduan 2024-2025 hal 43: Teknologi Hijau c 2 0 0 2 53 MK Pilihan 2 · 3 SKS sem 7
+- `AGI102` Agama II · JSON 2 SKS sem 8 → **kode tidak ditemukan di tabel PDF**
+  - nama sama dengan kode lain: `AG401` (Panduan 2022-2023 hal 43, 2 SKS sem 8)
+  - nama sama dengan kode lain: `AG401` (Panduan 2023-2024 hal 43, 2 SKS sem 8)
+  - nama sama dengan kode lain: `AG401` (Panduan 2024-2025 hal 43, 2 SKS sem 8)
+- `PNJ402` Skripsi · JSON 5 SKS sem 8 → **kode tidak ditemukan di tabel PDF**
+
+**Ada di PDF, tidak ada di JSON (25):**
+
+- `AG401` Agama 2 · 2 SKS sem 8 (Panduan 2022-2023 hal 43, Panduan 2023-2024 hal 43, Panduan 2024-2025 hal 43)
+- `KID105` Kimia · 2 SKS sem 1 (Panduan 2022-2023 hal 41, Panduan 2023-2024 hal 41, Panduan 2024-2025 hal 41)
+- `KKJ302` Magang Industri · 3 SKS sem 8 (Panduan 2022-2023 hal 43, Panduan 2023-2024 hal 43, Panduan 2024-2025 hal 43)
+- `KLJ301` PKL · 2 SKS sem 7 (Panduan 2022-2023 hal 42, Panduan 2023-2024 hal 42, Panduan 2024-2025 hal 42)
+- `MAT310` Data Mining · 3 SKS sem 8 (Panduan 2022-2023 hal 43, Panduan 2023-2024 hal 43, Panduan 2024-2025 hal 43)
+- `MNK204` Manajemen Proyek · 3 SKS sem 8 (Panduan 2022-2023 hal 43, Panduan 2023-2024 hal 43, Panduan 2024-2025 hal 43)
+- `MNU324` Manajemen Resiko · 3 SKS sem 8 (Panduan 2022-2023 hal 43, Panduan 2023-2024 hal 43, Panduan 2024-2025 hal 43)
+- `PNJ303` Metodologi Penyelesaian Masalah · 2 SKS sem 6 (Panduan 2022-2023 hal 42, Panduan 2023-2024 hal 42, Panduan 2024-2025 hal 42)
+- `PNJ495` Proposal Skripsi · 1 SKS sem 7 (Panduan 2022-2023 hal 42, Panduan 2023-2024 hal 42, Panduan 2024-2025 hal 42)
+- `PNJ499` Skripsi b 0 0 5 5 57 MK Pilihan 3 c 3 0 0 3 58 MK Pilihan 4 · 3 SKS sem 8 (Panduan 2022-2023 hal 43, Panduan 2023-2024 hal 43, Panduan 2024-2025 hal 43)
+- `TIA306` Ergonomi Kognitif · 3 SKS sem 8 (Panduan 2022-2023 hal 43, Panduan 2023-2024 hal 43, Panduan 2024-2025 hal 43)
+- `TIA307` Biodinamika Gerak Manusia · 3 SKS sem 8 (Panduan 2022-2023 hal 43, Panduan 2023-2024 hal 43, Panduan 2024-2025 hal 43)
+- `TIA308` Perancangan Teknik Keandalan · 3 SKS sem 8 (Panduan 2022-2023 hal 43, Panduan 2023-2024 hal 43, Panduan 2024-2025 hal 43)
+- `TIA309` Manajemen Logistik · 3 SKS sem 8 (Panduan 2022-2023 hal 43, Panduan 2023-2024 hal 43, Panduan 2024-2025 hal 43)
+- `TIK303` Big Data Analysis · 3 SKS sem 8 (Panduan 2022-2023 hal 43, Panduan 2023-2024 hal 43, Panduan 2024-2025 hal 43)
+- `TIK304` Metaheuristic c 2 0 1 3 UMUM · 77 SKS sem 8 (Panduan 2022-2023 hal 43, Panduan 2023-2024 hal 43, Panduan 2024-2025 hal 43)
+- `TIM301` Pengujian dan Karakterisasi Material · 3 SKS sem 8 (Panduan 2022-2023 hal 43, Panduan 2023-2024 hal 43, Panduan 2024-2025 hal 43)
+- `TIS302` Lingkungan Kerja Ergonomi b 3 0 0 3 SISTEM MANUFAKTUR · 64 SKS sem 8 (Panduan 2022-2023 hal 43, Panduan 2023-2024 hal 43, Panduan 2024-2025 hal 43)
+- `TIS303` Sustainable Manufacturing b 3 0 0 3 REKAYASA SISTEM · 70 SKS sem 8 (Panduan 2022-2023 hal 43, Panduan 2023-2024 hal 43, Panduan 2024-2025 hal 43)
+- `TIS304` Additive Manufacturing · 3 SKS sem 8 (Panduan 2022-2023 hal 43, Panduan 2023-2024 hal 43, Panduan 2024-2025 hal 43)
+- `TIS305` Robotik Industri · 3 SKS sem 8 (Panduan 2022-2023 hal 43, Panduan 2023-2024 hal 43, Panduan 2024-2025 hal 43)
+- `TIS306` Sistem Kendali Manufaktur Otomatik · 3 SKS sem 8 (Panduan 2022-2023 hal 43, Panduan 2023-2024 hal 43, Panduan 2024-2025 hal 43)
+- `TIS307` Manajemen Jasa · 3 SKS sem 8 (Panduan 2022-2023 hal 43, Panduan 2023-2024 hal 43, Panduan 2024-2025 hal 43)
+- `TIU303` Ergonomi Makro · 3 SKS sem 8 (Panduan 2022-2023 hal 43, Panduan 2023-2024 hal 43, Panduan 2024-2025 hal 43)
+- `TIU304` Faktor Manusia dalam Layanan Kesehatan · 3 SKS sem 8 (Panduan 2022-2023 hal 43, Panduan 2023-2024 hal 43, Panduan 2024-2025 hal 43)
+
