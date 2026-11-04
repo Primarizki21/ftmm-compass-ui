@@ -348,6 +348,7 @@ async def seed(session):
         root = await scalar(session, """
             INSERT INTO course_requirement_nodes (course_requirement_rule_id, node_order, node_type)
             VALUES (:r, 1, 'all') RETURNING course_requirement_node_id""", r=rule_id)
+        stats["requirement_nodes"] += 1
         for order, (ntype, ref, gid, threshold) in enumerate(built, 1):
             await session.execute(text("""
                 INSERT INTO course_requirement_nodes (course_requirement_rule_id, parent_node_id, node_order,
