@@ -561,7 +561,7 @@ def main():
                  f"- Punya detail dari JSON: **{sum(1 for r in rows if r['json_record_key'])}**",
                  f"- Baris JSON tanpa pasangan di Panduan: **{len(unused)}**",
                  "", "| Semester | SKS terbaca | Tercetak | Cek |", "|---|---|---|---|"]
-        lines += [f"| {c['semester']} | {c["parsed"]} | {c['printed']} ({c['label']}, hal {c['page']}) | {'✅' if c['ok'] else '❌'} |" for c in checks]
+        lines += [f"| {c['semester']} | {c['parsed']} | {c['printed']} ({c['label']}, hal {c['page']}) | {'✅' if c['ok'] else '❌'} |" for c in checks]
         if held:
             lines += ["", "**Tertahan:**"] + [f"- hal {r['page']} no {r['no']}: {r['name']} ({r['credits']} sks)" for r in held]
         if unused:
