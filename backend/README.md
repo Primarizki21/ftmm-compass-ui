@@ -134,4 +134,4 @@ uv run python test_api_endpoints.py
 
 ## 🗄️ Database Coordination (PostgreSQL Baseline)
 
-The relational schema baseline is specified in `RANCANGAN DIAGRAM AWAL.sql` (PostgreSQL 16). In this initial phase, the backend operates in-memory from curated catalog data and provides mock/rule contracts ready for integration with PostgreSQL tables managed by Darryl (Card #39 & #41).
+The relational schema baseline is `database/schema_v2_1_rc1.sql` (PostgreSQL 16); perubahan schema sejak baseline dikelola lewat migrasi Alembic di `backend/migrations/versions/` (`alembic upgrade head`). Migrasi indeks `c4d2e6f8a1b3` menjalankan `CREATE EXTENSION pg_trgm`, jadi role database harus boleh membuat ekstensi tersebut (atau ekstensi sudah di-provision oleh admin). Katalog asli 5 prodi diisi oleh `python seed_full_catalog.py` (tidak otomatis saat startup). Untuk detail lihat `database/seed/README.md`.

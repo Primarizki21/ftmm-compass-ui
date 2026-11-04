@@ -34,6 +34,19 @@ uv run --directory backend python reconcile_catalog.py
 Seeder idempoten: aman dijalankan berulang, baris yang hilang dari katalog dinonaktifkan
 (`is_active = false`), rule prasyarat milik seeder (`notes` diawali `seed:catalog`) dibuat ulang.
 
+Rollback di bawah `b3f1c2d4e5a6` hanya jalan kalau tidak ada MK pilihan ber-`semester NULL`
+(skema lama mewajibkan semester). Kalau seeder sudah pernah jalan, migrasi berhenti dengan pesan
+`downgrade b3f1c2d4e5a6 butuh N baris MK pilihan ber-semester`. Pilihannya: isi
+`recommended_semester`/`term` manual, atau reset katalog di DB dev (destruktif: `CASCADE` juga
+menghapus `degree_plan_items` dan `student_course_records`):
+
+```bash
+psql "$DATABASE_URL" -c 'TRUNCATE curriculum_courses CASCADE'
+uv run --directory backend python seed_full_catalog.py
+```
+
+`pg_trgm` (dibutuhkan migrasi indeks) harus tersedia di role database; lihat `backend/README.md`.
+
 ## Sumber kebenaran
 
 | Data | Sumber | Catatan |
