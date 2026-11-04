@@ -52,13 +52,14 @@
     ]
   },
   "review_status": {
+    "last_review": "2026-11-05 — verifikasi ulang ke Dokumen_Mentah (Panduan 2022-2025 + kurikulum 2021 hasil scan); lihat source_findings.md bagian 'Verifikasi ulang 2026-11-05'.",
     "status": "pdf_checked",
     "basis": "Struktur katalog dari tabel Panduan Pendidikan 2024-2025 (identik 2022-2025); keputusan dicek ke dokumen kurikulum 2021 & Panduan. Lihat database/seed/source_findings.md.",
     "rule": "Seeder hanya boleh menandai verified untuk item ber-evidence 'pdf'."
   },
   "provisional_codes": {
-    "RKKX301": "TRKB Sistem Temu Kembali Informasi; dokumen resmi menulis RKK301 (dobel dengan Pembelajaran Mesin).",
-    "RNSX301": "RN Nanoteknologi terapan 2 (Praktikum); baris tanpa kode di Panduan hal 33, penerus RNS301."
+    "RKKX301": "TRKB Sistem Temu Kembali Informasi. Dokumen TRKB 2021 bertentangan: tabel semester hal cetak 23 menulis RKK301 (dobel dengan Pembelajaran Mesin), ringkasan Tabel 4.3 hal cetak 25 menulis SIC301, deskripsi Tabel 4.59 hal cetak 90 menulis RKK301. Placeholder dipertahankan sampai prodi mengonfirmasi kode resmi. (review 2026-11-05)",
+    "RNSX301": "RN Nanoteknologi terapan 2 (Praktikum). Tidak ada kode di Panduan 2022-2023, 2023-2024, maupun 2024-2025 (baris 57, hal cetak 30); dokumen RN 2021 tidak memuat nama MK ini (memakai 'Praktikum Nanoteknologi 3/4'). Placeholder dipertahankan. (review 2026-11-05)"
   },
   "policies": {
     "sks_verbs_completed": [
@@ -71,7 +72,7 @@
     "verify_auto_parsed_prerequisites": false,
     "verifier_email_env": "CATALOG_VERIFIER_EMAIL",
     "verify_after_pdf_check": true,
-    "sks_verbs_note": "Panduan Pendidikan 2021-2025 tidak mendefinisikan \"menempuh X sks\"; tafsiran \"sudah lulus\" tetap keputusan reviewer, bukan fakta dokumen."
+    "sks_verbs_note": "Panduan Pendidikan 2021-2025 dan dokumen kurikulum 5 prodi tidak mendefinisikan \"menempuh X sks\"; frasa hanya muncul di kolom Prasyarat (TSD hal 30-31; TE hal 136/154/155/157; TRKB hal 90/96) dan tidak pernah dibedakan dari \"lulus\". Tafsiran \"sudah lulus\" dipertahankan sebagai keputusan reviewer 2026-11-05, bukan fakta dokumen; semua rule turunannya tetap unresolved."
   },
   "cosmetic_aliases": {
     "AGB401": [
@@ -231,11 +232,11 @@
         "action": "same",
         "canonical_name": "Agama Islam 2"
       },
-      "note": "TI mencetak generik \"AG401 Agama 2\" (Panduan hal 43); disamakan dengan AGI401 prodi lain, alternatif agama ditambahkan. (Darryl, 2026-11-03)",
-      "evidence": "inferred",
+      "note": "TI mencetak generik \"Agama 2\" tanpa kode di Panduan hal cetak 43 dan tabel TI 2021 hal cetak 11 baris 54; hanya Agama 1 yang tercetak (AGI101, TI 2021 hal cetak 9). Disamakan dengan AGI401 prodi lain dan alternatif AGx401 tetap inferred. (review 2026-11-05)",
+      "evidence": "pdf",
       "pdf_check": {
-        "status": "unverified",
-        "evidence": "Panduan 2024-2025 hal 43 (TI) vs hal 31/34/35/38 (prodi lain)."
+        "status": "partial",
+        "evidence": "Panduan 2024-2025 hal 43 (TI) dan kurikulum TI 2021 hal 11: kolom kode baris 'Agama 2' kosong. Prodi lain mencetak AGI401/AGK401/... (Panduan hal 31/34/35/38)."
       }
     },
     "identity_conflict:AGK101": {
@@ -599,21 +600,18 @@
         "leaves": [
           {
             "node_type": "course_passed",
-            "course_code": "KID105",
-            "source": "Kimia Dasar"
-          },
-          {
-            "node_type": "course_passed",
-            "course_code": "FID101",
-            "source": "Fisika Dasar"
+            "course_code": "FID205",
+            "source": "Fisika Modern",
+            "inferred": true
           }
         ]
       },
-      "note": "'Fisika Dasar' = FID101 Fisika Dasar 1, konsisten dengan 'Kimia Dasar' = KID105 (yang pertama di serinya). Tafsiran; rule tidak di-verify. (Darryl, 2026-11-03)",
-      "evidence": "inferred",
+      "note": "Dokumen RN 2021 Tabel 4.5.41 (hal cetak 88) menulis Prasyarat: Fisika Modern, bukan 'Fisika Dasar | Kimia Dasar' seperti di JSON Ekstrak. Fisika Modern sudah tidak ada; tabel perubahan kurikulum RN (hal cetak 4, butir 5a) menyatakan Fisika Modern (3 sks) menjadi Fisika Nanoteknologi (3 sks) = FID205. Rule tetap unresolved: pemetaan nama bersifat tafsiran dan SKS Panduan (2) beda dengan dokumen (3). (review 2026-11-05)",
+      "evidence": "pdf",
       "pdf_check": {
-        "status": "unverified",
-        "evidence": "Tidak ada di tabel RN 2021 maupun Panduan."
+        "status": "confirmed",
+        "evidence": "Kurikulum RN 2021 Tabel 4.5.41 hal 88: 'Prasyarat: Fisika Modern'; Tabel perubahan kurikulum hal 4 butir 5a: 'Fisika Modern (3 SKS) menjadi Fisika Nanoteknologi (3 SKS)'. Panduan 2024-2025 hal 32: FID205 Fisika Nanoteknologi (2 sks, sem 3).",
+        "quote": "Prasyarat | Fisika Modern"
       }
     },
     "prerequisite:RN:RNM202:P33-50-RNM202": {
@@ -777,17 +775,18 @@
           },
           {
             "node_type": "course_passed",
-            "course_code": "RND204",
+            "course_code": "FID205",
             "source": "Fisika Modern",
             "inferred": true
           }
         ]
       },
-      "note": "'Fisika Modern' tidak ada di kurikulum RN; isi materinya (kuantum, atom, zat padat) paling dekat dengan RND204 Nanosains Kuantum. Rule tetap unresolved: hanya saran, tidak memblokir Planner. (Darryl, 2026-11-03)",
-      "evidence": "inferred",
+      "note": "Dokumen RN 2021 Tabel 4.5.58 (hal cetak 106) menulis prasyarat 'Pengantar Nanoteknologi 1 dan 2, Fisika Modern'. Fisika Modern dipetakan ke Fisika Nanoteknologi (FID205) menurut tabel perubahan kurikulum RN hal 4 butir 5a. Rule tetap unresolved: hanya saran, tidak memblokir Planner. (review 2026-11-05)",
+      "evidence": "pdf",
       "pdf_check": {
-        "status": "unverified",
-        "evidence": "Tidak ada 'Fisika Modern' di tabel RN 2021 maupun Panduan; RND204 di Panduan hal 33."
+        "status": "confirmed",
+        "evidence": "Kurikulum RN 2021 Tabel 4.5.58 hal 106: 'Pengantar Nanoteknologi 1 dan 2, Fisika Modern'; perubahan kurikulum hal 4 butir 5a: Fisika Modern menjadi Fisika Nanoteknologi.",
+        "quote": "Pengantar Nanoteknologi 1 dan 2, Fisika Modern"
       }
     },
     "prerequisite:RN:RNT402:P34-74-RNT402": {
@@ -814,17 +813,18 @@
         "leaves": [
           {
             "node_type": "course_passed",
-            "course_code": "RND204",
+            "course_code": "FID205",
             "source": "Fisika Modern",
             "inferred": true
           }
         ]
       },
-      "note": "'Fisika Modern' tidak ada di kurikulum RN; isi materinya (kuantum, atom, zat padat) paling dekat dengan RND204 Nanosains Kuantum. Rule tetap unresolved: hanya saran, tidak memblokir Planner. (Darryl, 2026-11-03)",
-      "evidence": "inferred",
+      "note": "Dokumen RN 2021 Tabel 4.5.80 (hal cetak 131) menulis Prasyarat: Fisika Modern. Fisika Modern dipetakan ke Fisika Nanoteknologi (FID205) menurut tabel perubahan kurikulum RN hal 4 butir 5a. Rule tetap unresolved: hanya saran, tidak memblokir Planner. (review 2026-11-05)",
+      "evidence": "pdf",
       "pdf_check": {
-        "status": "unverified",
-        "evidence": "Tidak ada 'Fisika Modern' di tabel RN 2021 maupun Panduan; RND204 di Panduan hal 33."
+        "status": "confirmed",
+        "evidence": "Kurikulum RN 2021 Tabel 4.5.80 hal 131: 'Prasyarat: Fisika Modern'; perubahan kurikulum hal 4 butir 5a: Fisika Modern menjadi Fisika Nanoteknologi.",
+        "quote": "Prasyarat | Fisika Modern"
       }
     },
     "prerequisite:TRKB:RKK301:P36-36-RKK301": {

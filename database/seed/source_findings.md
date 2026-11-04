@@ -149,4 +149,24 @@ tidak mungkin bentrok dengan kode resmi.
 
 | TI agama (ditemukan saat review akhir) | 'AGI101 Agama I' & 'AG401 Agama 2' diperluas ke 6 alternatif AGx101 (sem 1) / AGx401 (sem 8), `unverified` | Tabel TI hanya mencetak satu baris generik; tanpa ini mahasiswa TI non-Muslim tidak punya MK agama. Empat prodi lain di Panduan yang sama memakai 6 alternatif |
 
-- Teks prasyarat RN/TE/TI berasal dari JSON (dokumen 2021 scan); belum dicek per halaman.
+- Teks prasyarat RN/TE/TI berasal dari JSON (dokumen 2021 scan); sudah dicek ulang per halaman pada review 2026-11-05 (lihat bagian berikut).
+
+## Verifikasi ulang ke `Dokumen_Mentah` (2026-11-05)
+
+Sembilan PDF sumber (Panduan 2021-2025 + 5 dokumen kurikulum 2021) di-OCR ulang di lokal
+(`Dokumen_Mentah/`, gitignored; teks OCR tidak di-commit). Temuan yang mengubah/mengunci asumsi:
+
+| Item | Bukti dokumen | Keputusan |
+|---|---|---|
+| TRKB Sistem Temu Kembali Informasi | Dokumen TRKB 2021 **bertentangan internal**: tabel semester hal cetak 23 menulis `RKK301`; ringkasan Tabel 4.3 hal cetak 25 menulis `SIC301`; deskripsi Tabel 4.59 hal cetak 90 menulis `RKK301` | placeholder `RKKX301` dipertahankan, `provisional_codes` diperbarui; butuh konfirmasi prodi |
+| RN Nanoteknologi terapan 2 (Praktikum) | Panduan 2022-2023, 2023-2024, 2024-2025 sama-sama mencetak baris 57 **tanpa kode** (hal cetak 30); dokumen RN 2021 memakai nama lain (`Praktikum Nanoteknologi 3/4`) | placeholder `RNSX301` dipertahankan |
+| TI Agama 2 | Panduan hal cetak 43 dan kurikulum TI 2021 hal cetak 11: kolom kode baris "Agama 2" **kosong**; hanya "AGI101 Agama 1" yang tercetak (TI 2021 hal 9) | keputusan `identity_conflict:AGI401` dipertahankan, status `partial` |
+| TE PKL/KKN/Proposal/Skripsi | Kurikulum TE 2021 mencetak kode tidak lengkap/kosong: `KLJ` kosong (hal cetak 125), `PNJ` (hal 143, 146), `KNJ` (hal 144) | `code_inferred` tetap; tidak ada kode definitif |
+| RND202 Kinetika dan Termodinamika | Tabel 4.5.41 hal cetak 88: **Prasyarat: Fisika Modern** — bukan "Fisika Dasar" seperti di JSON Ekstrak | keputusan diubah ke Fisika Modern → `FID205` (pemetaan hal cetak 4 butir 5a), tetap `unresolved`; JSON Ekstrak terbukti salah untuk baris ini |
+| RNT303 Nanoteknologi Konversi dan Penyimpanan Energi | Tabel 4.5.58 hal cetak 106: "Pengantar Nanoteknologi 1 dan 2, Fisika Modern" | advisory RND204 diganti `FID205` |
+| RNT402 Kenanomagnetan | Tabel 4.5.80 hal cetak 131: **Prasyarat: Fisika Modern** | advisory RND204 diganti `FID205` |
+| "menempuh X sks" (8 rule: TSD 80/108, TE 80/110/114, TRKB 80/110) | Frasa hanya muncul di kolom Prasyarat; Panduan 2021-2025 dan dokumen prodi **tidak mendefinisikan**; RN memakai "harus menempuh 146 sks" dalam arti menyelesaikan | policy `sks_verbs_completed` tidak diubah; `sks_verbs_note` diperbarui dengan kutipan, semua rule tetap `unresolved` |
+
+Catatan: pemetaan "Fisika Modern → Fisika Nanoteknologi" berasal dari tabel perubahan kurikulum
+RN 2021 (bukan pernyataan bahwa keduanya ekuivalen secara isi); SKS Panduan untuk `FID205` (2)
+berbeda dengan dokumen (3). Karena itu rule tetap `unresolved` dan tidak memblokir Planner.
