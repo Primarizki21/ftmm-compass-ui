@@ -1,15 +1,11 @@
-import os
-import sys
-
-if hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(line_buffering=True)
-if hasattr(sys.stderr, "reconfigure"):
-    sys.stderr.reconfigure(line_buffering=True)
 import asyncio
 import datetime
+import sys
+
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
+from auth import get_password_hash
 from database import AsyncSessionLocal
 from models import (
     StudyProgram,
@@ -32,7 +28,11 @@ from models import (
     ElectiveCourseVote,
     UserNotification,
 )
-from auth import get_password_hash
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(line_buffering=True)
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(line_buffering=True)
 
 PRODIS = [
     {

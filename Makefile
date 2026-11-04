@@ -116,6 +116,7 @@ test: ## Menjalankan seluruh pengujian (typecheck, backend API, frontend smoke t
 lint: ## Menjalankan pemeriksaan format kode dan typecheck
 	@pnpm format:check
 	@pnpm typecheck
+	@uv run --directory backend ruff check .
 
 format: ## Memformat seluruh kode menggunakan oxfmt
 	@pnpm format
