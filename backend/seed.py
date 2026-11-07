@@ -126,10 +126,14 @@ async def seed_data():
             prodi_map[prodi.program_code] = prodi
 
         print("\n[SEED 2/8] Checking and seeding Academic Periods...")
+        today = datetime.date.today()
+        current_term = "ganjil" if today.month >= 8 or today.month == 1 else "genap"
+        current_year = today.year if current_term == "ganjil" and today.month != 1 else today.year - 1
+        start_month = 8 if current_term == "ganjil" else 2
         period_configs = [
-            {"year": 2023, "term": "ganjil", "active": False},
-            {"year": 2023, "term": "genap", "active": False},
-            {"year": 2024, "term": "ganjil", "active": True},
+            {"year": current_year - 1, "term": "ganjil", "active": False},
+            {"year": current_year - 1, "term": "genap", "active": False},
+            {"year": current_year, "term": current_term, "active": True},
         ]
         period_map = {}
         for pcfg in period_configs:
@@ -138,21 +142,30 @@ async def seed_data():
                 AcademicPeriod.term == pcfg["term"],
             )
             p_obj = (await session.execute(stmt)).scalars().first()
+            start_date = datetime.date(pcfg["year"], start_month, 26 if pcfg["term"] == "ganjil" else 17)
             if not p_obj:
                 p_obj = AcademicPeriod(
                     academic_year_start=pcfg["year"],
                     term=pcfg["term"],
                     is_active=pcfg["active"],
+                    start_date=start_date,
+                    end_date=start_date + datetime.timedelta(weeks=16),
                 )
                 session.add(p_obj)
                 await session.flush()
                 print(f"  [CREATED] Academic period: {pcfg['year']} {pcfg['term']} (active: {pcfg['active']})")
             else:
                 p_obj.is_active = pcfg["active"]
+                p_obj.start_date = p_obj.start_date or start_date
+                p_obj.end_date = p_obj.end_date or start_date + datetime.timedelta(weeks=16)
                 print(f"  [EXISTS] Academic period: {pcfg['year']} {pcfg['term']}")
             period_map[f"{pcfg['year']}_{pcfg['term']}"] = p_obj
 
-        active_period = period_map["2024_ganjil"]
+        # Hanya satu periode aktif, termasuk periode lama di database.
+        for existing in (await session.execute(select(AcademicPeriod))).scalars():
+            existing.is_active = False
+        active_period = period_map[f"{current_year}_{current_term}"]
+        active_period.is_active = True
 
         print("\n[SEED 3/8] Checking and seeding Test Users...")
 
@@ -326,15 +339,16 @@ async def seed_data():
             ("KIK104", "AB"),
             ("TSD103", "A"),
         ]
-        p_2023_ganjil = period_map["2023_ganjil"]
+        p_2023_ganjil = period_map[f"{current_year - 1}_ganjil"]
         for code, grade in sem1_records:
             cc = curriculum_course_map[code]
             stmt_r = select(StudentCourseRecord).where(
                 StudentCourseRecord.user_id == mhs_user.user_id,
                 StudentCourseRecord.curriculum_course_id == cc.curriculum_course_id,
-                StudentCourseRecord.academic_period_id == p_2023_ganjil.academic_period_id,
             )
             rec = (await session.execute(stmt_r)).scalars().first()
+            if rec:
+                rec.academic_period_id = p_2023_ganjil.academic_period_id
             if not rec:
                 rec = StudentCourseRecord(
                     user_id=mhs_user.user_id,
@@ -357,15 +371,16 @@ async def seed_data():
             ("TSD106", "A"),
             ("TSD107", "AB"),
         ]
-        p_2023_genap = period_map["2023_genap"]
+        p_2023_genap = period_map[f"{current_year - 1}_genap"]
         for code, grade in sem2_records:
             cc = curriculum_course_map[code]
             stmt_r = select(StudentCourseRecord).where(
                 StudentCourseRecord.user_id == mhs_user.user_id,
                 StudentCourseRecord.curriculum_course_id == cc.curriculum_course_id,
-                StudentCourseRecord.academic_period_id == p_2023_genap.academic_period_id,
             )
             rec = (await session.execute(stmt_r)).scalars().first()
+            if rec:
+                rec.academic_period_id = p_2023_genap.academic_period_id
             if not rec:
                 rec = StudentCourseRecord(
                     user_id=mhs_user.user_id,
@@ -384,9 +399,10 @@ async def seed_data():
             stmt_r = select(StudentCourseRecord).where(
                 StudentCourseRecord.user_id == mhs_user.user_id,
                 StudentCourseRecord.curriculum_course_id == cc.curriculum_course_id,
-                StudentCourseRecord.academic_period_id == active_period.academic_period_id,
             )
             rec = (await session.execute(stmt_r)).scalars().first()
+            if rec:
+                rec.academic_period_id = active_period.academic_period_id
             if not rec:
                 rec = StudentCourseRecord(
                     user_id=mhs_user.user_id,
