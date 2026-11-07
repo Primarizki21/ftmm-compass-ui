@@ -1,3 +1,5 @@
+import { MAX_SKS_PER_SEMESTER } from "../../domain/academics"
+
 export interface StudentProfileState {
   program_studi?: string | null
   semester_saat_ini?: number | null
@@ -97,6 +99,6 @@ export const INITIAL_STUDENT_PROFILE: StudentProfileState = {
   riwayat_matkul_lulus: [],
   minat_fokus: [],
   target_kelulusan_semester: 8,
-  maks_sks_per_semester: 24,
+  maks_sks_per_semester: MAX_SKS_PER_SEMESTER,
   is_confirmed_by_user: false,
 }

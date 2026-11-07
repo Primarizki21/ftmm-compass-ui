@@ -1,9 +1,8 @@
 import { type AuthUser } from "../../services/authService"
 import React from "react"
-import { type Course, TIMETABLE_DAYS, type ScheduleItem } from "../../data"
+import { type Course, type ScheduleItem } from "../../data"
+import { isOddSemester } from "../../domain/academics"
 
-export { TIMETABLE_DAYS }
-export const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8] as const
 export interface PlacedCourse extends Course {
   status: "completed" | "planned" | "wishlist"
 }
@@ -96,56 +95,18 @@ export const isCompleted = (c: PlacedCourse): boolean =>
 // Wajib courses cannot be moved across semesters (intra-semester reordering only)
 export const isSemLocked = (c: PlacedCourse): boolean => c.type === "Wajib"
 
-export const isOdd = (sem: number): boolean => sem % 2 === 1
-
 export const canDrop = (
   course: PlacedCourse,
   targetSem: number,
   fromSem: number | "bank",
 ): boolean => {
   if (isCompleted(course)) return false
-  // Intra-semester reorder is always valid for both Wajib and Pilihan
   if (fromSem === targetSem) return true
-  // Wajib courses cannot move to another semester
   if (isSemLocked(course)) return false
-  // Pilihan courses must match semester parity
-  if (course.parity === "odd" && !isOdd(targetSem)) return false
-  if (course.parity === "even" && isOdd(targetSem)) return false
+  if (course.parity === "odd" && !isOddSemester(targetSem)) return false
+  if (course.parity === "even" && isOddSemester(targetSem)) return false
   return true
 }
-export function getCourseReligion(course: {
-  name: string
-  code?: string
-}): string | null {
-  const text = `${course.code || ""} ${course.name}`.toLowerCase()
-  const isAgama =
-    text.includes("agama") || /ag[ikphbc]/i.test(course.code || "")
-  if (!isAgama) return null
-  if (text.includes("islam") || /agi/i.test(course.code || "")) return "Islam"
-  if (text.includes("katolik") || /agk/i.test(course.code || ""))
-    return "Katolik"
-  if (
-    text.includes("protestan") ||
-    text.includes("kristen") ||
-    /agp/i.test(course.code || "")
-  )
-    return "Protestan"
-  if (text.includes("hindu") || /agh/i.test(course.code || "")) return "Hindu"
-  if (
-    text.includes("buddha") ||
-    text.includes("budha") ||
-    /agb/i.test(course.code || "")
-  )
-    return "Buddha"
-  if (
-    text.includes("khonghucu") ||
-    text.includes("konghucu") ||
-    /agc/i.test(course.code || "")
-  )
-    return "Khonghucu"
-  return "Umum"
-}
-
 export type SemesterState = "idle" | "valid-hover" | "invalid" | "invalid-hover"
 
 export type Tab = "roadmap" | "timetable"

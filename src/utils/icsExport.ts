@@ -1,5 +1,5 @@
 import type { ScheduleItem } from "../data"
-import { getCurrentAcademicPeriod } from "./academicCalendar"
+import { SEMESTER_WEEKS, semesterStartMonday } from "../domain/academics"
 
 const DAY_OFFSETS: Record<string, number> = {
   senin: 0,
@@ -29,38 +29,14 @@ function formatUtcTimestamp(date: Date): string {
   return `${y}${m}${d}T${h}${min}${s}Z`
 }
 
-function getNextSemesterMonday(): Date {
-  const now = new Date()
-  const period = getCurrentAcademicPeriod(now)
-  const fullYear = now.getFullYear()
-  const isGanjil = period.term === "ganjil"
-
-  // Sem Ganjil reference start: late August (~26 Aug); Sem Genap: mid Feb (~17 Feb)
-  const refStart = isGanjil
-    ? new Date(now.getMonth() <= 1 ? fullYear - 1 : fullYear, 7, 26)
-    : new Date(fullYear, 1, 17)
-
-  // Align to Monday
-  const day = refStart.getDay() // 0 = Sunday, 1 = Monday
-  const diffToMonday = day === 0 ? 1 : day === 1 ? 0 : 8 - day
-  const monday = new Date(refStart)
-  monday.setDate(refStart.getDate() + diffToMonday)
-  monday.setHours(0, 0, 0, 0)
-  return monday
-}
-
 export function generateIcsCalendar(
   schedule: ScheduleItem[],
-  options?: {
-    calendarName?: string
-    semesterWeeks?: number
-  },
+  options?: { calendarName?: string },
 ): string {
   const calName = options?.calendarName || "Jadwal Perkuliahan FTMM UNAIR"
-  const weeks = options?.semesterWeeks || 16
   const now = new Date()
   const dtStamp = formatUtcTimestamp(now)
-  const semMonday = getNextSemesterMonday()
+  const semMonday = semesterStartMonday()
 
   const lines: string[] = [
     "BEGIN:VCALENDAR",
@@ -115,7 +91,7 @@ export function generateIcsCalendar(
       `DTSTAMP:${dtStamp}`,
       `DTSTART;TZID=Asia/Jakarta:${dtStart}`,
       `DTEND;TZID=Asia/Jakarta:${dtEnd}`,
-      `RRULE:FREQ=WEEKLY;COUNT=${weeks}`,
+      `RRULE:FREQ=WEEKLY;COUNT=${SEMESTER_WEEKS}`,
       `SUMMARY:${summary}`,
       `DESCRIPTION:${description}`,
       `LOCATION:${location}`,

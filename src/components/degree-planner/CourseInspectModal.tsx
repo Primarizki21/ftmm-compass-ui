@@ -11,7 +11,8 @@ import {
   Layers,
 } from "lucide-react"
 import { cn } from "../../utils"
-import { PlacedCourse, isCompleted, isOdd } from "./types"
+import { isOddSemester } from "../../domain/academics"
+import { PlacedCourse, isCompleted } from "./types"
 
 interface CoursePlacementInfo {
   sem: number
@@ -170,7 +171,7 @@ export default function CourseInspectModal({
               <span>&bull;</span>
               <span className="font-medium text-navy">
                 Penempatan: Semester {currentSem} (
-                {isOdd(currentSem) ? "Ganjil" : "Genap"})
+                {isOddSemester(currentSem) ? "Ganjil" : "Genap"})
               </span>
             </p>
           </div>

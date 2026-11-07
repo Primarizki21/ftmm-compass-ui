@@ -12,13 +12,8 @@ import {
 } from "lucide-react"
 import { cn } from "../../utils"
 import { Course } from "../../data"
-import {
-  PlacedCourse,
-  SemesterState,
-  isCompleted,
-  isSemLocked,
-  isOdd,
-} from "./types"
+import { isOddSemester } from "../../domain/academics"
+import { PlacedCourse, SemesterState, isCompleted, isSemLocked } from "./types"
 
 interface PlannerCourseCardProps {
   course: PlacedCourse
@@ -238,7 +233,7 @@ export function SemesterColumn({
   onSelectCourse,
 }: SemesterColumnProps) {
   const totalSKS = courses.reduce((acc, c) => acc + c.credits, 0)
-  const odd = isOdd(sem)
+  const odd = isOddSemester(sem)
   return (
     <div
       className={cn(

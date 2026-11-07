@@ -11,7 +11,8 @@ import {
 import { cn } from "../../utils"
 import { Course } from "../../data"
 import { type AuthUser } from "../../services/authService"
-import { ALL_COURSES, findCourseByNameOrCode } from "../../courseData"
+import { ALL_COURSES } from "../../courseData"
+import { findCourseByNameOrCode } from "../../domain/course"
 import CourseDescriptionView from "./CourseDescriptionView"
 
 export interface CourseQuickModalProps {

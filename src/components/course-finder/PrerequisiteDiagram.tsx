@@ -1,10 +1,10 @@
 import { CheckCircle2, Clock, AlertCircle } from "lucide-react"
 import { Course } from "../../data"
+import { ALL_COURSES } from "../../courseData"
 import {
-  ALL_COURSES,
   findCourseByNameOrCode,
   findUnlockedCourses,
-} from "../../courseData"
+} from "../../domain/course"
 
 export interface PrerequisiteDiagramProps {
   course: Course

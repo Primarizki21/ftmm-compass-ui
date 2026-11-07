@@ -31,7 +31,7 @@ import { authService, type AuthUser } from "./services/authService"
 import BrandLogo from "./components/BrandLogo"
 import AnimatedMenuToggle from "./components/AnimatedMenuToggle"
 import NotificationDropdown from "./components/NotificationDropdown"
-import { getCurrentAcademicPeriod } from "./utils/academicCalendar"
+import { currentAcademicPeriod } from "./domain/academics"
 
 type Page = "dashboard" | "course-finder" | "degree-planner" | "chatbot" | "profile"
 
@@ -67,7 +67,7 @@ export default function App() {
   const [chatAppliedPlanId, setChatAppliedPlanId] = useState<string | null>(
     null,
   )
-  const academicPeriod = getCurrentAcademicPeriod()
+  const academicPeriod = currentAcademicPeriod()
   useEffect(() => {
     if (currentUser && currentUser.role !== "student") {
       if (activePage === "degree-planner" || activePage === "chatbot") {

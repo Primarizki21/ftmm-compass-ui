@@ -1,7 +1,9 @@
 import { Search, X, BookOpen, Check, Plus } from "lucide-react"
 import { cn } from "../../utils"
 import { Course } from "../../data"
-import { isOdd, getCourseReligion, PlacedCourse } from "./types"
+import { isOddSemester, MAX_SKS_PER_SEMESTER } from "../../domain/academics"
+import { courseReligion } from "../../domain/course"
+import { PlacedCourse } from "./types"
 
 interface CoursePickerModalProps {
   pickerSem: number | null
@@ -89,18 +91,20 @@ export default function CoursePickerModal({
               <span
                 className={cn(
                   "text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full",
-                  isOdd(pickerSem)
+                  isOddSemester(pickerSem)
                     ? "bg-teal/15 text-navy border border-teal/30"
                     : "bg-gold/15 text-navy border border-gold/40",
                 )}
               >
-                {isOdd(pickerSem) ? "Semester Ganjil" : "Semester Genap"}
+                {isOddSemester(pickerSem)
+                  ? "Semester Ganjil"
+                  : "Semester Genap"}
               </span>
             </div>
             <p className="text-xs text-muted mt-1">
               Menampilkan katalog matkul dengan periode{" "}
-              <strong>{isOdd(pickerSem) ? "ganjil" : "genap"}</strong> sesuai
-              aturan kurikulum FTMM.
+              <strong>{isOddSemester(pickerSem) ? "ganjil" : "genap"}</strong>{" "}
+              sesuai aturan kurikulum FTMM.
             </p>
             <div className="flex flex-wrap items-center gap-2 mt-2 pt-1 border-t border-border/40">
               <span className="text-xs text-muted font-medium">
@@ -109,14 +113,14 @@ export default function CoursePickerModal({
               <span
                 className={cn(
                   "font-mono font-bold text-xs px-2 py-0.5 rounded-md",
-                  plannedSKS > 24
+                  plannedSKS > MAX_SKS_PER_SEMESTER
                     ? "bg-danger/15 text-danger border border-danger/30"
                     : plannedSKS >= 20
                       ? "bg-gold/15 text-navy border border-gold/30"
                       : "bg-teal/15 text-navy border border-teal/30",
                 )}
               >
-                {plannedSKS} / 24 SKS Direncanakan
+                {plannedSKS} / {MAX_SKS_PER_SEMESTER} SKS Direncanakan
               </span>
               {activeReligion && (
                 <span className="text-[10px] font-medium text-navy/80 bg-navy/8 border border-navy/15 px-2 py-0.5 rounded-md">
@@ -247,12 +251,12 @@ export default function CoursePickerModal({
             filtered.map((course) => {
               const placedInSem = placedMap.get(course.id)
               const isAlreadyPlaced = placedInSem !== undefined
-              const courseReligion = getCourseReligion(course)
+              const religion = courseReligion(course)
               const isReligionBlocked = Boolean(
                 activeReligion &&
-                  courseReligion &&
-                  courseReligion !== "Umum" &&
-                  courseReligion !== activeReligion,
+                  religion &&
+                  religion !== "Umum" &&
+                  religion !== activeReligion,
               )
               return (
                 <div

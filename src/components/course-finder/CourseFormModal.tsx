@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { X, BookPlus, Edit3, AlertCircle, Loader2 } from "lucide-react"
 import { Course } from "../../data"
 import { apiErrorMessage, apiFetch } from "../../api/client"
+import { termOfSemester } from "../../domain/academics"
 
 interface CourseFormModalProps {
   isOpen: boolean
@@ -278,7 +279,7 @@ export default function CourseFormModal({
                   onChange={(e) => {
                     const s = Number(e.target.value)
                     setSemester(s)
-                    setTerm(s % 2 === 1 ? "ganjil" : "genap")
+                    setTerm(termOfSemester(s))
                   }}
                   className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm text-foreground focus:border-gold focus:ring-1 focus:ring-gold outline-hidden transition-colors"
                 >

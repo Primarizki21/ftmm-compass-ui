@@ -24,12 +24,8 @@ import {
 } from "../services/pollingService"
 import { type AuthUser } from "../services/authService"
 import CourseFormModal from "../components/course-finder/CourseFormModal"
-import {
-  ALL_COURSES,
-  PROGRAMS,
-  fetchCatalog,
-  getProdiAbbreviation,
-} from "../courseData"
+import { ALL_COURSES, PROGRAMS, fetchCatalog } from "../courseData"
+import { getProdiAbbreviation } from "../domain/course"
 import CourseDetailView from "../components/course-finder/CourseDetailView"
 import CourseQuickModal from "../components/course-finder/CourseQuickModal"
 export interface CourseFinderProps {
@@ -81,21 +77,22 @@ export default function CourseFinder({
   const [availablePrograms, setAvailablePrograms] = useState<string[]>(PROGRAMS)
   useEffect(() => {
     let active = true
-    fetchCatalog(activeProgram).then((res) => {
-      if (!active) return
-      if (res) {
+    fetchCatalog(activeProgram)
+      .then((res) => {
+        if (!active) return
         setCourses(res.courses)
         if (res.programs && res.programs.length > 0) {
           setAvailablePrograms(res.programs)
         }
-      } else {
+      })
+      .catch(() => {
+        if (!active) return
         setCourses(
           activeProgram === "all"
             ? ALL_COURSES
             : ALL_COURSES.filter((c) => c.program === activeProgram),
         )
-      }
-    })
+      })
 
     return () => {
       active = false

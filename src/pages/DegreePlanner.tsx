@@ -1,18 +1,17 @@
 import { useState, useEffect, useMemo } from "react"
 import { BookOpen, Calendar } from "lucide-react"
 import { cn } from "../utils"
-import { Course } from "../data"
+import { Course, TIMETABLE_DAYS } from "../data"
 import { ALL_COURSES, PROGRAMS, fetchCatalog } from "../courseData"
+import { SEMESTERS } from "../domain/academics"
+import { courseReligion } from "../domain/course"
 import TimetableGrid from "../components/TimetableGrid"
 import {
   PlacedCourse,
-  SEMESTERS,
-  TIMETABLE_DAYS,
   SemesterState,
   Tab,
   DegreePlannerProps,
   canDrop,
-  getCourseReligion,
 } from "../components/degree-planner/types"
 import PlannerHeader from "../components/degree-planner/PlannerHeader"
 import { useDegreePlanStorage } from "../components/degree-planner/useDegreePlanStorage"
@@ -81,26 +80,33 @@ export default function DegreePlanner({
     })
   useEffect(() => {
     let isMounted = true
-    fetchCatalog("all").then((res) => {
-      if (!isMounted || !res) return
-      if (res.courses?.length) {
-        const prodisInRes = new Set(
-          res.courses.map((c) => c.program).filter(Boolean),
-        )
-        if (prodisInRes.size >= 5) {
-          setCatalog(res.courses)
-        } else {
-          const fetchedIds = new Set(res.courses.map((c) => c.id))
-          const missing = ALL_COURSES.filter((c) => !fetchedIds.has(c.id))
-          setCatalog([...res.courses, ...missing])
+    fetchCatalog("all")
+      .then((res) => {
+        if (!isMounted) return
+        if (res.courses?.length) {
+          const prodisInRes = new Set(
+            res.courses.map((c) => c.program).filter(Boolean),
+          )
+          if (prodisInRes.size >= 5) {
+            setCatalog(res.courses)
+          } else {
+            const fetchedIds = new Set(res.courses.map((c) => c.id))
+            const missing = ALL_COURSES.filter((c) => !fetchedIds.has(c.id))
+            setCatalog([...res.courses, ...missing])
+          }
         }
-      }
-      if (res.programs && res.programs.length > 0) {
-        setAvailablePrograms(res.programs)
-      } else {
-        setAvailablePrograms(PROGRAMS)
-      }
-    })
+        if (res.programs && res.programs.length > 0) {
+          setAvailablePrograms(res.programs)
+        } else {
+          setAvailablePrograms(PROGRAMS)
+        }
+      })
+      .catch(() => {
+        // Katalog lokal dari Ekstrak sudah menjadi initial state.
+      })
+      .catch(() => {
+        // Katalog lokal dari Ekstrak adalah fallback.
+      })
     return () => {
       isMounted = false
     }
@@ -108,7 +114,7 @@ export default function DegreePlanner({
   const activeReligion = useMemo(() => {
     for (const courses of Object.values(plan)) {
       for (const c of courses) {
-        const rel = getCourseReligion(c)
+        const rel = courseReligion(c)
         if (rel && rel !== "Umum") return rel
       }
     }

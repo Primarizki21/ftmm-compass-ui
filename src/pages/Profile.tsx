@@ -25,6 +25,11 @@ import {
   Layers,
 } from "lucide-react"
 import { authService, type AuthUser } from "../services/authService"
+import {
+  currentAcademicPeriod,
+  isOddSemester,
+  SKS_CAP_BY_IPS,
+} from "../domain/academics"
 
 interface ProfileProps {
   currentUser: AuthUser | null
@@ -37,6 +42,7 @@ export default function Profile({
   onNavigate,
   onRequestLogout,
 }: ProfileProps) {
+  const academicPeriod = currentAcademicPeriod()
   const [user, setUser] = useState<AuthUser | null>(currentUser)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [refreshSuccess, setRefreshSuccess] = useState(false)
@@ -391,7 +397,7 @@ export default function Profile({
                     3 Mata Kuliah · 9 SKS
                   </p>
                   <p className="text-[11px] text-muted mt-0.5 font-mono">
-                    Semester Ganjil 2024/2025
+                    {academicPeriod.termDisplay}
                   </p>
                 </div>
               </div>
@@ -473,10 +479,10 @@ export default function Profile({
                     Semester {studentProfile?.current_semester || 3}
                   </p>
                   <p className="text-[11px] text-muted mt-0.5 font-mono">
-                    {(studentProfile?.current_semester || 3) % 2 === 1
+                    {isOddSemester(studentProfile?.current_semester || 3)
                       ? "Term Ganjil"
                       : "Term Genap"}{" "}
-                    2024/2025
+                    {academicPeriod.academicYear}
                   </p>
                 </div>
               </div>
@@ -493,18 +499,14 @@ export default function Profile({
                     berikutnya ditentukan oleh Indeks Prestasi Semester (IPS):
                   </p>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2 font-mono text-[11px]">
-                    <span className="bg-surface px-2 py-1 rounded border border-border">
-                      IPS &ge; 3.00: <strong>24 SKS</strong>
-                    </span>
-                    <span className="bg-surface px-2 py-1 rounded border border-border">
-                      2.50–2.99: <strong>21 SKS</strong>
-                    </span>
-                    <span className="bg-surface px-2 py-1 rounded border border-border">
-                      2.00–2.49: <strong>18 SKS</strong>
-                    </span>
-                    <span className="bg-surface px-2 py-1 rounded border border-border">
-                      &lt; 2.00: <strong>15 SKS</strong>
-                    </span>
+                    {SKS_CAP_BY_IPS.map((band) => (
+                      <span
+                        key={band.label}
+                        className="bg-surface px-2 py-1 rounded border border-border"
+                      >
+                        {band.label}: <strong>{band.sks} SKS</strong>
+                      </span>
+                    ))}
                   </div>
                 </div>
               </div>
