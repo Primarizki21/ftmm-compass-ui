@@ -3,7 +3,7 @@ import { cn } from "../../utils"
 import { Course } from "../../data"
 import { isOddSemester, MAX_SKS_PER_SEMESTER } from "../../domain/academics"
 import { courseReligion } from "../../domain/course"
-import { PlacedCourse } from "./types"
+import { PlacedCourse, courseKey } from "./types"
 import ModalShell from "../course/ModalShell"
 import CourseBadges from "../course/CourseBadges"
 
@@ -11,11 +11,9 @@ interface CoursePickerModalProps {
   pickerSem: number | null
   pickerSearch: string
   setPickerSearch: (q: string) => void
-  pickerProgram: string
-  setPickerProgram: (p: string) => void
+  currentProgram: string | null
   pickerType: "all" | "Pilihan" | "Wajib"
   setPickerType: (t: "all" | "Pilihan" | "Wajib") => void
-  availablePrograms: string[]
   catalog: Course[]
   placedMap: Map<string, number>
   onClose: () => void
@@ -28,11 +26,9 @@ export default function CoursePickerModal({
   pickerSem,
   pickerSearch,
   setPickerSearch,
-  pickerProgram,
-  setPickerProgram,
+  currentProgram,
   pickerType,
   setPickerType,
-  availablePrograms,
   catalog,
   placedMap,
   onClose,
@@ -49,7 +45,7 @@ export default function CoursePickerModal({
 
   const basePool = catalog.filter((c) => {
     if (c.semester !== pickerSem) return false
-    if (pickerProgram !== "all" && c.program !== pickerProgram) return false
+    if (currentProgram && c.program !== currentProgram) return false
     if (q) {
       const matchName = c.name.toLowerCase().includes(q)
       const matchId = c.id.toLowerCase().includes(q)
@@ -154,20 +150,6 @@ export default function CoursePickerModal({
               </button>
             )}
           </div>
-
-          <select
-            aria-label="Filter Program Studi"
-            value={pickerProgram}
-            onChange={(e) => setPickerProgram(e.target.value)}
-            className="text-xs py-2 px-3 rounded-lg border border-border bg-background text-navy font-medium focus:outline-hidden focus:ring-2 focus:ring-teal/30 focus:border-teal sm:w-[240px]"
-          >
-            <option value="all">Semua Program Studi</option>
-            {availablePrograms.map((prog) => (
-              <option key={prog} value={prog}>
-                {prog}
-              </option>
-            ))}
-          </select>
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
@@ -229,13 +211,12 @@ export default function CoursePickerModal({
               Tidak ada mata kuliah yang cocok
             </p>
             <p className="text-xs text-muted mt-1">
-              Coba ubah kata kunci pencarian, tipe matkul, atau ganti filter
-              program studi.
+              Coba ubah kata kunci pencarian atau filter tipe matkul.
             </p>
           </div>
         ) : (
           filtered.map((course) => {
-            const placedInSem = placedMap.get(course.id)
+            const placedInSem = placedMap.get(courseKey(course))
             const isAlreadyPlaced = placedInSem !== undefined
             const religion = courseReligion(course)
             const isReligionBlocked = Boolean(

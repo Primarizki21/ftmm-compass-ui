@@ -71,10 +71,10 @@ export async function apiFetch<T>(
 
   if (!response.ok) {
     const payload = await response.json().catch(() => null)
-    const message = messageFrom(
-      payload,
-      `Permintaan gagal (${response.status})`,
-    )
+    const message =
+      response.status >= 500
+        ? `Layanan sedang bermasalah (${response.status})`
+        : messageFrom(payload, `Permintaan gagal (${response.status})`)
     if (response.status === 401 && request.auth) clearSession()
     throw new ApiError(message, response.status)
   }

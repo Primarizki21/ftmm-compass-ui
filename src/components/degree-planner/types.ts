@@ -1,11 +1,18 @@
 import { type Course } from "../../data"
 import { isOddSemester } from "../../domain/academics"
+import type { PlanCourse } from "../../domain/plan"
 
-export interface PlacedCourse extends Course {
-  status: "completed" | "planned"
-}
+export type PlacedCourse = PlanCourse
 
 export const INITIAL_PLAN: Record<number, PlacedCourse[]> = {}
+
+interface CourseKeySource {
+  id: string
+  code?: string
+}
+
+export const courseKey = (course: CourseKeySource): string =>
+  course.code || course.id
 
 export const isCompleted = (c: PlacedCourse): boolean =>
   c.status === "completed"

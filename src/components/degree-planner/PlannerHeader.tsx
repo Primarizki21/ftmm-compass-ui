@@ -9,9 +9,10 @@ import {
   FolderGit2,
   Copy,
   Plus,
+  Trash2,
 } from "lucide-react"
 import { PlacedCourse, isSemLocked } from "./types"
-import type { DegreePlanDraft } from "./useDegreePlanStorage"
+import type { DegreePlanDraft } from "../../domain/plan"
 
 interface PlannerHeaderProps {
   appliedSummary?: {
@@ -31,8 +32,11 @@ interface PlannerHeaderProps {
   drafts?: DegreePlanDraft[]
   activeDraftId?: string
   onSwitchDraft?: (draftId: string) => void
-  onCreateDraft?: (name: string, description?: string) => void
+  onCreateDraft?: (name: string) => void
   onDuplicateDraft?: () => void
+  onDeleteDraft?: (draftId: string) => void
+  saveError?: string | null
+  onRetrySave?: () => void
   onResetDraft?: () => void
   isSaving?: boolean
   lastSaved?: Date | null
@@ -69,9 +73,12 @@ export default function PlannerHeader({
   onSwitchDraft,
   onCreateDraft,
   onDuplicateDraft,
+  onDeleteDraft,
   onResetDraft,
   isSaving,
   lastSaved,
+  saveError,
+  onRetrySave,
 }: PlannerHeaderProps) {
   const activeDraft = drafts?.find((d) => d.id === activeDraftId)
 
@@ -157,7 +164,9 @@ export default function PlannerHeader({
                   Skenario Rencana Studi
                 </label>
                 <span className="text-[11px] text-muted">
-                  {activeDraft?.description || "Penyimpanan otomatis peramban"}
+                  {activeDraft?.status === "active"
+                    ? "Skenario aktif, tersimpan di server"
+                    : "Tersimpan di server"}
                 </span>
               </div>
             </div>
@@ -190,7 +199,7 @@ export default function PlannerHeader({
                   <CheckCircle2 className="w-3.5 h-3.5 text-teal-dark" />
                   {lastSaved
                     ? `Tersimpan ${lastSaved.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`
-                    : "Tersimpan di peramban"}
+                    : "Tersimpan di server"}
                 </span>
               )}
             </div>
@@ -199,11 +208,28 @@ export default function PlannerHeader({
               <button
                 type="button"
                 onClick={onResetDraft}
-                title="Reset susunan skenario saat ini ke default"
+                title="Muat ulang skenario ini dari server"
                 className="px-2.5 py-1 text-xs font-medium text-navy hover:bg-navy/5 rounded-lg border border-border flex items-center gap-1 cursor-pointer transition-colors"
               >
                 <RotateCcw className="w-3 h-3 text-muted" />
                 Reset
+              </button>
+            )}
+
+            {onDeleteDraft && activeDraftId && (
+              <button
+                type="button"
+                onClick={() => onDeleteDraft(activeDraftId)}
+                disabled={(drafts?.length ?? 0) <= 1}
+                title={
+                  (drafts?.length ?? 0) <= 1
+                    ? "Minimal satu skenario harus tersimpan"
+                    : "Hapus skenario aktif"
+                }
+                className="px-2.5 py-1 text-xs font-medium text-orange hover:bg-orange/10 rounded-lg border border-border flex items-center gap-1 cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Trash2 className="w-3 h-3" />
+                Hapus
               </button>
             )}
 
@@ -239,6 +265,21 @@ export default function PlannerHeader({
               </button>
             )}
           </div>
+        </div>
+      )}
+
+      {saveError && (
+        <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-xl border border-orange/40 bg-orange/10 px-3.5 py-2.5">
+          <span className="text-xs font-medium text-orange">{saveError}</span>
+          {onRetrySave && (
+            <button
+              type="button"
+              onClick={onRetrySave}
+              className="self-start sm:self-auto px-2.5 py-1 text-xs font-semibold text-navy bg-surface border border-border rounded-lg hover:bg-navy/5 cursor-pointer transition-colors"
+            >
+              Coba lagi
+            </button>
+          )}
         </div>
       )}
 

@@ -11,6 +11,7 @@ import {
   Tab,
   DegreePlannerProps,
   canDrop,
+  courseKey,
 } from "../components/degree-planner/types"
 import PlannerHeader from "../components/degree-planner/PlannerHeader"
 import {
@@ -25,7 +26,6 @@ import { getOfferingForCourse, ScheduleItem } from "../data"
 import { usePlanner } from "../state/planner"
 import { useSession } from "../state/session"
 import { useAcademicPeriod } from "../state/academic"
-import { useCatalog } from "../state/catalog"
 
 export type { PlacedCourse } from "../components/degree-planner/types"
 
@@ -36,18 +36,22 @@ export default function DegreePlanner({
   const { period } = useAcademicPeriod()
   const planner = usePlanner()
   const { user } = useSession()
-  const { courses: catalog, programs: availablePrograms } = useCatalog()
+  const currentProgram = user?.student_profile?.study_program ?? null
   const {
     drafts,
+    courses: catalog,
     activeDraftId,
     plan,
     setPlan,
     switchDraft,
     createDraft,
     duplicateCurrentDraft,
+    deleteDraft,
     resetCurrentDraft,
     isSaving,
     lastSaved,
+    saveError,
+    retrySave,
     pendingCourses,
     removePendingCourse,
     appliedSummary,
@@ -62,7 +66,6 @@ export default function DegreePlanner({
 
   const [pickerSem, setPickerSem] = useState<number | null>(null)
   const [pickerSearch, setPickerSearch] = useState("")
-  const [pickerProgram, setPickerProgram] = useState<string>("all")
   const [pickerType, setPickerType] = useState<"all" | "Pilihan" | "Wajib">(
     "all",
   )
@@ -88,7 +91,7 @@ export default function DegreePlanner({
   const placedMap = useMemo(() => {
     const map = new Map<string, number>()
     Object.entries(plan).forEach(([semStr, list]) => {
-      list.forEach((c) => map.set(c.id, Number(semStr)))
+      list.forEach((c) => map.set(courseKey(c), Number(semStr)))
     })
     return map
   }, [plan])
@@ -103,6 +106,8 @@ export default function DegreePlanner({
 
   const handleAddCourseFromModal = (course: Course) => {
     if (pickerSem === null) return
+    const key = courseKey(course)
+    if (placedMap.has(key)) return
     const newCourse: PlacedCourse = {
       ...course,
       semester: pickerSem,
@@ -135,7 +140,7 @@ export default function DegreePlanner({
       wajibCourses.forEach((course) => {
         const sem = course.semester
         if (!next[sem]) next[sem] = []
-        if (!next[sem].find((c) => c.id === course.id)) {
+        if (!next[sem].find((c) => courseKey(c) === courseKey(course))) {
           next[sem] = [...next[sem], { ...course, status: "planned" }]
         }
       })
@@ -397,11 +402,14 @@ export default function DegreePlanner({
             drafts={drafts}
             activeDraftId={activeDraftId}
             onSwitchDraft={switchDraft}
-            onCreateDraft={(name, desc) => createDraft(name, desc)}
+            onCreateDraft={(name) => void createDraft(name)}
             onDuplicateDraft={duplicateCurrentDraft}
+            onDeleteDraft={(draftId) => void deleteDraft(draftId)}
             onResetDraft={resetCurrentDraft}
             isSaving={isSaving}
             lastSaved={lastSaved}
+            saveError={saveError}
+            onRetrySave={retrySave}
           />
 
           <div className="flex-1 overflow-x-auto pb-1 min-h-0">
@@ -445,11 +453,9 @@ export default function DegreePlanner({
             pickerSem={pickerSem}
             pickerSearch={pickerSearch}
             setPickerSearch={setPickerSearch}
-            pickerProgram={pickerProgram}
-            setPickerProgram={setPickerProgram}
+            currentProgram={currentProgram}
             pickerType={pickerType}
             setPickerType={setPickerType}
-            availablePrograms={availablePrograms}
             catalog={catalog}
             placedMap={placedMap}
             onClose={() => setPickerSem(null)}
