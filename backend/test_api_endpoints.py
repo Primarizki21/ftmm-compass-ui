@@ -3,7 +3,7 @@ import httpx
 import time
 from fastapi.testclient import TestClient
 from app import app
-import app as app_module
+import settings
 import catalog
 import asyncio
 from seed import seed_data
@@ -126,9 +126,9 @@ def test_courses_proxy_chatbot_ssot():
 
 
 def test_chat_gateway_circular_guard():
-    original_url = app_module.CHATBOT_SERVICE_URL
+    original_url = settings.CHATBOT_SERVICE_URL
     try:
-        app_module.CHATBOT_SERVICE_URL = "http://127.0.0.1:8001"
+        settings.CHATBOT_SERVICE_URL = "http://127.0.0.1:8001"
         res = client.post("/api/chat", json={
             "message": "Test loop prevention",
             "history": [],
@@ -141,13 +141,13 @@ def test_chat_gateway_circular_guard():
         assert data["error"]["code"] in ["internal_server_error", "http_error"]
         print("[PASS] Chat gateway circular forwarding guard OK (500 + standard envelope)")
     finally:
-        app_module.CHATBOT_SERVICE_URL = original_url
+        settings.CHATBOT_SERVICE_URL = original_url
 
 
 def test_chat_gateway_offline_503():
-    original_url = app_module.CHATBOT_SERVICE_URL
+    original_url = settings.CHATBOT_SERVICE_URL
     try:
-        app_module.CHATBOT_SERVICE_URL = "http://127.0.0.1:59999"
+        settings.CHATBOT_SERVICE_URL = "http://127.0.0.1:59999"
         res = client.post("/api/chat", json={
             "message": "Halo saya mau konsultasi studi",
             "history": [],
@@ -161,7 +161,7 @@ def test_chat_gateway_offline_503():
         assert "Retry-After" in res.headers
         print("[PASS] Chat gateway returns 503 Service Unavailable with standard error envelope")
     finally:
-        app_module.CHATBOT_SERVICE_URL = original_url
+        settings.CHATBOT_SERVICE_URL = original_url
 
 
 def test_chat_gateway_mock_forward():
@@ -342,7 +342,7 @@ def test_courses_fallback_isolation():
     original_official = catalog.get_all_courses()
     try:
         catalog._CURRICULUM = {}
-        with patch.object(app_module, "CHATBOT_SERVICE_URL", "http://127.0.0.1:9999"):
+        with patch.object(settings, "CHATBOT_SERVICE_URL", "http://127.0.0.1:9999"):
             res = client.get("/api/v1/courses")
             assert res.status_code == 200
             data = res.json()
