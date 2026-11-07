@@ -291,6 +291,22 @@ Menyelesaikan: #91, #92, #93, #94, #95.
 Satu entry point tes (`make test` = apa yang dijalankan CI): sesi DB disiapkan eksplisit oleh fixture pytest (bukan `asyncio.run(seed_data())` saat import), kredensial datang dari fixture yang membuat user (bukan konstanta seed), assertion pada status/payload yang dijanjikan kontrak, `test_backend.py` menguji perilaku validator (bukan string pesan), `scripts/verify_frontend.py` dihapus karena hanya menduplikasi `pnpm build`.
 Menyelesaikan: #78–#90, #102.
 
+**F14 — Hapus komentar yang mengulang implementasi**
+Kriteria: komentar yang isinya bisa dibaca ulang dari baris berikutnya dihapus, karena hanya berubah saat implementasinya berubah sehingga tidak punya alasan sendiri untuk berubah. Komentar tentang hal di luar kode tetap.
+
+Target hapus (terverifikasi ada):
+- `src/services/pollingService.ts:210,226,233,251,258,275,284,287,303,325,333,364,367` — JSDoc method (`Mengambil data periode polling…`, `Mengambil daftar vote…`, `Mengirim atau memperbarui vote…`, `Menghapus vote wishlist…`, `Mengambil rekap analitik…`) dan `// Fallback network error` / `// Update local mirror` / `// Local state fallback update` / `// Dynamic mock analytics with local votes reflection`.
+- `src/services/authService.ts:91,233` — `// Fallback ke status text default`, `// fallback default`.
+- `src/pages/Dashboard.tsx:118` — `// Fallback anggap aman jika offline`.
+- `src/components/TimetableGrid.tsx:54` — `// Auto-read shared timetable from URL on mount`.
+- `src/courseData.ts:361` — `// Sort: courses from the same program first, then by semester` (urutan sudah terbaca dari comparator).
+- `src/components/degree-planner/types.ts:92,96,107,109` — `// Completed courses are locked…`, `// Wajib courses cannot be moved…`, `// Intra-semester reorder is always valid…`, `// Wajib courses cannot move to another semester` (aturan yang sama ditulis sebagai kode dua baris di bawahnya).
+- `src/components/degree-planner/CoursePickerModal.tsx:344-354` — janji "Tekan Esc" yang tidak dipenuhi (dihapus bersama #120).
+- `backend/data_loader.py:7` — komentar yang mengulang nama variabel.
+
+Target pertahankan (mengubah ketika sesuatu di luar kode berubah): header `src/courseData.ts:3-17` (bentuk JSON `Ekstrak/` dan heterogenitas field yang tidak terlihat dari tipe), kontrak framing SSE chatbot (`app.py:761-786`), alasan proxy `.backend-port` (`vite.config.ts`), setiap `// ponytail:`, dan catatan migrasi SQL.
+Ini dikerjakan bersama F8 supaya diff bersih tidak tercampur perubahan perilaku.
+
 ### 3.3 Invarian arah import (dicek ulang setiap fase)
 
 - `domain/*` tidak meng-import `api/*`, `state/*`, `components/*`, atau `pages/*`.
@@ -325,7 +341,7 @@ Setiap fase harus lulus `pnpm typecheck` + smoke yang disebut, dan di-commit ato
 | 6 | F4/F5 backend | `backend/api/*`, `backend/services/*`, `backend/academics.py`, `app.py` | semua endpoint `v1` status/payload sama dengan snapshot Fase 0; legacy tetap 200 | tinggi: 2235 baris |
 | 7 | F6 hapus fabrikasi | `app.py` dashboard/admin/lecturer, `data.ts`, `pollingService.ts`, `NotificationDropdown.tsx`, `App.tsx`, `Login.tsx` | empty state tampil benar; tidak ada angka demo | **perubahan perilaku** |
 | 8 | F11/F12 skema & config | `backend/migrations/versions/*` (baseline baru), `schema_v2_1_rc1.dbml`, `backend/config.py`, `docker-compose.yml`, `Dockerfile.backend`, `vite.config.ts`, `ci.yml`, `Makefile` | `alembic upgrade head` di DB kosong = skema compose; `make dev` jalan dengan satu `.env` | sedang: menyentuh pipeline |
-| 9 | F8 dead code | daftar §2.3 | `pnpm build`, `oxfmt --check` | rendah |
+| 9 | F8 dead code + F14 komentar | daftar §2.3, `pollingService.ts`, `authService.ts`, `types.ts`, `courseData.ts`, `TimetableGrid.tsx`, `Dashboard.tsx`, `data_loader.py` | `pnpm build`, `oxfmt --check`; `rg 'Fallback network error|Update local mirror' src/` → 0 | rendah |
 | 10 | F13 tes | `backend/tests/*`, `scripts/verify_frontend.py` (dihapus) | `make test` = suite yang sama dengan CI | rendah |
 
 Urutan ini sengaja menaruh tes terakhir: tes adalah jaring regresi untuk fase 1–9, tetapi tes itu sendiri harus dibangun ulang setelah struktur final.
@@ -347,7 +363,8 @@ Urutan ini sengaja menaruh tes terakhir: tes adalah jaring regresi untuk fase 1�
 11. `docker compose` + `alembic upgrade head` pada DB kosong menghasilkan himpunan tabel yang sama (diff `\dt` + `\df` = kosong).
 12. `make test` adalah satu-satunya definisi suite: perintah yang sama dipakai `ci.yml`.
 13. Ukuran duplikasi turun terukur: `app.py` 2235 → ≤300 baris; `CourseBadges`/`CourseCard`/`WorkloadGrid` masing-masing 1 definisi; `classifyCourse` 1 definisi.
-14. `make test` + `pnpm build` lulus; smoke browser 5 halaman × 2 role tanpa console error.
+14. `rg 'Fallback network error|Update local mirror|Fallback ke status text|Auto-read shared timetable|Intra-semester reorder is always' src/` → 0 hasil; header `courseData.ts:3-17` dan catatan SSE tetap ada.
+15. `make test` + `pnpm build` lulus; smoke browser 5 halaman × 2 role tanpa console error.
 
 ---
 
@@ -372,5 +389,5 @@ Smoke browser (wajib, sesuai AGENTS.md): `http://localhost:8443` → login (stud
 3. **`Ekstrak/*.json`**: tetap jadi fallback offline (satu loader) atau dihapus dan katalog murni dari API. Rekomendasi: pertahankan sebagai fallback, karena `CourseFinder` masih butuh initial paint tanpa backend.
 4. **F11 (skema)**: baseline Alembic dibuat dari `schema_v2_1_rc1.sql` (dump → autogenerate) sehingga SQL menjadi hasil, bukan sumber kedua; `schema_v2_1_rc1.dbml` diregenerasi dari DB atau dihapus. Rekomendasi: dump dari head, DBML diregenerasi.
 5. **F12 (config)**: satu `backend/config.py` + satu `.env` sebagai sumber port/DSN/Ollama/CORS, atau biarkan env per-service. Rekomendasi: satu config, karena `BACKEND_PORT`/`HOST` saat ini diteruskan tetapi tidak berpengaruh (#99).
-6. **Tambahan Comments**: hapus komentar yang hanya mengulang implementasi (`// Fallback network error`, `// Update local mirror`, `// Fallback ke status text default`, komentar header duplikatif seperti `courseData.ts:3-17`), pertahankan komentar yang menjelaskan hal di luar kode (mis. alasan `import.meta.glob`, kontrak SSE chatbot).
-7. **Tambahan Tests**: hapus tes yang mengulang implementasi atau tidak bisa gagal, tulis ulang tes yang bergantung pada internal, dan perbaiki tes yang gagal tanpa bug nyata (daftar final butuh lampiran tes dari fase 10).
+6. **Tambahan Comments — DIPILIH.** Dikerjakan sebagai F14 (fase 9): hapus komentar yang mengulang implementasi sesuai daftar target, pertahankan komentar tentang hal di luar kode.
+7. **Tambahan Tests — DIPILIH.** Dikerjakan sebagai F13 (fase 10): hapus tes yang tidak bisa gagal atau mengulang internal, tulis ulang yang bergantung pada konstanta seed, satukan definisi suite dengan CI.
