@@ -331,7 +331,7 @@ uv run --directory backend python -m pytest tests -q
 # 2. Jalankan build test & type check frontend
 pnpm build
 
-# 4. Verifikasi format code (oxfmt)
+# 3. Verifikasi format code (oxfmt)
 pnpm format:check
 # atau auto-format in-place:
 pnpm format
@@ -343,7 +343,7 @@ pnpm format
 
 ```
 ftmm-compass-ui/
-├── .github/workflows/ci.yml       # Automated CI pipeline (Node 22 + Python 3.11)
+├── .github/workflows/ci.yml       # Automated CI pipeline (Node 22 + Python 3.12)
 ├── Makefile                       # Developer automation interface (setup, dev, db, test)
 ├── AI_PLANNER_PIPELINE.md         # Dokumentasi detail arsitektur Study Planner Agent
 ├── DESIGN.md                      # Spesifikasi sistem desain & token visual FTMM
@@ -365,33 +365,58 @@ ftmm-compass-ui/
 │   │   └── planner.py             # Study plan synthesis & elective scoring engine
 │   └── tests/                     # Suite pytest (domain, endpoint, polling, chat)
 ├── src/                           # React 19 + TypeScript + Tailwind v4 SPA
-│   ├── App.tsx                    # Top-level state hub & planner payload wiring
+│   ├── App.tsx                    # Shell navigasi halaman & komposisi provider state
 │   ├── main.tsx                   # React DOM entrypoint
-│   ├── data.ts                    # Core TypeScript models, TIMETABLE_DAYS, & SCHEDULE
-│   ├── courseData.ts              # Reactive catalog fetcher (fetchCatalog) & normalizer
+│   ├── data.ts                    # Tipe model (Course, ScheduleItem, offering) & TIMETABLE_DAYS
+│   ├── courseData.ts              # fetchCatalog(): katalog dari backend, normalisasi tipe
 │   ├── index.css                  # Tailwind v4 @theme design tokens (Navy, Gold, Teal)
 │   ├── utils.ts                   # cn() class merger helper
+│   ├── api/
+│   │   ├── client.ts              # Satu transport fetch: base URL, ApiError, authHeaders
+│   │   └── session.ts             # Akses token/sesi tersimpan
+│   ├── domain/                    # Aturan akademik murni (tanpa React)
+│   │   ├── academics.ts           # Batas SKS, konversi nilai, parity semester
+│   │   ├── course.ts              # Normalisasi tipe/parity mata kuliah
+│   │   ├── plan.ts                # Kontrak payload rencana studi
+│   │   ├── prerequisites.ts       # Evaluasi DAG prasyarat
+│   │   └── timetable.ts           # Deteksi bentrok jadwal
+│   ├── state/                     # Satu pemilik state per domain
+│   │   ├── session.tsx            # Sesi login & identitas pengguna
+│   │   ├── catalog.tsx            # Katalog & status pemuatan
+│   │   ├── polling.tsx            # Polling MK pilihan
+│   │   ├── academic.tsx           # Periode akademik aktif
+│   │   └── planner.tsx            # Rencana studi aktif & jembatan ke draft
+│   ├── services/                  # Binding endpoint per resource
+│   │   ├── authService.ts         # Login, profil, notifikasi
+│   │   ├── dashboardService.ts    # Telemetri dashboard
+│   │   ├── academicService.ts     # Periode akademik
+│   │   └── pollingService.ts      # Periode & vote MK pilihan
 │   ├── pages/
-│   │   ├── Login.tsx              # Simulated Cybercampus SSO authentication page
-│   │   ├── Dashboard.tsx          # Academic stats & weekly timetable widget
-│   │   ├── CourseFinder.tsx       # Course catalog explorer & filter
-│   │   ├── DegreePlanner.tsx      # Interactive 8-semester drag-and-drop roadmap
-│   │   └── Chatbot.tsx            # Compass AI conversational planner (SSE + Fallback)
+│   │   ├── Login.tsx              # Login ke /api/v1/auth/login (JWT)
+│   │   ├── Dashboard.tsx          # Statistik akademik & widget jadwal
+│   │   ├── CourseFinder.tsx       # Katalog kurikulum & filter
+│   │   ├── DegreePlanner.tsx      # Roadmap 8 semester drag-and-drop
+│   │   ├── Chatbot.tsx            # Compass AI (SSE + fallback rule engine)
+│   │   └── Profile.tsx            # Profil akademik & logout
 │   └── components/
-│       ├── TimetableGrid.tsx      # Shared weekly timetable grid & conflict detector
+│       ├── TimetableGrid.tsx      # Grid jadwal mingguan & indikator konflik
+│       ├── NotificationDropdown.tsx # Daftar notifikasi akademik
 │       ├── MarkdownRenderer.tsx   # GFM markdown renderer for chat messages
+│       ├── course/                # Badge, workload grid, dan modal shell bersama
 │       ├── course-finder/
-│       │   ├── CourseDetailView.tsx     # Full course syllabus & workload view
-│       │   ├── CourseQuickModal.tsx     # Quick preview modal
-│       │   └── PrerequisiteDiagram.tsx  # SVG DAG prerequisite flow visualizer
+│       │   ├── CourseDetailView.tsx     # Detail silabus & beban kerja
+│       │   ├── CourseQuickModal.tsx     # Preview cepat
+│       │   └── PrerequisiteDiagram.tsx  # Visualisasi DAG prasyarat (SVG)
 │       ├── degree-planner/
-│       │   ├── PlannerHeader.tsx        # AI banner, legend, & drag hints
-│       │   ├── SemesterColumn.tsx       # Semester drop column, CourseCard, & ElectiveBank
-│       │   ├── CoursePickerModal.tsx    # Manual course addition modal
-│       │   └── types.ts                 # Planner types & parity/lock rules (canDrop)
+│       │   ├── PlannerHeader.tsx        # Banner AI, legenda, hint drag
+│       │   ├── SemesterColumn.tsx       # Kolom semester, kartu MK, bank MK pilihan
+│       │   ├── CoursePickerModal.tsx    # Penambahan MK manual
+│       │   ├── CourseInspectModal.tsx   # Detail MK saat inspeksi
+│       │   ├── useDegreePlanStorage.ts  # Draft rencana di localStorage
+│       │   └── types.ts                 # Tipe planner & aturan parity/lock
 │       └── chatbot/
-│           ├── DegreePlanActionCard.tsx # Interactive card to apply AI plan to planner
-│           └── chatService.ts           # Chat types, endpoints, & error sanitizer
+│           ├── DegreePlanActionCard.tsx # Kartu penerapan rencana AI ke planner
+│           └── chatService.ts           # Chat types, SSE, & error sanitizer
 ├── database/                      # Canonical Database Baseline V2.1 RC1
 │   ├── schema_v2_1_rc1.sql        # PostgreSQL 16+ DDL (36 tables, 26 functions, 44 triggers)
 │   ├── schema_v2_1_rc1.dbml       # DBML diagram definition

@@ -8,9 +8,23 @@ FastAPI backend gateway for FTMM Compass, powering academic study plan synthesis
 
 ```
 backend/
-├── app.py                     # FastAPI application, route endpoints, dynamic port discovery
-├── schemas.py                 # Pydantic data schemas and validation contracts
-├── data_loader.py             # Course catalog loader from frontend sources
+├── app.py                     # Komposisi aplikasi: middleware, mount router /api/v1 + /api, port discovery
+├── settings.py                # Satu-satunya pembaca environment (DATABASE_URL, port, JWT, rate limit, CORS)
+├── api/                       # Router per resource: auth, courses, chat, dashboard, health, plans, polling, academic_periods
+├── auth.py                    # JWT, password hashing, dependency user aktif
+├── database.py                # Async engine & session factory
+├── models.py                  # Model SQLAlchemy (tabel PostgreSQL V2.1 RC1)
+├── schemas.py                 # Pydantic request/response contracts
+├── academics.py               # Batas SKS, total kredit, konversi nilai, parity semester
+├── catalog.py                 # Katalog dari database + fallback Ekstrak, alias prodi
+├── rate_limit.py              # Rate limiter bersama seluruh router
+├── seed.py                    # Seeder idempoten (user, katalog, record akademik)
+├── build_catalog.py           # Bangun katalog canonical dari tabel Panduan Pendidikan
+├── seed_full_catalog.py       # Seed katalog penuh dari database/seed/*.json
+├── reconcile_catalog.py       # Rekonsiliasi Ekstrak/*.json ke keputusan reviewer
+├── verify_catalog_sources.py  # Cocokkan kode MK ke PDF kurikulum sumber
+├── alembic.ini                # Konfigurasi migrasi
+├── migrations/                # Revisi Alembic
 ├── tools/
 │   ├── planner.py             # Deterministic 8-semester degree plan synthesis engine
 │   └── prerequisite_validator.py # DAG-based prerequisite & semester parity validator
@@ -49,11 +63,15 @@ cp .env.example .env
 
 | Variable | Default | Description |
 |---|---|---|
-| `BACKEND_PORT` | `8001` (auto-detect 8001–8050) | Listening port for FastAPI server |
+| `DATABASE_URL` | `postgresql+asyncpg://postgres:postgres@localhost:5432/ftmm_compass_dev` | Async SQLAlchemy DSN for PostgreSQL |
+| `BACKEND_PORT` / `PORT` | kosong (auto-detect 8001–8050) | Listening port for FastAPI server |
 | `HOST` | `0.0.0.0` | Bind host address |
+| `AUTO_SEED` | `true` | Seed database saat startup |
 | `CHATBOT_SERVICE_URL` | `http://127.0.0.1:8000` (host) / `http://ftmm-compass-chatbot:8000` (Docker) | Upstream URL for Chatbot AI microservice |
 | `CHATBOT_TIMEOUT_SECONDS` | `45.0` | Timeout in seconds for Chatbot microservice calls |
-| `CORS_ORIGINS` | `*` | Allowed CORS origins for frontend requests |
+| `JWT_SECRET_KEY` | dev default | Signing key access token |
+| `DEFAULT_RATE_LIMIT` | `300/minute` | Slowapi limit per client |
+| `CORS_ORIGINS` | `*` | Allowed CORS origins, dipisah koma |
 ### 3. Run Development Server
 
 From within `backend/`:
@@ -86,15 +104,35 @@ Kontainer `ftmm-compass-gateway` secara otomatis terhubung ke `ftmm-network` dan
 ## 📡 API Endpoints (Dual-Tier REST Architecture)
 
 ### Canonical REST Endpoints (`/api/v1`)
-- `GET /api/v1/health` — Gateway health check, Ollama server status, and Docker Chatbot microservice connectivity.
-- `GET /api/v1/courses` — Official course catalog with adaptive pagination (`page`, `per_page`), semester filtering, and search (`q`). Proxies to Chatbot microservice SSOT with local dataset fallback.
-- `GET /api/v1/courses/search` — Keyword and semantic search for curriculum courses (`q`, `prodi`, `top_k`).
+- `GET /api/v1/health` — Gateway health check, PostgreSQL status, and Docker Chatbot microservice connectivity.
+- `POST /api/v1/auth/login` — Login NIM/NIP/email + password, mengembalikan access token JWT.
+- `GET /api/v1/auth/me` — Identitas dan profil akun aktif.
+- `PATCH /api/v1/auth/me/profile` — Perbarui profil (bio, minat karier, kontak).
+- `GET /api/v1/notifications/me` — Daftar notifikasi pengguna aktif.
+- `PATCH /api/v1/notifications/{notification_id}/read` — Tandai satu notifikasi terbaca.
+- `POST /api/v1/notifications/mark-all-read` — Tandai semua notifikasi terbaca.
+- `GET /api/v1/courses` — Catalog dari database PostgreSQL (`page`, `per_page`, filter prodi/tipe/semester, `q`).
+- `GET /api/v1/courses/search` — Pencarian kode dan nama mata kuliah (`q`, `prodi`, `top_k`).
+- `POST /api/v1/admin/courses` — Tambah mata kuliah kustom (admin).
+- `PUT /api/v1/admin/courses/{course_id}` — Ubah mata kuliah kustom (admin).
+- `DELETE /api/v1/admin/courses/{course_id}` — Hapus mata kuliah kustom (admin).
 - `POST /api/v1/chat` — Conversational study planner gateway to Hybrid RAG-CAG microservice.
 - `POST /api/v1/chat/stream` — Real-time Server-Sent Events (SSE) streaming endpoint for live token generation.
+- `DELETE /api/v1/chat/sessions/{session_id}` — Hapus riwayat sesi chat.
 - `POST /api/v1/plans/validations` — Validate student study plans against prerequisite graph DAG and semester parity constraints.
 - `POST /api/v1/plans` — Generate deterministic, DAG-validated degree plan from complete student profile.
+- `GET /api/v1/dashboard/me` — Telemetri dashboard adaptif per peran (student/lecturer/faculty_staff/admin).
+- `GET /api/v1/academic-periods/current` — Periode akademik aktif.
+- `GET /api/v1/polling/periods/active` — Periode polling MK pilihan yang sedang dibuka.
+- `POST /api/v1/admin/polling/periods` — Buka periode polling baru (admin).
+- `GET /api/v1/polling/my-votes` — Vote MK pilihan milik pengguna aktif.
+- `POST /api/v1/polling/votes` — Submit/update vote prioritas.
+- `DELETE /api/v1/polling/votes/{course_id}` — Batalkan vote.
+- `GET /api/v1/polling/demand-analytics` — Rekap kuorum dan demand forecasting.
+- `GET /api/v1/admin/polling/demand-analytics` — Rekap kuorum seluruh prodi (admin/dosen).
 
 ### Legacy Compatibility Endpoints (`/api`)
+Setiap router yang sama dipasang ulang di `/api` tanpa duplikasi handler, sehingga semua path kanonik di atas juga tersedia sebagai `/api/<path>`. Alias historis yang tetap dipertahankan:
 - `GET /api/health` — Legacy health check alias.
 - `GET /api/courses` — Legacy courses catalog alias.
 - `GET /api/courses/search` — Legacy courses search alias.
