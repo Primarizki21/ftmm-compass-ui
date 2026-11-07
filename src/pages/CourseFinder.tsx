@@ -43,6 +43,7 @@ export default function CourseFinder({
     period: pollingPeriod,
     myVotes,
     demand,
+    error: pollingError,
     loadDemand,
     submitVote,
     removeVote,
@@ -115,7 +116,7 @@ export default function CourseFinder({
   }, [courses, demandStats])
 
   const filtered = useMemo(() => {
-    const minQ = pollingPeriod?.min_quorum || 15
+    const minQ = pollingPeriod?.min_quorum ?? 0
     const list = courses.filter((c) => {
       const q = searchQuery.toLowerCase().trim()
       const matchesSearch =
@@ -276,6 +277,14 @@ export default function CourseFinder({
 
   return (
     <div className="h-full flex flex-col animate-in fade-in duration-500">
+      {pollingError && (
+        <div
+          role="status"
+          className="mb-3 px-4 py-2.5 rounded-xl border border-orange/30 bg-orange/10 text-xs text-navy"
+        >
+          {pollingError}
+        </div>
+      )}
       {/* Search & Filter Header */}
       <div className="bg-surface rounded-xl border border-border shadow-sm p-4 mb-4 space-y-3.5 flex-shrink-0">
         <div className="flex items-center gap-3">
@@ -598,11 +607,8 @@ export default function CourseFinder({
                     </span>
                     {course.type === "Pilihan" &&
                       (() => {
-                        const votes =
-                          demandStats[course.id] ||
-                          demandStats[course.code || ""] ||
-                          0
-                        const minQ = pollingPeriod?.min_quorum || 15
+                        const votes = votesFor(course)
+                        const minQ = pollingPeriod?.min_quorum ?? 0
                         const isElectiveOpen = votes >= minQ
                         return (
                           <span
@@ -621,8 +627,8 @@ export default function CourseFinder({
                 </div>
                 {course.type === "Pilihan" &&
                   (() => {
-                    const votes = votesFor(course) || false || 0
-                    const minQ = pollingPeriod?.min_quorum || 15
+                    const votes = votesFor(course)
+                    const minQ = pollingPeriod?.min_quorum ?? 0
                     const isElectiveOpen = votes >= minQ
                     const rank = rankedCourseCodes[course.code || course.id]
                     return (
@@ -639,7 +645,8 @@ export default function CourseFinder({
                               <strong className="text-navy font-mono font-bold">
                                 {votes}
                               </strong>{" "}
-                              peminat / Min. {minQ}
+                              peminat
+                              {pollingPeriod ? ` / Min. ${minQ}` : ""}
                             </span>
                           </div>
                           {rank && votes > 0 && (
@@ -752,7 +759,7 @@ export default function CourseFinder({
         }}
         currentUser={currentUser}
         demandStats={demandStats}
-        minQuorum={pollingPeriod?.min_quorum || 15}
+        minQuorum={pollingPeriod?.min_quorum ?? 0}
       />
 
       {/* Priority & Wishlist Selection Modal */}
@@ -834,9 +841,9 @@ export default function CourseFinder({
             <div className="text-[11px] text-muted flex items-start gap-2 bg-gold/10 text-navy p-3 rounded-xl border border-gold/30">
               <AlertCircle className="w-4 h-4 text-gold flex-shrink-0 mt-0.5" />
               <p>
-                Mata kuliah pilihan memerlukan minimal{" "}
-                <strong>{pollingPeriod?.min_quorum || 15} peminat</strong> agar
-                diusulkan buka pada semester depan.
+                {pollingPeriod
+                  ? `Mata kuliah pilihan memerlukan minimal ${pollingPeriod.min_quorum} peminat agar diusulkan buka pada semester depan.`
+                  : "Ambang kuorum belum tersedia karena periode polling belum dimuat."}
               </p>
             </div>
 

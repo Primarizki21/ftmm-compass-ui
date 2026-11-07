@@ -1,13 +1,5 @@
 import { useState, type FormEvent } from "react"
-import {
-  AlertCircle,
-  ArrowRight,
-  Compass,
-  KeyRound,
-  Lock,
-  Mail,
-  UserCheck,
-} from "lucide-react"
+import { AlertCircle, ArrowRight, Compass, Lock, Mail } from "lucide-react"
 import { authService, type AuthUser } from "../services/authService"
 
 import BrandLogo from "../components/BrandLogo"
@@ -44,11 +36,7 @@ export default function Login({ onLogin }: LoginProps) {
     }
   }
 
-  const fillCredentials = (identifierVal: string, passwordVal: string) => {
-    setNim(identifierVal)
-    setPassword(passwordVal)
-    setErrorMessage(null)
-  }
+  // removed helper
   return (
     <div className="min-h-screen w-full flex bg-background font-sans">
       {/* Left Panel - Branding */}
@@ -170,82 +158,6 @@ export default function Login({ onLogin }: LoginProps) {
               )}
             </button>
           </form>
-
-          {/* Testing Credentials Helper */}
-          <div className="mt-6 p-4 rounded-xl border border-border bg-warm-bg/50">
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted mb-2.5">
-              <KeyRound className="w-3.5 h-3.5 text-gold" />
-              <span>Akun Uji Coba (Testing Credentials)</span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-              <button
-                type="button"
-                onClick={() => fillCredentials("164231001", "Mahasiswa2026!")}
-                className="p-2.5 rounded-lg border border-border bg-white hover:border-gold/50 text-left transition-all group"
-              >
-                <div className="flex items-center justify-between text-navy font-medium group-hover:text-gold mb-1">
-                  <span className="flex items-center gap-1.5">
-                    <UserCheck className="w-3.5 h-3.5 text-teal" />
-                    Mahasiswa
-                  </span>
-                  <span className="text-[10px] text-muted">Isi Form</span>
-                </div>
-                <div className="text-[11px] font-mono text-muted truncate">
-                  164231001
-                </div>
-                <div className="text-[10px] font-mono text-muted/80 truncate">
-                  Mahasiswa2026!
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  fillCredentials(
-                    "dosen.testing@ftmm.unair.ac.id",
-                    "DosenFTMM2026!",
-                  )
-                }
-                className="p-2.5 rounded-lg border border-border bg-white hover:border-gold/50 text-left transition-all group"
-              >
-                <div className="flex items-center justify-between text-navy font-medium group-hover:text-gold mb-1">
-                  <span className="flex items-center gap-1.5">
-                    <UserCheck className="w-3.5 h-3.5 text-navy" />
-                    Dosen
-                  </span>
-                  <span className="text-[10px] text-muted">Isi Form</span>
-                </div>
-                <div className="text-[11px] font-mono text-muted truncate">
-                  dosen.testing...
-                </div>
-                <div className="text-[10px] font-mono text-muted/80 truncate">
-                  DosenFTMM2026!
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  fillCredentials("admin@ftmm.unair.ac.id", "AdminFTMM2026!")
-                }
-                className="p-2.5 rounded-lg border border-border bg-white hover:border-gold/50 text-left transition-all group"
-              >
-                <div className="flex items-center justify-between text-navy font-medium group-hover:text-gold mb-1">
-                  <span className="flex items-center gap-1.5">
-                    <UserCheck className="w-3.5 h-3.5 text-gold" />
-                    Admin
-                  </span>
-                  <span className="text-[10px] text-muted">Isi Form</span>
-                </div>
-                <div className="text-[11px] font-mono text-muted truncate">
-                  admin@ftmm...
-                </div>
-                <div className="text-[10px] font-mono text-muted/80 truncate">
-                  AdminFTMM2026!
-                </div>
-              </button>
-            </div>
-          </div>
 
           <div className="mt-8 pt-6 border-t border-border text-center">
             <p className="text-xs text-muted">

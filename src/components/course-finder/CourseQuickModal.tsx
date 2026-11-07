@@ -38,12 +38,13 @@ export default function CourseQuickModal({
   onOpenDetail,
   currentUser,
   demandStats,
-  minQuorum = 15,
+  minQuorum = 0,
 }: CourseQuickModalProps) {
   if (!course) return null
 
   const votes = demandStats?.[course.code || course.id] ?? 0
-  const isElectiveOpen = course.type === "Wajib" || votes >= minQuorum
+  const isElectiveOpen =
+    course.type === "Wajib" || (minQuorum > 0 && votes >= minQuorum)
 
   return (
     <ModalShell

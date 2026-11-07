@@ -621,8 +621,9 @@ async def seed_data():
         else:
             print(f"  [EXISTS] Active Polling Period: {polling_period.title}")
 
-        # 7a. Seed realistic elective votes from students
-        voter_users = [mhs_user]
+        # 7a. Seed realistic elective votes dari mahasiswa sintetis; mahasiswa uji
+        # diberi vote sendiri sebanyak batas periode agar tidak melampaui kuota.
+        voter_users = []
         for i in range(1, 46):
             v_email = f"student.voter{i:02d}@ftmm.unair.ac.id"
             stmt_vu = select(User).where(User.email == v_email)
@@ -671,6 +672,25 @@ async def seed_data():
                         priority=p_val,
                     )
                     session.add(new_v)
+        for index, dist in enumerate(vote_distributions[: polling_period.max_votes_per_student]):
+            stmt_chk = select(ElectiveCourseVote).where(
+                ElectiveCourseVote.polling_period_id == polling_period.polling_period_id,
+                ElectiveCourseVote.user_id == mhs_user.user_id,
+                ElectiveCourseVote.course_id == dist["code"],
+            )
+            if (await session.execute(stmt_chk)).scalars().first():
+                continue
+            session.add(
+                ElectiveCourseVote(
+                    polling_period_id=polling_period.polling_period_id,
+                    user_id=mhs_user.user_id,
+                    course_id=dist["code"],
+                    course_code=dist["code"],
+                    course_name=dist["name"],
+                    credits=dist["credits"],
+                    priority=index + 1,
+                )
+            )
         await session.flush()
         print(f"  [OK] Seeded {len(vote_distributions)} elective courses with realistic student quorum votes")
 
