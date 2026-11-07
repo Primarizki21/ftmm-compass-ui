@@ -360,7 +360,6 @@ ftmm-compass-ui/
 │   ├── data_loader.py             # Fallback katalog resmi 5 Prodi FTMM & PRODI_ALIASES
 │   ├── pyproject.toml             # Konfigurasi dependensi uv (Astral)
 │   ├── uv.lock                    # Deterministic lockfile backend
-│   ├── requirements.txt           # Export dependensi pip standar
 │   ├── .env.example               # Template konfigurasi environment backend
 │   ├── tools/
 │   │   ├── prerequisite_validator.py  # Deterministic DAG, parity, & SKS validator

@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 
 from api import auth, chat, courses, dashboard, health, plans, polling
+import settings
 from catalog import refresh_from_db
 from rate_limit import limiter
 from schemas import DegreePlanPayload, PlanValidationResponse
@@ -72,7 +73,7 @@ app.state.limiter = limiter
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

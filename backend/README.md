@@ -16,7 +16,6 @@ backend/
 │   └── prerequisite_validator.py # DAG-based prerequisite & semester parity validator
 ├── pyproject.toml             # Astral UV project definition & dependencies
 ├── uv.lock                    # Dependency lockfile
-├── requirements.txt           # Standard pip dependency export
 ├── .env.example               # Environment variable templates
 ├── test_backend.py            # Unit test suite (planner, validator, agent flow)
 └── test_api_endpoints.py      # HTTP integration test suite (FastAPI TestClient)
