@@ -21,6 +21,7 @@ from api import (
     chat,
     courses,
     dashboard,
+    degree_plans,
     health,
     plans,
     polling,
@@ -103,6 +104,7 @@ for resource in (
     polling,
     dashboard,
     academic_periods,
+    degree_plans,
 ):
     mount_resource(resource.router)
 

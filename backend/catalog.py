@@ -359,6 +359,56 @@ def get_courses_for_program(prodi: str) -> List[CourseModel]:
     return list(_CURRICULUM.get(DEFAULT_PRODI, []))
 
 
+async def get_courses_for_curriculum(
+    db: AsyncSession, curriculum_id
+) -> List[CourseModel]:
+    """Katalog untuk satu kurikulum konkret (mis. kurikulum milik mahasiswa)."""
+    rows = (
+        await db.execute(
+            select(
+                StudyProgram.program_name,
+                CurriculumCourse.curriculum_course_id,
+                CurriculumCourse.credits_total,
+                CurriculumCourse.recommended_semester,
+                CurriculumCourse.term,
+                CurriculumCourse.course_type,
+                CurriculumCourse.description,
+                Course.course_code,
+                Course.course_name,
+            )
+            .join(CurriculumCourse, CurriculumCourse.course_id == Course.course_id)
+            .join(Curriculum, Curriculum.curriculum_id == CurriculumCourse.curriculum_id)
+            .join(StudyProgram, StudyProgram.study_program_id == Curriculum.study_program_id)
+            .where(
+                CurriculumCourse.curriculum_id == curriculum_id,
+                Course.is_active.is_(True),
+                CurriculumCourse.is_active.is_(True),
+            )
+        )
+    ).mappings().all()
+    if not rows:
+        return []
+
+    program = normalize_prodi(rows[0]["program_name"]) or DEFAULT_PRODI
+    leaves = await _load_requirement_leaves(db)
+    used_ids: set = set()
+    return [
+        _build_course(
+            program=program,
+            code=row["course_code"],
+            name=row["course_name"],
+            credits=row["credits_total"] or 0,
+            semester=row["recommended_semester"] or 1,
+            course_type=row["course_type"],
+            term=row["term"],
+            desc=row["description"] or "",
+            prerequisites=leaves.get(str(row["curriculum_course_id"]), []),
+            used_ids=used_ids,
+        )
+        for row in rows
+    ]
+
+
 def get_all_courses() -> List[CourseModel]:
     return [course for courses in _CURRICULUM.values() for course in courses]
 

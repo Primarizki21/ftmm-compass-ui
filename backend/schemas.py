@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import List, Optional, Dict, Literal, Any, Union
 from pydantic import BaseModel, Field
 
@@ -127,6 +127,59 @@ class DegreePlanPayload(BaseModel):
     action: Literal["APPLY_DEGREE_PLAN"] = "APPLY_DEGREE_PLAN"
     summary: PlanPayloadSummary
     plan: Dict[int, List[PlacedCourseModel]] = Field(default_factory=dict)
+
+
+PlanningStatus = Literal["planned", "wishlist"]
+
+
+class DegreePlanItemRequest(BaseModel):
+    course_code: str = Field(min_length=1, max_length=40)
+    planned_semester: int = Field(ge=1, le=14)
+    planning_status: PlanningStatus = "planned"
+
+
+class DegreePlanItemsRequest(BaseModel):
+    items: List[DegreePlanItemRequest] = Field(default_factory=list, max_length=200)
+
+
+class DegreePlanCreateRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    items: List[DegreePlanItemRequest] = Field(default_factory=list, max_length=200)
+
+
+class DegreePlanUpdateRequest(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    status: Optional[Literal["draft", "active"]] = None
+
+
+class DegreePlanItemResponse(BaseModel):
+    id: str
+    course_id: str
+    code: str
+    name: str
+    credits: int
+    semester: int
+    type: Literal["Wajib", "Pilihan"]
+    parity: Literal["odd", "even"]
+    desc: str = ""
+    planning_status: PlanningStatus = "planned"
+
+
+class DegreePlanResponse(BaseModel):
+    id: str
+    name: str
+    status: Literal["draft", "active", "archived"]
+    updated_at: datetime
+    items: List[DegreePlanItemResponse] = Field(default_factory=list)
+
+
+class DegreePlanListResponse(BaseModel):
+    data: List[DegreePlanResponse] = Field(default_factory=list)
+    meta: Dict[str, int] = Field(default_factory=dict)
+
+
+class DegreePlanCatalogResponse(BaseModel):
+    data: List[CourseModel] = Field(default_factory=list)
 
 
 class ChatMessage(BaseModel):
