@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from "react"
 import { BookOpen, Calendar } from "lucide-react"
 import { cn } from "../utils"
 import { Course, TIMETABLE_DAYS } from "../data"
-import { ALL_COURSES, PROGRAMS, fetchCatalog } from "../courseData"
 import { SEMESTERS } from "../domain/academics"
 import { courseReligion } from "../domain/course"
 import TimetableGrid from "../components/TimetableGrid"
@@ -14,7 +13,6 @@ import {
   canDrop,
 } from "../components/degree-planner/types"
 import PlannerHeader from "../components/degree-planner/PlannerHeader"
-import { useDegreePlanStorage } from "../components/degree-planner/useDegreePlanStorage"
 import {
   SemesterColumn,
   ElectiveCourseBank,
@@ -25,26 +23,19 @@ import ClassSelectorPanel, {
   TimetableConflict,
 } from "../components/degree-planner/ClassSelectorPanel"
 import { getOfferingForCourse, ScheduleItem } from "../data"
+import { usePlanner } from "../state/planner"
+import { useSession } from "../state/session"
+import { useCatalog } from "../state/catalog"
 
 export type { PlacedCourse } from "../components/degree-planner/types"
 
 export default function DegreePlanner({
-  pendingCourses,
-  setPendingCourses,
-  customPlan,
-  appliedSummary,
-  onResetPlan,
   onNavigate,
-  activeSchedule: _activeSchedule,
-  onUpdateSchedule,
   initialTab,
-  currentUser,
 }: DegreePlannerProps) {
-  const [activeTab, setActiveTab] = useState<Tab>(initialTab || "roadmap")
-
-  useEffect(() => {
-    setActiveTab(initialTab || "roadmap")
-  }, [initialTab])
+  const planner = usePlanner()
+  const { user } = useSession()
+  const { courses: catalog, programs: availablePrograms } = useCatalog()
   const {
     drafts,
     activeDraftId,
@@ -56,7 +47,17 @@ export default function DegreePlanner({
     resetCurrentDraft,
     isSaving,
     lastSaved,
-  } = useDegreePlanStorage(customPlan)
+    pendingCourses,
+    removePendingCourse,
+    appliedSummary,
+    resetPlan,
+    setSchedule,
+  } = planner
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab || "roadmap")
+
+  useEffect(() => {
+    setActiveTab(initialTab || "roadmap")
+  }, [initialTab])
 
   const [pickerSem, setPickerSem] = useState<number | null>(null)
   const [pickerSearch, setPickerSearch] = useState("")
@@ -64,8 +65,6 @@ export default function DegreePlanner({
   const [pickerType, setPickerType] = useState<"all" | "Pilihan" | "Wajib">(
     "all",
   )
-  const [catalog, setCatalog] = useState<Course[]>(ALL_COURSES)
-  const [availablePrograms, setAvailablePrograms] = useState<string[]>(PROGRAMS)
   const [inspectCourse, setInspectCourse] = useState<{
     course: PlacedCourse
     sem: number
@@ -78,39 +77,6 @@ export default function DegreePlanner({
       KU2001: "KU2001-A",
       II4050: "II4050-A",
     })
-  useEffect(() => {
-    let isMounted = true
-    fetchCatalog("all")
-      .then((res) => {
-        if (!isMounted) return
-        if (res.courses?.length) {
-          const prodisInRes = new Set(
-            res.courses.map((c) => c.program).filter(Boolean),
-          )
-          if (prodisInRes.size >= 5) {
-            setCatalog(res.courses)
-          } else {
-            const fetchedIds = new Set(res.courses.map((c) => c.id))
-            const missing = ALL_COURSES.filter((c) => !fetchedIds.has(c.id))
-            setCatalog([...res.courses, ...missing])
-          }
-        }
-        if (res.programs && res.programs.length > 0) {
-          setAvailablePrograms(res.programs)
-        } else {
-          setAvailablePrograms(PROGRAMS)
-        }
-      })
-      .catch(() => {
-        // Katalog lokal dari Ekstrak sudah menjadi initial state.
-      })
-      .catch(() => {
-        // Katalog lokal dari Ekstrak adalah fallback.
-      })
-    return () => {
-      isMounted = false
-    }
-  }, [])
   const activeReligion = useMemo(() => {
     for (const courses of Object.values(plan)) {
       for (const c of courses) {
@@ -150,7 +116,7 @@ export default function DegreePlanner({
       ...prev,
       [pickerSem]: [...(prev[pickerSem] || []), newCourse],
     }))
-    setPendingCourses((prev) => prev.filter((c) => c.id !== course.id))
+    removePendingCourse(course.id)
   }
 
   const [dragging, setDragging] = useState<{
@@ -180,8 +146,8 @@ export default function DegreePlanner({
       })
       return next
     })
-    setPendingCourses((prev) => prev.filter((c) => c.type !== "Wajib"))
-  }, [pendingCourses, setPendingCourses])
+    wajibCourses.forEach((course) => removePendingCourse(course.id))
+  }, [pendingCourses, removePendingCourse, setPlan])
 
   const semState = (sem: number): SemesterState => {
     if (!dragging) return "idle"
@@ -282,7 +248,7 @@ export default function DegreePlanner({
       })
     } else if (fromSem === "bank") {
       // Drop from Bank Matkul Pilihan
-      setPendingCourses((prev) => prev.filter((c) => c.id !== course.id))
+      removePendingCourse(course.id)
       setPlan((prev) => {
         const currentList = [...(prev[sem] || [])]
         const insertAt = Math.max(0, Math.min(targetIdx, currentList.length))
@@ -403,12 +369,10 @@ export default function DegreePlanner({
     return { dynamicSchedule: items, conflicts: foundConflicts }
   }, [currentTimetableCourses, selectedSections])
 
-  // Sync timetable schedule with parent state
+  // Jadwal semester aktif menjadi sumber untuk widget dashboard.
   useEffect(() => {
-    if (onUpdateSchedule) {
-      onUpdateSchedule(dynamicSchedule)
-    }
-  }, [dynamicSchedule, onUpdateSchedule])
+    setSchedule(dynamicSchedule)
+  }, [dynamicSchedule, setSchedule])
 
   const handleSelectSection = (courseId: string, sectionId: string) => {
     setSelectedSections((prev) => ({
@@ -466,9 +430,9 @@ export default function DegreePlanner({
         <>
           <PlannerHeader
             appliedSummary={appliedSummary}
-            onResetPlan={onResetPlan}
+            onResetPlan={resetPlan}
             dragging={dragging}
-            currentUser={currentUser}
+            currentUser={user}
             drafts={drafts}
             activeDraftId={activeDraftId}
             onSwitchDraft={switchDraft}

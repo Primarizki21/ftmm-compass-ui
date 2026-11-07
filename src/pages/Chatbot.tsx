@@ -4,7 +4,6 @@ import { cn } from "../utils"
 import MarkdownRenderer from "../components/MarkdownRenderer"
 import {
   type StudentProfileState,
-  type DegreePlanPayload,
   type ChatMessage,
   type ChatResponse,
   CHAT_PATH,
@@ -12,13 +11,10 @@ import {
   HEALTH_PATH,
   sanitizeErrorMessage,
   QUICK_PROMPTS,
-  INITIAL_CHAT_MESSAGES,
-  INITIAL_STUDENT_PROFILE,
 } from "../components/chatbot/chatService"
 import { API_BASE, ApiError, apiFetch } from "../api/client"
+import type { DegreePlanPayload } from "../domain/plan"
 import DegreePlanActionCard from "../components/chatbot/DegreePlanActionCard"
-
-export type { DegreePlanPayload } from "../components/chatbot/chatService"
 
 interface ApiChatErrorDetail {
   code?: string
@@ -26,61 +22,26 @@ interface ApiChatErrorDetail {
 }
 
 interface ChatbotProps {
-  onApplyPlan?: (payload: DegreePlanPayload) => void
-  messages?: ChatMessage[]
-  onMessagesChange?: React.Dispatch<React.SetStateAction<ChatMessage[]>>
-  profile?: StudentProfileState
-  onProfileChange?: React.Dispatch<React.SetStateAction<StudentProfileState>>
-  appliedPlanId?: string | null
-  onAppliedPlanIdChange?: (id: string | null) => void
-  onResetChat?: () => void
+  onApplyPlan: (payload: DegreePlanPayload) => void
+  messages: ChatMessage[]
+  onMessagesChange: React.Dispatch<React.SetStateAction<ChatMessage[]>>
+  profile: StudentProfileState
+  onProfileChange: React.Dispatch<React.SetStateAction<StudentProfileState>>
+  appliedPlanId: string | null
+  onAppliedPlanIdChange: (id: string | null) => void
+  onResetChat: () => void
 }
 
 export default function Chatbot({
   onApplyPlan,
-  messages: externalMessages,
-  onMessagesChange: setExternalMessages,
-  profile: externalProfile,
-  onProfileChange: setExternalProfile,
-  appliedPlanId: externalAppliedPlanId,
-  onAppliedPlanIdChange: setExternalAppliedPlanId,
+  messages,
+  onMessagesChange: setMessages,
+  profile,
+  onProfileChange: setProfile,
+  appliedPlanId,
+  onAppliedPlanIdChange: setAppliedPlanId,
   onResetChat,
 }: ChatbotProps) {
-  const [internalMessages, setInternalMessages] = useState<ChatMessage[]>(
-    INITIAL_CHAT_MESSAGES,
-  )
-  const messages = externalMessages ?? internalMessages
-  const setMessages = setExternalMessages ?? setInternalMessages
-
-  const [internalProfile, setInternalProfile] = useState<StudentProfileState>(
-    INITIAL_STUDENT_PROFILE,
-  )
-  const profile = externalProfile ?? internalProfile
-  const setProfile = setExternalProfile ?? setInternalProfile
-
-  const [internalAppliedPlanId, setInternalAppliedPlanId] =
-    useState<string | null>(null)
-  const appliedPlanId =
-    externalAppliedPlanId !== undefined
-      ? externalAppliedPlanId
-      : internalAppliedPlanId
-  const setAppliedPlanId = (id: string | null) => {
-    if (setExternalAppliedPlanId) {
-      setExternalAppliedPlanId(id)
-    } else {
-      setInternalAppliedPlanId(id)
-    }
-  }
-
-  const handleReset = () => {
-    if (onResetChat) {
-      onResetChat()
-    } else {
-      setInternalMessages(INITIAL_CHAT_MESSAGES)
-      setInternalProfile(INITIAL_STUDENT_PROFILE)
-      setInternalAppliedPlanId(null)
-    }
-  }
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [backendStatus, setBackendStatus] = useState<{
@@ -351,7 +312,7 @@ export default function Chatbot({
           </div>
           <button
             type="button"
-            onClick={handleReset}
+            onClick={onResetChat}
             title="Reset percakapan ke awal"
             className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg bg-white/10 hover:bg-white/20 text-white/90 hover:text-white transition-colors cursor-pointer border border-white/10"
           >

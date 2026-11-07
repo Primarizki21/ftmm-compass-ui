@@ -1,6 +1,4 @@
-import { type AuthUser } from "../../services/authService"
-import React from "react"
-import { type Course, type ScheduleItem } from "../../data"
+import { type Course } from "../../data"
 import { isOddSemester } from "../../domain/academics"
 
 export interface PlacedCourse extends Course {
@@ -112,17 +110,6 @@ export type SemesterState = "idle" | "valid-hover" | "invalid" | "invalid-hover"
 export type Tab = "roadmap" | "timetable"
 
 export interface DegreePlannerProps {
-  pendingCourses: Course[]
-  setPendingCourses: React.Dispatch<React.SetStateAction<Course[]>>
-  customPlan?: Record<number, PlacedCourse[]> | null
-  appliedSummary?: {
-    program_studi: string
-    total_credits: number
-    target_semester: number
-    focus_tracks: string[]
-    note?: string
-  } | null
-  onResetPlan?: () => void
   onNavigate?: (
     page: string,
     options?: {
@@ -130,8 +117,5 @@ export interface DegreePlannerProps {
       course?: Course
     },
   ) => void
-  activeSchedule?: ScheduleItem[]
-  onUpdateSchedule?: (schedule: ScheduleItem[]) => void
   initialTab?: Tab
-  currentUser?: AuthUser | null
 }

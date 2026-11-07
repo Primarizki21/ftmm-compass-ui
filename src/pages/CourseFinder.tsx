@@ -16,15 +16,11 @@ import {
 } from "lucide-react"
 import { cn } from "../utils"
 import { Course } from "../data"
-import {
-  pollingService,
-  type PollingPeriod,
-  type StudentVote,
-  type DemandAnalyticsResponse,
-} from "../services/pollingService"
-import { type AuthUser } from "../services/authService"
+import type { StudentVote } from "../services/pollingService"
+import { useSession } from "../state/session"
+import { useCatalog } from "../state/catalog"
+import { usePolling } from "../state/polling"
 import CourseFormModal from "../components/course-finder/CourseFormModal"
-import { ALL_COURSES, PROGRAMS, fetchCatalog } from "../courseData"
 import { getProdiAbbreviation } from "../domain/course"
 import CourseDetailView from "../components/course-finder/CourseDetailView"
 import CourseQuickModal from "../components/course-finder/CourseQuickModal"
@@ -33,7 +29,6 @@ export interface CourseFinderProps {
   addedCourseIds: Set<string>
   initialCourse?: Course | null
   onClearInitialCourse?: () => void
-  currentUser?: AuthUser | null
 }
 
 export default function CourseFinder({
@@ -41,8 +36,17 @@ export default function CourseFinder({
   addedCourseIds,
   initialCourse,
   onClearInitialCourse,
-  currentUser,
 }: CourseFinderProps) {
+  const { user: currentUser } = useSession()
+  const { courses: catalogCourses, programs, upsert } = useCatalog()
+  const {
+    period: pollingPeriod,
+    myVotes,
+    demand,
+    loadDemand,
+    submitVote,
+    removeVote,
+  } = usePolling()
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedType, setSelectedType] = useState<"all" | "Wajib" | "Pilihan">(
     "all",
@@ -57,9 +61,6 @@ export default function CourseFinder({
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
   const [detailCourse, setDetailCourse] = useState<Course | null>(null)
   const [filterMostDemanded, setFilterMostDemanded] = useState(false)
-  const [pollingPeriod, setPollingPeriod] = useState<PollingPeriod | null>(null)
-  const [myVotes, setMyVotes] = useState<StudentVote[]>([])
-  const [demandStats, setDemandStats] = useState<Record<string, number>>({})
   const [priorityModalCourse, setPriorityModalCourse] = useState<Course | null>(
     null,
   )
@@ -73,66 +74,36 @@ export default function CourseFinder({
     }
   }, [initialCourse])
   const [activeProgram, setActiveProgram] = useState<string>("all")
-  const [courses, setCourses] = useState<Course[]>(ALL_COURSES)
-  const [availablePrograms, setAvailablePrograms] = useState<string[]>(PROGRAMS)
-  useEffect(() => {
-    let active = true
-    fetchCatalog(activeProgram)
-      .then((res) => {
-        if (!active) return
-        setCourses(res.courses)
-        if (res.programs && res.programs.length > 0) {
-          setAvailablePrograms(res.programs)
-        }
-      })
-      .catch(() => {
-        if (!active) return
-        setCourses(
-          activeProgram === "all"
-            ? ALL_COURSES
-            : ALL_COURSES.filter((c) => c.program === activeProgram),
-        )
-      })
+  const courses = useMemo(
+    () =>
+      activeProgram === "all"
+        ? catalogCourses
+        : catalogCourses.filter((course) => course.program === activeProgram),
+    [activeProgram, catalogCourses],
+  )
+  const availablePrograms = programs
 
-    return () => {
-      active = false
-    }
-  }, [activeProgram])
   useEffect(() => {
-    let mounted = true
-    Promise.all([
-      pollingService.getActivePeriod(),
-      pollingService.getMyVotes(),
-      pollingService.getDemandAnalytics("all"),
-    ]).then(
-      ([
-        period,
-        votes,
-        analytics,
-      ]: [PollingPeriod, StudentVote[], DemandAnalyticsResponse]) => {
-        if (!mounted) return
-        setPollingPeriod(period)
-        setMyVotes(votes)
-        const stats: Record<string, number> = {}
-        analytics.items.forEach((item) => {
-          stats[item.course_id] = item.total_votes
-          if (item.course_code) {
-            stats[item.course_code] = item.total_votes
-          }
-        })
-        setDemandStats(stats)
-      },
-    )
-    return () => {
-      mounted = false
+    if (!demand.all) void loadDemand("all")
+  }, [demand.all, loadDemand])
+
+  const demandStats = useMemo(() => {
+    const stats: Record<string, number> = {}
+    for (const item of demand.all?.items ?? []) {
+      if (item.course_code) stats[item.course_code] = item.total_votes
     }
-  }, [])
+    return stats
+  }, [demand])
+
+  const voteKey = (course: Course) => course.code || course.id
+  const votesFor = (course: Course) => demandStats[voteKey(course)] ?? 0
+  const voteFor = (course: Course) => myVoteMap[voteKey(course)]
 
   const rankedCourseCodes = useMemo(() => {
     const list = courses
       .map((c) => ({
         key: c.code || c.id,
-        votes: demandStats[c.id] || demandStats[c.code || ""] || 0,
+        votes: votesFor(c),
       }))
       .filter((it) => it.votes > 0)
       .sort((a, b) => b.votes - a.votes)
@@ -164,7 +135,7 @@ export default function CourseFinder({
 
       const matchesType = selectedType === "all" || c.type === selectedType
 
-      const votes = demandStats[c.id] || demandStats[c.code || ""] || 0
+      const votes = votesFor(c)
       const isCourseOpen = c.type === "Wajib" || votes >= minQ
 
       const matchesAvailability =
@@ -198,13 +169,11 @@ export default function CourseFinder({
     })
 
     if (filterMostDemanded) {
-      const withVotes = list.filter(
-        (c) => (demandStats[c.id] || demandStats[c.code || ""] || 0) > 0,
-      )
+      const withVotes = list.filter((c) => votesFor(c) > 0)
       const targetList = withVotes.length > 0 ? withVotes : list
       return [...targetList].sort((a, b) => {
-        const aVotes = demandStats[a.id] || demandStats[a.code || ""] || 0
-        const bVotes = demandStats[b.id] || demandStats[b.code || ""] || 0
+        const aVotes = votesFor(a)
+        const bVotes = votesFor(b)
         return bVotes - aVotes
       })
     }
@@ -225,8 +194,9 @@ export default function CourseFinder({
   ])
   const myVoteMap = useMemo(() => {
     const map: Record<string, StudentVote> = {}
-    myVotes.forEach((v) => {
-      map[v.course_id] = v
+    myVotes.forEach((vote) => {
+      map[vote.course_id] = vote
+      if (vote.course_code) map[vote.course_code] = vote
     })
     return map
   }, [myVotes])
@@ -235,8 +205,7 @@ export default function CourseFinder({
   const remainingSlots = Math.max(0, maxVotes - myVotes.length)
 
   const handleOpenPriorityModal = (course: Course) => {
-    const currentVote =
-      myVoteMap[course.id] || (course.code ? myVoteMap[course.code] : undefined)
+    const currentVote = voteFor(course)
     setModalPriority(currentVote?.priority || 1)
     setPriorityModalCourse(course)
   }
@@ -245,26 +214,8 @@ export default function CourseFinder({
     if (!priorityModalCourse) return
     setIsSubmittingVote(true)
     try {
-      const vote = await pollingService.submitVote({
-        course_id: priorityModalCourse.id,
-        priority: modalPriority,
-      })
-      setMyVotes((prev) => {
-        const filteredVotes = prev.filter(
-          (v) =>
-            v.course_id !== priorityModalCourse.id &&
-            v.course_id !== (priorityModalCourse.code || ""),
-        )
-        return [...filteredVotes, vote]
-      })
-      setDemandStats((prev) => {
-        const existing = prev[priorityModalCourse.id] || 0
-        const hasPrior = Boolean(myVoteMap[priorityModalCourse.id])
-        return {
-          ...prev,
-          [priorityModalCourse.id]: hasPrior ? existing : existing + 1,
-        }
-      })
+      await submitVote(voteKey(priorityModalCourse), modalPriority)
+      void loadDemand("all")
       setPriorityModalCourse(null)
     } finally {
       setIsSubmittingVote(false)
@@ -274,12 +225,8 @@ export default function CourseFinder({
   const handleRemoveVote = async (courseId: string) => {
     setIsSubmittingVote(true)
     try {
-      await pollingService.removeVote(courseId)
-      setMyVotes((prev) => prev.filter((v) => v.course_id !== courseId))
-      setDemandStats((prev) => ({
-        ...prev,
-        [courseId]: Math.max(0, (prev[courseId] || 1) - 1),
-      }))
+      await removeVote(courseId)
+      void loadDemand("all")
       setPriorityModalCourse(null)
     } finally {
       setIsSubmittingVote(false)
@@ -674,10 +621,7 @@ export default function CourseFinder({
                 </div>
                 {course.type === "Pilihan" &&
                   (() => {
-                    const votes =
-                      demandStats[course.id] ||
-                      demandStats[course.code || ""] ||
-                      0
+                    const votes = votesFor(course) || false || 0
                     const minQ = pollingPeriod?.min_quorum || 15
                     const isElectiveOpen = votes >= minQ
                     const rank = rankedCourseCodes[course.code || course.id]
@@ -720,11 +664,7 @@ export default function CourseFinder({
                           </span>
                           {currentUser?.role === "student" &&
                             (() => {
-                              const vote =
-                                myVoteMap[course.id] ||
-                                (course.code
-                                  ? myVoteMap[course.code]
-                                  : undefined)
+                              const vote = voteFor(course)
                               const targetSem = course.semester || 6
                               return (
                                 <button
@@ -853,7 +793,7 @@ export default function CourseFinder({
                 Slot Wishlist Tersedia:
               </span>
               <span className="font-mono font-bold text-navy">
-                {Boolean(myVoteMap[priorityModalCourse.id])
+                {Boolean(voteFor(priorityModalCourse))
                   ? `${remainingSlots} slot tersisa (terdaftar)`
                   : `${remainingSlots} dari ${maxVotes} slot tersisa`}
               </span>
@@ -902,7 +842,7 @@ export default function CourseFinder({
 
             {/* Action Buttons */}
             <div className="flex items-center justify-between gap-3 pt-2">
-              {Boolean(myVoteMap[priorityModalCourse.id]) ? (
+              {Boolean(voteFor(priorityModalCourse)) ? (
                 <button
                   type="button"
                   disabled={isSubmittingVote}
@@ -926,7 +866,7 @@ export default function CourseFinder({
                   type="button"
                   disabled={
                     isSubmittingVote ||
-                    (!Boolean(myVoteMap[priorityModalCourse.id]) &&
+                    (!Boolean(voteFor(priorityModalCourse)) &&
                       remainingSlots <= 0)
                   }
                   onClick={handleSaveVote}
@@ -948,21 +888,7 @@ export default function CourseFinder({
         }}
         initialCourse={editingCourse}
         availablePrograms={availablePrograms}
-        onSuccess={(savedCourse) => {
-          setCourses((prev) => {
-            const exists = prev.some(
-              (c) => c.code === savedCourse.code || c.id === savedCourse.id,
-            )
-            if (exists) {
-              return prev.map((c) =>
-                c.code === savedCourse.code || c.id === savedCourse.id
-                  ? savedCourse
-                  : c,
-              )
-            }
-            return [savedCourse, ...prev]
-          })
-        }}
+        onSuccess={upsert}
       />
     </div>
   )

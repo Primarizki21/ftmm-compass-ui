@@ -21,90 +21,65 @@ import {
   UserCheck,
   ShieldAlert,
 } from "lucide-react"
-import { SCHEDULE, TIMETABLE_DAYS, ScheduleItem } from "../data"
+import { TIMETABLE_DAYS, ScheduleItem } from "../data"
 import TimetableGrid from "../components/TimetableGrid"
-import { type AuthUser } from "../services/authService"
-import {
-  pollingService,
-  type DemandAnalyticsResponse,
-  type PollingPeriod,
-  type StudentVote,
-} from "../services/pollingService"
 import {
   dashboardService,
   type DashboardMeResponse,
+  type DashboardScheduleItem,
 } from "../services/dashboardService"
+import { useSession } from "../state/session"
+import { usePlanner } from "../state/planner"
+import { usePolling } from "../state/polling"
+
 interface DashboardProps {
   onNavigate: (page: string) => void
-  schedule?: ScheduleItem[]
-  currentUser?: AuthUser | null
 }
-export default function Dashboard({
-  onNavigate,
-  schedule,
-  currentUser,
-}: DashboardProps) {
+
+function toScheduleItem(item: DashboardScheduleItem): ScheduleItem {
+  const [startHour, startMinute] = (item.start_time || "08:00")
+    .split(":")
+    .map(Number)
+  const [endHour, endMinute] = (item.end_time || "10:00").split(":").map(Number)
+  const start = (startHour || 0) + (startMinute || 0) / 60
+  const end = (endHour || 0) + (endMinute || 0) / 60
+  return {
+    id: item.id,
+    course: item.course_name,
+    code: item.course_code,
+    day: item.day,
+    start,
+    duration: Math.max(1, end - start),
+    color: item.color || "teal",
+    room: item.room,
+    sectionCode: item.class_name,
+    lecturer: item.lecturer,
+  }
+}
+
+export default function Dashboard({ onNavigate }: DashboardProps) {
+  const { user } = useSession()
+  const { schedule } = usePlanner()
+  const {
+    period: pollingPeriod,
+    myVotes: studentVotes,
+    demand,
+    loadDemand,
+    isLoading: isLoadingAnalytics,
+  } = usePolling()
   const [dashboardData, setDashboardData] =
     useState<DashboardMeResponse | null>(null)
   const [isLoadingDashboard, setIsLoadingDashboard] = useState<boolean>(true)
 
   const displayedSchedule = useMemo<ScheduleItem[]>(() => {
-    if (currentUser?.role === "admin") return []
-    if (currentUser?.role === "lecturer") {
-      if (dashboardData?.schedule?.length) {
-        return dashboardData.schedule.map((item) => {
-          const [sh, sm] = (item.start_time || "08:00").split(":").map(Number)
-          const [eh, em] = (item.end_time || "10:00").split(":").map(Number)
-          const startHour = (sh || 0) + (sm || 0) / 60
-          const endHour = (eh || 0) + (em || 0) / 60
-          const duration = Math.max(1, endHour - startHour)
-          return {
-            id: item.id,
-            course: item.course_name,
-            code: item.course_code,
-            day: item.day,
-            start: startHour,
-            duration: duration,
-            color: item.color || "teal",
-            room: item.room,
-            sectionCode: item.class_name,
-            lecturer: item.lecturer,
-          }
-        })
-      }
-      return []
-    }
-    if (schedule && schedule.length > 0) return schedule
-    if (!dashboardData?.schedule?.length) return SCHEDULE
-    return dashboardData.schedule.map((item) => {
-      const [sh, sm] = (item.start_time || "08:00").split(":").map(Number)
-      const [eh, em] = (item.end_time || "10:00").split(":").map(Number)
-      const startHour = (sh || 0) + (sm || 0) / 60
-      const endHour = (eh || 0) + (em || 0) / 60
-      const duration = Math.max(1, endHour - startHour)
-      return {
-        id: item.id,
-        course: item.course_name,
-        code: item.course_code,
-        day: item.day,
-        start: startHour,
-        duration: duration,
-        color: item.color || "teal",
-        room: item.room,
-        sectionCode: item.class_name,
-        lecturer: item.lecturer,
-      }
-    })
-  }, [currentUser?.role, dashboardData, schedule])
+    if (user?.role === "admin") return []
+    if (schedule.length > 0) return schedule
+    return (dashboardData?.schedule ?? []).map(toScheduleItem)
+  }, [user?.role, dashboardData, schedule])
 
-  const hasConflict = displayedSchedule.some((s) => s.conflict)
+  const hasConflict = displayedSchedule.some((item) => item.conflict)
 
   const [selectedProdi, setSelectedProdi] = useState<string>("all")
-  const [demandAnalytics, setDemandAnalytics] =
-    useState<DemandAnalyticsResponse | null>(null)
-  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false)
-  const [pollingPeriod, setPollingPeriod] = useState<PollingPeriod | null>(null)
-  const [studentVotes, setStudentVotes] = useState<StudentVote[]>([])
 
   useEffect(() => {
     let mounted = true
@@ -114,54 +89,22 @@ export default function Dashboard({
       .then((data) => {
         if (mounted) setDashboardData(data)
       })
-      .catch(() => {
-        // Fallback anggap aman jika offline
-      })
+      .catch(() => {})
       .finally(() => {
         if (mounted) setIsLoadingDashboard(false)
       })
     return () => {
       mounted = false
     }
-  }, [currentUser])
+  }, [user])
+
   useEffect(() => {
-    let mounted = true
-    setIsLoadingAnalytics(true)
+    if (!user || user.role === "student") return
+    if (demand[selectedProdi]) return
+    void loadDemand(selectedProdi)
+  }, [demand, loadDemand, selectedProdi, user])
 
-    if (currentUser?.role === "student") {
-      Promise.all([
-        pollingService.getActivePeriod(),
-        pollingService.getMyVotes(),
-      ])
-        .then(([period, votes]) => {
-          if (!mounted) return
-          setPollingPeriod(period)
-          setStudentVotes(votes)
-        })
-        .catch(() => {})
-        .finally(() => {
-          if (mounted) setIsLoadingAnalytics(false)
-        })
-    } else {
-      Promise.all([
-        pollingService.getActivePeriod(),
-        pollingService.getDemandAnalytics(selectedProdi),
-      ])
-        .then(([period, analytics]) => {
-          if (!mounted) return
-          setPollingPeriod(period)
-          setDemandAnalytics(analytics)
-        })
-        .catch(() => {})
-        .finally(() => {
-          if (mounted) setIsLoadingAnalytics(false)
-        })
-    }
-
-    return () => {
-      mounted = false
-    }
-  }, [selectedProdi, currentUser])
+  const demandAnalytics = demand[selectedProdi]
 
   const items = useMemo(() => demandAnalytics?.items || [], [demandAnalytics])
 
@@ -501,7 +444,7 @@ export default function Dashboard({
       )}
 
       {/* Schedule Widget (Student & Lecturer) OR Operational Monitoring (Admin) */}
-      {currentUser?.role === "admin" ? (
+      {user?.role === "admin" ? (
         <div className="bg-surface rounded-xl border border-border shadow-sm overflow-hidden p-5 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/80 pb-4">
             <div className="flex items-center gap-3">
@@ -594,7 +537,7 @@ export default function Dashboard({
                 </span>
               )}
             </div>
-            {currentUser?.role === "student" && (
+            {user?.role === "student" && (
               <button
                 onClick={() => onNavigate("degree-planner")}
                 className="text-sm font-medium text-navy hover:text-gold transition-colors flex items-center gap-1 cursor-pointer"
@@ -613,7 +556,7 @@ export default function Dashboard({
         </div>
       )}
       {/* Lecturer-Specific Operational Section: Kelas Ampuan & Advisee Review */}
-      {currentUser?.role === "lecturer" && (
+      {user?.role === "lecturer" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Kelas Ampuan Panel */}
           <div className="bg-surface rounded-xl border border-border shadow-sm p-5 space-y-4">
@@ -775,7 +718,7 @@ export default function Dashboard({
       )}
 
       {/* Pre-KRS Section: Separated for Student (Personal Status) vs Lecturer/Admin (Demand Analytics) */}
-      {currentUser?.role === "student" ? (
+      {user?.role === "student" ? (
         <div className="bg-surface rounded-xl border border-border shadow-sm overflow-hidden space-y-4 p-5">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-border/70 pb-4">
             <div className="flex items-start gap-3">
@@ -892,9 +835,9 @@ export default function Dashboard({
                       : "Semester Ganjil"}{" "}
                     {pollingPeriod?.academic_year || "2024/2025"}
                   </span>
-                  {currentUser?.role && (
+                  {user?.role && (
                     <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-navy/10 text-navy border border-navy/20">
-                      Role: {currentUser.role}
+                      Role: {user.role}
                     </span>
                   )}
                 </div>

@@ -40,9 +40,7 @@ export default function CourseQuickModal({
 }: CourseQuickModalProps) {
   if (!course) return null
 
-  const votes = demandStats
-    ? demandStats[course.id] || demandStats[course.code || ""] || 0
-    : 0
+  const votes = demandStats?.[course.code || course.id] ?? 0
   const isElectiveOpen = course.type === "Wajib" || votes >= minQuorum
 
   return (

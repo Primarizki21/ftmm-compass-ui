@@ -8,6 +8,8 @@ export interface DegreePlanDraft {
   name: string
   description: string
   plan: Record<number, PlacedCourse[]>
+  /** Rencana awal draft ini; dipakai tombol reset. */
+  initialPlan?: Record<number, PlacedCourse[]>
   updatedAt: string
   isDefault?: boolean
 }
@@ -142,12 +144,27 @@ const DEFAULT_DRAFTS: DegreePlanDraft[] = [
   },
 ]
 
+function withInitialPlans(
+  state: DegreePlanStorageState,
+): DegreePlanStorageState {
+  return {
+    ...state,
+    drafts: state.drafts.map((draft) => ({
+      ...draft,
+      initialPlan:
+        draft.initialPlan ??
+        DEFAULT_DRAFTS.find((preset) => preset.id === draft.id)?.plan ??
+        draft.plan,
+    })),
+  }
+}
+
 function loadInitialState(): DegreePlanStorageState {
   if (typeof window === "undefined") {
-    return {
+    return withInitialPlans({
       activeDraftId: "draft-regular",
       drafts: DEFAULT_DRAFTS,
-    }
+    })
   }
 
   try {
@@ -176,10 +193,10 @@ function loadInitialState(): DegreePlanStorageState {
       // Validate activeDraftId exists in drafts
       const exists = parsed.drafts.some((d) => d.id === parsed.activeDraftId)
       const validActiveId = exists ? parsed.activeDraftId : parsed.drafts[0].id
-      return {
+      return withInitialPlans({
         activeDraftId: validActiveId,
         drafts: parsed.drafts as DegreePlanDraft[],
-      }
+      })
     }
   } catch {
     // If corrupted, fallback to defaults
@@ -224,9 +241,7 @@ export interface UseDegreePlanStorageReturn {
   lastSaved: Date | null
 }
 
-export function useDegreePlanStorage(
-  externalCustomPlan?: Record<number, PlacedCourse[]> | null,
-): UseDegreePlanStorageReturn {
+export function useDegreePlanStorage(): UseDegreePlanStorageReturn {
   const [storageState, setStorageState] =
     useState<DegreePlanStorageState>(loadInitialState)
   const [isSaving, setIsSaving] = useState(false)
@@ -237,20 +252,11 @@ export function useDegreePlanStorage(
     storageState.drafts[0]
 
   const [currentPlan, setCurrentPlan] =
-    useState<Record<number, PlacedCourse[]>>(
-      externalCustomPlan || activeDraft.plan,
-    )
+    useState<Record<number, PlacedCourse[]>>(activeDraft.plan)
 
   const saveTimerRef = useRef<number | NodeJS.Timeout | null>(null)
   const latestPlanRef = useRef<Record<number, PlacedCourse[]>>(currentPlan)
   latestPlanRef.current = currentPlan
-
-  // Keep currentPlan in sync when externalCustomPlan is provided (e.g. from Compass AI)
-  useEffect(() => {
-    if (externalCustomPlan) {
-      setCurrentPlan(externalCustomPlan)
-    }
-  }, [externalCustomPlan])
 
   // Flush pending save to localStorage
   const flushSave = useCallback(
@@ -262,18 +268,17 @@ export function useDegreePlanStorage(
             ? { ...draft, plan: planToSave, updatedAt: nowIso }
             : draft,
         )
-        const nextState = {
-          ...prevState,
-          drafts: updatedDrafts,
-        }
-        persistState(nextState)
-        return nextState
+        return { ...prevState, drafts: updatedDrafts }
       })
       setIsSaving(false)
       setLastSaved(new Date())
     },
     [],
   )
+
+  useEffect(() => {
+    persistState(storageState)
+  }, [storageState])
 
   // Debounced auto-save function (~500ms)
   const setPlanWithDebouncedSave = useCallback(
@@ -335,6 +340,7 @@ export function useDegreePlanStorage(
         name,
         description,
         plan: basePlan || latestPlanRef.current,
+        initialPlan: basePlan || latestPlanRef.current,
         updatedAt: new Date().toISOString(),
         isDefault: false,
       }
@@ -383,6 +389,8 @@ export function useDegreePlanStorage(
       if (storageState.drafts.length <= 1) {
         return false
       }
+      clearTimeout(saveTimerRef.current ?? undefined)
+      saveTimerRef.current = null
 
       setStorageState((prev) => {
         const filtered = prev.drafts.filter((d) => d.id !== draftId)
@@ -405,12 +413,8 @@ export function useDegreePlanStorage(
 
   // Reset active draft to default plan
   const resetCurrentDraft = useCallback(() => {
-    const defaultDraft = DEFAULT_DRAFTS.find(
-      (d) => d.id === storageState.activeDraftId,
-    )
-    const resetPlan = defaultDraft ? defaultDraft.plan : INITIAL_PLAN
-    setPlanWithDebouncedSave(resetPlan)
-  }, [storageState.activeDraftId, setPlanWithDebouncedSave])
+    setPlanWithDebouncedSave(activeDraft.initialPlan ?? INITIAL_PLAN)
+  }, [activeDraft.initialPlan, setPlanWithDebouncedSave])
 
   // Cleanup pending timer on unmount
   useEffect(() => {

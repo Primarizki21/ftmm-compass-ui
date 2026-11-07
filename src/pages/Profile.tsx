@@ -25,6 +25,7 @@ import {
   Layers,
 } from "lucide-react"
 import { authService, type AuthUser } from "../services/authService"
+import { useSession } from "../state/session"
 import {
   currentAcademicPeriod,
   isOddSemester,
@@ -32,18 +33,14 @@ import {
 } from "../domain/academics"
 
 interface ProfileProps {
-  currentUser: AuthUser | null
   onNavigate: (page: string) => void
   onRequestLogout: () => void
 }
 
-export default function Profile({
-  currentUser,
-  onNavigate,
-  onRequestLogout,
-}: ProfileProps) {
+export default function Profile({ onNavigate, onRequestLogout }: ProfileProps) {
   const academicPeriod = currentAcademicPeriod()
-  const [user, setUser] = useState<AuthUser | null>(currentUser)
+  const { user: currentUser, setUser } = useSession()
+  const [user, setLocalUser] = useState<AuthUser | null>(currentUser)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [refreshSuccess, setRefreshSuccess] = useState(false)
   const [refreshError, setRefreshError] = useState<string | null>(null)
@@ -62,7 +59,7 @@ export default function Profile({
   const [saveErrorMessage, setSaveErrorMessage] = useState<string | null>(null)
 
   useEffect(() => {
-    setUser(currentUser)
+    setLocalUser(currentUser)
     setEditPhone(currentUser?.phone_number || "")
     setEditBio(currentUser?.bio || "")
     setEditInterests(currentUser?.career_interests?.join(", ") || "")
@@ -74,6 +71,7 @@ export default function Profile({
     setRefreshSuccess(false)
     try {
       const freshUser = await authService.getMe()
+      setLocalUser(freshUser)
       setUser(freshUser)
       setRefreshSuccess(true)
       setTimeout(() => setRefreshSuccess(false), 3000)
@@ -112,6 +110,7 @@ export default function Profile({
         bio: editBio,
         career_interests: interestsArray,
       })
+      setLocalUser(updatedUser)
       setUser(updatedUser)
       setSaveSuccessMessage("Preferensi profil berhasil disimpan.")
       setTimeout(() => {
