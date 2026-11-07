@@ -121,6 +121,13 @@ Kontainer `ftmm-compass-gateway` secara otomatis terhubung ke `ftmm-network` dan
 - `DELETE /api/v1/chat/sessions/{session_id}` — Hapus riwayat sesi chat.
 - `POST /api/v1/plans/validations` — Validate student study plans against prerequisite graph DAG and semester parity constraints.
 - `POST /api/v1/plans` — Generate deterministic, DAG-validated degree plan from complete student profile.
+- `GET /api/v1/degree-plans` — Daftar skenario rencana studi tersimpan milik pengguna aktif (maks 10).
+- `GET /api/v1/degree-plans/catalog` — MK milik kurikulum yang di-assign ke mahasiswa (dipakai picker Degree Planner).
+- `POST /api/v1/degree-plans` — Buat skenario baru (`name`, `items`), 201 + `Location`.
+- `GET /api/v1/degree-plans/{plan_id}` — Detail satu skenario; 404 bila bukan milik pengguna.
+- `PUT /api/v1/degree-plans/{plan_id}/items` — Ganti seluruh isi rencana (idempoten), 422 untuk kode MK asing/paritas salah/duplikat.
+- `PATCH /api/v1/degree-plans/{plan_id}` — Ubah nama dan/atau status (`draft`, `active`); satu `active` per pengguna.
+- `DELETE /api/v1/degree-plans/{plan_id}` — Hapus skenario beserta itemnya (204).
 - `GET /api/v1/dashboard/me` — Telemetri dashboard adaptif per peran (student/lecturer/faculty_staff/admin).
 - `GET /api/v1/academic-periods/current` — Periode akademik aktif.
 - `GET /api/v1/polling/periods/active` — Periode polling MK pilihan yang sedang dibuka.
