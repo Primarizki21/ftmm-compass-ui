@@ -166,18 +166,10 @@ jobs:
       - name: Python lint check with Ruff
         run: uv run --directory backend ruff check .
 
-      - name: Run backend unit tests
-        run: uv run --directory backend python test_backend.py
-
-      - name: Run FastAPI API integration tests
+      - name: Run backend test suite
         env:
           DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/ftmm_compass_dev
-        run: uv run --directory backend python test_api_endpoints.py
-
-      - name: Run Pre-KRS Polling API integration tests
-        env:
-          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/ftmm_compass_dev
-        run: uv run --directory backend python test_polling_api.py
+        run: uv run --directory backend python -m pytest tests -q
 
   docker-build:
     name: Docker Image Build Guard

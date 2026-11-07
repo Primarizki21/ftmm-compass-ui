@@ -206,6 +206,5 @@ cd backend && uv sync
 cd backend && uv run python app.py
 
 # Menjalankan tes
-cd backend && uv run python test_backend.py
-cd backend && uv run python test_api_endpoints.py
+cd backend && uv run python -m pytest tests -q
 ```

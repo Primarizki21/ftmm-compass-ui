@@ -105,13 +105,11 @@ dev-frontend: ## Hanya menjalankan server frontend Vite
 dev-backend: ## Hanya menjalankan server backend FastAPI
 	@pnpm dev:backend
 
-test: ## Menjalankan seluruh pengujian (typecheck, backend API, frontend smoke test)
+test: ## Menjalankan seluruh pengujian (typecheck frontend + suite pytest backend)
 	@echo -e "$(CYAN)[TEST] Typecheck TypeScript frontend...$(RESET)"
 	@pnpm typecheck
-	@echo -e "$(CYAN)[TEST] Pengujian backend endpoints...$(RESET)"
-	@uv run --directory backend python test_api_endpoints.py
-	@echo -e "$(CYAN)[TEST] Frontend smoke verification...$(RESET)"
-	@python3 scripts/verify_frontend.py
+	@echo -e "$(CYAN)[TEST] Suite backend (pytest)...$(RESET)"
+	@uv run --directory backend python -m pytest tests -q
 
 lint: ## Menjalankan pemeriksaan format kode dan typecheck
 	@pnpm format:check

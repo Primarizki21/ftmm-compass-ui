@@ -318,20 +318,17 @@ Proyek ini dilengkapi rangkaian pengujian otomatis untuk memvalidasi fungsi back
 # ----------------------------------------------------
 # A. Menggunakan Makefile (Cepat & Terintegrasi)
 # ----------------------------------------------------
-make test          # Typecheck TypeScript + Backend API tests + Frontend smoke test
+make test          # Typecheck TypeScript + suite pytest backend
 make lint          # Pemeriksaan format (oxfmt) + typecheck
 make format        # Auto-format seluruh codebase via oxfmt
 
 # ----------------------------------------------------
 # B. Perintah Manual / Spesifik Sub-Sistem
 # ----------------------------------------------------
-# 1. Jalankan unit test logic planner, validator, dan slot-filling agent
-uv run --directory backend python test_backend.py
+# 1. Jalankan seluruh suite backend (domain + endpoint + polling + chat)
+uv run --directory backend python -m pytest tests -q
 
-# 2. Jalankan integration test endpoint FastAPI
-uv run --directory backend python test_api_endpoints.py
-
-# 3. Jalankan build test & type check frontend
+# 2. Jalankan build test & type check frontend
 pnpm build
 
 # 4. Verifikasi format code (oxfmt)
@@ -357,15 +354,16 @@ ftmm-compass-ui/
 │   ├── README.md                  # Dokumentasi API, setup uv, & arsitektur backend
 │   ├── app.py                     # Dual-tier API gateway (/api/v1/* & /api/*)
 │   ├── schemas.py                 # Pydantic v2 data models & payload contracts
-│   ├── data_loader.py             # Fallback katalog resmi 5 Prodi FTMM & PRODI_ALIASES
+│   ├── catalog.py                 # Katalog dari database (+ fallback Ekstrak) & alias prodi
+│   ├── academics.py               # Batas SKS, total kredit, konversi nilai, parity
+│   ├── api/                       # Router per resource (dipasang di /api/v1 dan /api)
 │   ├── pyproject.toml             # Konfigurasi dependensi uv (Astral)
 │   ├── uv.lock                    # Deterministic lockfile backend
 │   ├── .env.example               # Template konfigurasi environment backend
 │   ├── tools/
 │   │   ├── prerequisite_validator.py  # Deterministic DAG, parity, & SKS validator
 │   │   └── planner.py             # Study plan synthesis & elective scoring engine
-│   ├── test_backend.py            # Unit tests untuk 5 prodi loader, validator, & planner
-│   └── test_api_endpoints.py      # Integration tests untuk seluruh rute FastAPI
+│   └── tests/                     # Suite pytest (domain, endpoint, polling, chat)
 ├── src/                           # React 19 + TypeScript + Tailwind v4 SPA
 │   ├── App.tsx                    # Top-level state hub & planner payload wiring
 │   ├── main.tsx                   # React DOM entrypoint

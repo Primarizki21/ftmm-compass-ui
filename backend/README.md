@@ -17,8 +17,7 @@ backend/
 ├── pyproject.toml             # Astral UV project definition & dependencies
 ├── uv.lock                    # Dependency lockfile
 ├── .env.example               # Environment variable templates
-├── test_backend.py            # Unit test suite (planner, validator, agent flow)
-└── test_api_endpoints.py      # HTTP integration test suite (FastAPI TestClient)
+└── tests/                     # Suite pytest (domain, endpoint, polling, chat)
 ```
 
 ---
@@ -122,11 +121,8 @@ All 4xx and 5xx responses follow the standardized error payload:
 Run automated unit and integration tests:
 
 ```bash
-# Unit tests for planner, validator, and slot-filling logic
-uv run python test_backend.py
-
-# Integration tests for FastAPI endpoints
-uv run python test_api_endpoints.py
+# Domain, endpoint, polling, and chat gateway tests
+uv run python -m pytest tests -q
 ```
 
 ---
