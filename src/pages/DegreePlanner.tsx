@@ -126,7 +126,6 @@ export default function DegreePlanner({
     index: number
   } | null>(null)
 
-  // Auto-place Wajib courses into their designated semester; Pilihan stays in bank
   useEffect(() => {
     const wajibCourses = pendingCourses.filter((c) => c.type === "Wajib")
     if (wajibCourses.length === 0) return
@@ -346,7 +345,6 @@ export default function DegreePlanner({
     }))
   }
 
-  // Auto-resolve conflicts by picking conflict-free section alternatives
   const handleAutoResolveConflicts = () => {
     const updated = { ...selectedSections }
     currentTimetableCourses.forEach((c) => {
@@ -365,7 +363,6 @@ export default function DegreePlanner({
 
   return (
     <div className="h-full flex flex-col animate-in fade-in duration-500">
-      {/* Tab Bar */}
       <div className="flex gap-1 mb-4 bg-background p-1 rounded-xl border border-border w-fit flex-shrink-0">
         {([
           { key: "roadmap", label: "Roadmap Studi", icon: BookOpen },
@@ -390,7 +387,6 @@ export default function DegreePlanner({
         })}
       </div>
 
-      {/* ─── TAB: Roadmap Studi ─── */}
       {activeTab === "roadmap" && (
         <>
           <PlannerHeader
@@ -408,7 +404,6 @@ export default function DegreePlanner({
             lastSaved={lastSaved}
           />
 
-          {/* Semester Columns */}
           <div className="flex-1 overflow-x-auto pb-1 min-h-0">
             <div className="flex gap-4 min-w-max h-full">
               {SEMESTERS.map((sem) => (
@@ -437,7 +432,6 @@ export default function DegreePlanner({
             </div>
           </div>
 
-          {/* Course Bank — only Pilihan */}
           <ElectiveCourseBank
             pendingCourses={pendingCourses}
             onDragStartBank={(e, course) => handleDragStart(e, course, "bank")}
@@ -447,7 +441,6 @@ export default function DegreePlanner({
             }
           />
 
-          {/* Modal Pop-up: Tambah Manual */}
           <CoursePickerModal
             pickerSem={pickerSem}
             pickerSearch={pickerSearch}
@@ -467,7 +460,6 @@ export default function DegreePlanner({
             activeReligion={activeReligion}
           />
 
-          {/* Modal Pop-up: Inspeksi Silabus & Prasyarat In-Situ */}
           <CourseInspectModal
             course={inspectCourse ? inspectCourse.course : null}
             currentSem={inspectCourse ? inspectCourse.sem : 1}
@@ -481,10 +473,8 @@ export default function DegreePlanner({
         </>
       )}
 
-      {/* ─── TAB: Jadwal Aktif ─── */}
       {activeTab === "timetable" && (
         <div className="flex-1 flex flex-col min-h-0">
-          {/* Timetable Header & Semester Picker */}
           <div className="mb-4 flex flex-wrap justify-between items-center gap-3 flex-shrink-0">
             <div>
               <div className="flex items-center gap-2">
@@ -501,7 +491,6 @@ export default function DegreePlanner({
               </p>
             </div>
 
-            {/* Semester Switcher */}
             <div className="flex items-center gap-1.5 bg-background p-1 rounded-xl border border-border">
               <span className="text-xs text-muted font-medium px-2">
                 Tampilkan Semester:
@@ -540,9 +529,7 @@ export default function DegreePlanner({
             </div>
           </div>
 
-          {/* Timetable Body: Left Class Selector & Right Grid */}
           <div className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-4 min-h-0 overflow-y-auto lg:overflow-hidden pb-1">
-            {/* Left Column: Class Selector Panel (4 cols on desktop) */}
             <div className="lg:col-span-4 min-h-[380px] lg:h-full min-h-0 flex flex-col">
               <ClassSelectorPanel
                 activeSemester={activeTimetableSem}
@@ -554,7 +541,6 @@ export default function DegreePlanner({
               />
             </div>
 
-            {/* Right Column: Timetable Grid (8 cols on desktop) */}
             <div className="lg:col-span-8 flex flex-col min-h-0 h-full">
               <TimetableGrid
                 schedule={dynamicSchedule}

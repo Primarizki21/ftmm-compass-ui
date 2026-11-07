@@ -73,7 +73,6 @@ export default function CoursePickerModal({
       overlayClassName="bg-navy-dark/60 animate-in fade-in duration-200"
       panelClassName="bg-surface border border-border rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
     >
-      {/* Modal Header */}
       <div className="p-5 border-b border-border flex items-start justify-between bg-background/50">
         <div>
           <div className="flex items-center gap-2">
@@ -132,10 +131,8 @@ export default function CoursePickerModal({
         </button>
       </div>
 
-      {/* Filter Bar */}
       <div className="p-4 border-b border-border bg-surface space-y-3">
         <div className="flex flex-col sm:flex-row gap-2">
-          {/* Search */}
           <div className="relative flex-1">
             <Search className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
             <input
@@ -158,7 +155,6 @@ export default function CoursePickerModal({
             )}
           </div>
 
-          {/* Program Studi Selector */}
           <select
             aria-label="Filter Program Studi"
             value={pickerProgram}
@@ -174,9 +170,7 @@ export default function CoursePickerModal({
           </select>
         </div>
 
-        {/* Type Filter & Add Status Toggle */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-          {/* Type Filter */}
           <div
             role="group"
             aria-label="Filter tipe mata kuliah"
@@ -227,7 +221,6 @@ export default function CoursePickerModal({
         </div>
       </div>
 
-      {/* Course List */}
       <div className="flex-1 overflow-y-auto p-4 space-y-2.5 min-h-[220px]">
         {filtered.length === 0 ? (
           <div className="h-44 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-border rounded-xl">
@@ -308,7 +301,6 @@ export default function CoursePickerModal({
         )}
       </div>
 
-      {/* Modal Footer */}
       <div className="p-3 px-5 border-t border-border bg-background flex justify-between items-center text-xs text-muted">
         <span>
           Tekan <strong>Esc</strong> atau klik di luar untuk menutup

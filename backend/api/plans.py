@@ -138,9 +138,6 @@ async def handle_generate_plan(profile: StudentProfile) -> DegreePlanPayload:
         raise HTTPException(status_code=500, detail=f"Error generating plan: {str(e)}")
 
 
-# ============================================================================
-
-
 @router.post("/plans/validations", response_model=PlanValidationResponse)
 async def v1_validate_plan(request: PlanValidationRequest):
     return await handle_validate_plan(request)

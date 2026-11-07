@@ -139,7 +139,6 @@ export default function PrerequisiteDiagram({
 
   return (
     <div className="space-y-4">
-      {/* Legend & Hint */}
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted pb-1 border-b border-border/50">
         <div className="flex flex-wrap items-center gap-3">
           {hasInbound && (
@@ -184,7 +183,6 @@ export default function PrerequisiteDiagram({
             </marker>
           </defs>
 
-          {/* Edges: Inbound → Current */}
           {hasInbound &&
             inboundNodes.map((p, pi) => {
               const x1 = getX(pi, inboundNodes.length) + NODE_W / 2
@@ -203,7 +201,6 @@ export default function PrerequisiteDiagram({
               )
             })}
 
-          {/* Edges: Current → Outbound */}
           {hasOutbound &&
             outboundNodes.map((p, pi) => {
               const x1 = currentX + NODE_W / 2
@@ -222,7 +219,6 @@ export default function PrerequisiteDiagram({
               )
             })}
 
-          {/* Inbound Nodes */}
           {hasInbound &&
             inboundNodes.map((node, i) => {
               const x = getX(i, inboundNodes.length)
@@ -289,7 +285,6 @@ export default function PrerequisiteDiagram({
               )
             })}
 
-          {/* Current / Active Course Node */}
           <g>
             <rect
               x={currentX}
@@ -337,7 +332,6 @@ export default function PrerequisiteDiagram({
             </text>
           </g>
 
-          {/* Outbound Unlocked Nodes */}
           {hasOutbound &&
             outboundNodes.map((node, i) => {
               const x = getX(i, outboundNodes.length)
@@ -406,7 +400,6 @@ export default function PrerequisiteDiagram({
         </svg>
       </div>
 
-      {/* Administrative Requirements Callout */}
       {adminPrereqs.length > 0 && (
         <div className="flex items-center gap-2.5 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-900 max-w-xl mx-auto">
           <AlertCircle className="w-4 h-4 text-amber-700 flex-shrink-0" />

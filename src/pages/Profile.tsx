@@ -141,7 +141,6 @@ export default function Profile({ onNavigate, onRequestLogout }: ProfileProps) {
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto animate-in fade-in duration-300 pb-12">
-      {/* Top Banner / Identity Hero */}
       <div className="bg-surface rounded-2xl border border-border shadow-sm p-6 md:p-8 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-80 h-80 bg-teal/5 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-1/3 w-64 h-64 bg-gold/5 rounded-full blur-3xl pointer-events-none" />
@@ -243,11 +242,8 @@ export default function Profile({ onNavigate, onRequestLogout }: ProfileProps) {
         )}
       </div>
 
-      {/* Main Grid: Academic Data & Account Security */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Academic Profile Cards (2 spans) */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Role-Specific Academic Identity Card */}
           {user?.role === "admin" ? (
             <div className="bg-surface rounded-2xl border border-border shadow-sm p-6 space-y-5">
               <div className="flex items-center justify-between border-b border-border/80 pb-3">
@@ -480,7 +476,6 @@ export default function Profile({ onNavigate, onRequestLogout }: ProfileProps) {
                 </div>
               </div>
 
-              {/* Academic Regulation Callout (SOP FTMM) */}
               <div className="p-4 rounded-xl bg-navy/5 border border-navy/10 flex items-start gap-3">
                 <Award className="w-5 h-5 text-gold flex-shrink-0 mt-0.5" />
                 <div className="text-xs text-navy/90 leading-relaxed">
@@ -506,7 +501,6 @@ export default function Profile({ onNavigate, onRequestLogout }: ProfileProps) {
             </div>
           )}
 
-          {/* Quick Action Navigation */}
           <div className="bg-surface rounded-2xl border border-border shadow-sm p-6">
             <h2 className="font-heading font-bold text-base text-navy mb-4 flex items-center gap-2">
               <BookOpen className="w-4 h-4 text-teal" />
@@ -562,9 +556,7 @@ export default function Profile({ onNavigate, onRequestLogout }: ProfileProps) {
           </div>
         </div>
 
-        {/* Right Column: Security, Session & Account Info (1 span) */}
         <div className="space-y-6">
-          {/* Card: Informasi Keamanan Sesi */}
           <div className="bg-surface rounded-2xl border border-border shadow-sm p-6 space-y-4">
             <h2 className="font-heading font-bold text-base text-navy flex items-center gap-2 border-b border-border/80 pb-3">
               <ShieldCheck className="w-4 h-4 text-teal" />
@@ -619,7 +611,6 @@ export default function Profile({ onNavigate, onRequestLogout }: ProfileProps) {
             </div>
           </div>
 
-          {/* Card: Kontak & Preferensi Mandiri */}
           <div className="bg-surface rounded-2xl border border-border shadow-sm p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-border/80 pb-3">
               <h2 className="font-heading font-bold text-base text-navy flex items-center gap-2">
@@ -675,7 +666,6 @@ export default function Profile({ onNavigate, onRequestLogout }: ProfileProps) {
             </div>
           </div>
 
-          {/* Card: Hak Pengguna & Bantuan */}
           <div className="bg-warm-bg/70 rounded-2xl border border-border p-5 text-xs text-muted space-y-2">
             <h3 className="font-semibold text-navy">Pusat Dukungan Akademik</h3>
             <p className="leading-relaxed">
@@ -687,7 +677,6 @@ export default function Profile({ onNavigate, onRequestLogout }: ProfileProps) {
         </div>
       </div>
 
-      {/* Edit Preferences Modal */}
       {isEditModalOpen && (
         <div
           role="dialog"
@@ -719,7 +708,6 @@ export default function Profile({ onNavigate, onRequestLogout }: ProfileProps) {
               </button>
             </div>
 
-            {/* Institutional Authority / Locked Notice */}
             {user?.role === "admin" ? (
               <div className="p-3.5 rounded-xl bg-teal/10 border border-teal/30 flex items-start gap-2.5 text-xs text-navy">
                 <ShieldCheck className="w-4 h-4 text-teal flex-shrink-0 mt-0.5" />

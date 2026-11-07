@@ -29,7 +29,7 @@ PDF_DIR = os.path.join(EKSTRAK_DIR, "pdf")
 PANDUAN_FILE = "Panduan Pendidikan FTMM UNAIR 2024-2025.pdf"
 CATALOG_PATH = os.path.join(OUT_DIR, "catalog_canonical.json")
 # Deskripsi, CPL, dan nama dosen tidak di-commit (mengikuti aturan tim untuk Ekstrak/).
-# Subfolder, karena frontend (src/courseData.ts) dan data_loader.py membaca Ekstrak/*.json.
+# Disimpan di subfolder derived/ agar tidak ikut terbaca sebagai baris katalog Ekstrak/*.json.
 DETAILS_PATH = os.path.join(EKSTRAK_DIR, "derived", "catalog_details.json")
 TI_OCR_PATH = os.path.join(EKSTRAK_DIR, "ocr", "TI_descriptions.json")
 REPORT_PATH = os.path.join(OUT_DIR, "catalog_build_report.md")

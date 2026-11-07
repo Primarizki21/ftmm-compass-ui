@@ -50,7 +50,6 @@ export default function CourseInspectModal({
       overlayClassName="bg-navy-dark/60 animate-in fade-in duration-200"
       panelClassName="bg-surface border border-border rounded-2xl shadow-2xl max-w-xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
     >
-      {/* Header */}
       <div className="p-5 border-b border-border bg-background/50 flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="mb-1.5">
@@ -86,9 +85,7 @@ export default function CourseInspectModal({
         </button>
       </div>
 
-      {/* Content Body */}
       <div className="flex-1 overflow-y-auto p-5 space-y-5">
-        {/* Metadata Cards */}
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-background rounded-xl p-3 border border-border">
             <span className="text-[10px] font-medium text-muted block mb-1">
@@ -128,7 +125,6 @@ export default function CourseInspectModal({
           </div>
         </div>
 
-        {/* Description */}
         <div>
           <h4 className="font-heading font-bold text-xs uppercase tracking-wider text-muted mb-2 flex items-center gap-1.5">
             <BookOpen className="w-3.5 h-3.5 text-navy" />
@@ -140,7 +136,6 @@ export default function CourseInspectModal({
           </p>
         </div>
 
-        {/* Academic Workload */}
         {course.workload && (
           <div>
             <h4 className="font-heading font-bold text-xs uppercase tracking-wider text-muted mb-2 flex items-center gap-1.5">
@@ -151,7 +146,6 @@ export default function CourseInspectModal({
           </div>
         )}
 
-        {/* Prerequisite Inspection */}
         <div>
           <div className="flex items-center justify-between mb-2">
             <h4 className="font-heading font-bold text-xs uppercase tracking-wider text-muted flex items-center gap-1.5">
@@ -230,7 +224,6 @@ export default function CourseInspectModal({
         </div>
       </div>
 
-      {/* Modal Footer / Actions */}
       <div className="p-4 border-t border-border bg-background/50 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           {!completed && onDeleteCourse && (

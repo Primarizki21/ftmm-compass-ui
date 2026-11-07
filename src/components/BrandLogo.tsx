@@ -52,7 +52,6 @@ export default function BrandLogo({
           </div>
         </div>
 
-        {/* Brand Title & Compass Emblem */}
         <div className="flex items-center gap-3 px-1 pt-1">
           <div className="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center text-gold border border-gold/30 relative overflow-hidden group flex-shrink-0">
             <Compass className="w-6 h-6 transition-transform duration-700 group-hover:rotate-180" />

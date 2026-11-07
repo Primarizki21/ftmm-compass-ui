@@ -10,7 +10,6 @@ interface CourseBadgesProps {
   children?: React.ReactNode
 }
 
-/** Kluster badge mata kuliah: identitas, SKS/semester, tipe, dan kategori kurikulum. */
 export default function CourseBadges({
   course,
   variant = "inline",

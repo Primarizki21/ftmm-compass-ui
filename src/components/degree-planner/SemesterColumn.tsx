@@ -71,7 +71,6 @@ export function PlannerCourseCard({
         isDropTargetTop && "border-t-2 border-t-teal shadow-md",
       )}
     >
-      {/* Header: Grip/Status + Kode MK di KIRI, Badges Tipe & Status di KANAN — SEMUA HORIZONTAL */}
       <div className="flex items-center justify-between gap-2 mb-1.5 pb-1 border-b border-border/40">
         <div className="flex items-center gap-1.5 min-w-0">
           <div
@@ -112,7 +111,6 @@ export function PlannerCourseCard({
           </span>
         </div>
 
-        {/* Badges horizontal: Tipe (Wajib/Pilihan) + Status (Lulus/Wishlist/Direncanakan) */}
         <div
           className={cn(
             "flex items-center gap-1.5 flex-shrink-0 transition-opacity duration-150",
@@ -144,12 +142,10 @@ export function PlannerCourseCard({
         </div>
       </div>
 
-      {/* Body: Course Name */}
       <h5 className="font-medium text-xs leading-snug text-foreground mb-1.5 line-clamp-2">
         {course.name}
       </h5>
 
-      {/* Footer: SKS */}
       <div className="flex items-center justify-between text-[10px] text-muted font-mono">
         <span>{course.credits} SKS</span>
         {course.program && (
@@ -240,7 +236,6 @@ export function SemesterColumn({
       onDrop={(e) => onDropColumn(e, sem)}
       onDragLeave={onDragLeaveColumn}
     >
-      {/* Header */}
       <div
         className={cn(
           "p-3 border-b rounded-t-xl flex justify-between items-center transition-colors",
@@ -267,7 +262,6 @@ export function SemesterColumn({
         </span>
       </div>
 
-      {/* Invalid warning */}
       {(state === "invalid" || state === "invalid-hover") && dragging && (
         <div
           className={cn(
@@ -286,7 +280,6 @@ export function SemesterColumn({
         </div>
       )}
 
-      {/* Course cards */}
       <div className="flex-1 p-3 space-y-2 overflow-y-auto min-h-[200px]">
         {courses.map((course, idx) => (
           <PlannerCourseCard
@@ -324,7 +317,6 @@ export function SemesterColumn({
         )}
       </div>
 
-      {/* Footer: Tambah Manual Button */}
       <div className="p-3 border-t border-border bg-surface rounded-b-xl flex-shrink-0">
         <button
           type="button"

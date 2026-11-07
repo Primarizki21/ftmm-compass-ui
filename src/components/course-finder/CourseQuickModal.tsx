@@ -52,7 +52,6 @@ export default function CourseQuickModal({
       overlayClassName="backdrop-blur-sm"
       panelClassName="bg-surface rounded-2xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh]"
     >
-      {/* Modal Header */}
       <div className="bg-navy text-white p-6 relative overflow-hidden flex-shrink-0">
         <div className="absolute -right-10 -top-10 w-48 h-48 bg-gold/10 rounded-full blur-3xl" />
         <div className="absolute -left-8 bottom-0 w-32 h-32 bg-teal/8 rounded-full blur-2xl" />
@@ -95,7 +94,6 @@ export default function CourseQuickModal({
         </div>
       </div>
 
-      {/* Modal Body */}
       <div className="p-6 overflow-y-auto flex-1 space-y-5">
         {course.type === "Pilihan" && !isElectiveOpen && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex items-start gap-3">
@@ -234,7 +232,6 @@ export default function CourseQuickModal({
         {course.workload && <WorkloadGrid workload={course.workload} />}
       </div>
 
-      {/* Modal Actions */}
       <div
         className={cn(
           "p-4 border-t border-border flex-shrink-0",

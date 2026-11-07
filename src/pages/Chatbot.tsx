@@ -277,7 +277,6 @@ export default function Chatbot({
 
   return (
     <div className="h-full flex flex-col bg-surface border border-border rounded-xl shadow-sm overflow-hidden animate-in fade-in duration-500">
-      {/* Header */}
       <div className="p-4 border-b border-border bg-navy text-white flex justify-between items-center relative overflow-hidden flex-shrink-0">
         <div className="absolute -right-10 -top-10 w-40 h-40 bg-gold/20 rounded-full blur-3xl" />
         <div className="flex items-center gap-3 relative z-10">
@@ -322,7 +321,6 @@ export default function Chatbot({
         </div>
       </div>
 
-      {/* Chat Area */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-background/30">
         {messages.map((msg) => (
           <div
@@ -374,7 +372,6 @@ export default function Chatbot({
                   </div>
                 )}
 
-              {/* Interactive Degree Plan Action Card */}
               {msg.plan_payload && (
                 <DegreePlanActionCard
                   messageId={msg.id}
@@ -406,7 +403,6 @@ export default function Chatbot({
         <div ref={endOfMessagesRef} />
       </div>
 
-      {/* Suggested Quick Prompts */}
       {messages.length <= 2 && (
         <div className="px-6 py-3 flex gap-2 overflow-x-auto scrollbar-hide border-t border-border bg-background/50 flex-shrink-0">
           {QUICK_PROMPTS.map((prompt, i) => (
@@ -422,7 +418,6 @@ export default function Chatbot({
         </div>
       )}
 
-      {/* Input Area */}
       <div className="p-4 bg-surface border-t border-border flex-shrink-0">
         <div className="relative flex items-center">
           <input

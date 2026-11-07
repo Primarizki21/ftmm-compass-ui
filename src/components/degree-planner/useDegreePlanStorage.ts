@@ -73,7 +73,6 @@ function loadInitialState(): DegreePlanStorageState {
       parsed.drafts.length > 0 &&
       typeof parsed.activeDraftId === "string"
     ) {
-      // Validate activeDraftId exists in drafts
       const exists = parsed.drafts.some((d) => d.id === parsed.activeDraftId)
       const validActiveId = exists ? parsed.activeDraftId : parsed.drafts[0].id
       return withInitialPlans({
@@ -81,9 +80,7 @@ function loadInitialState(): DegreePlanStorageState {
         drafts: parsed.drafts as DegreePlanDraft[],
       })
     }
-  } catch {
-    // If corrupted, fallback to defaults
-  }
+  } catch {}
 
   return {
     activeDraftId: "draft-1",
@@ -162,7 +159,6 @@ export function useDegreePlanStorage(): UseDegreePlanStorageReturn {
     persistState(storageState)
   }, [storageState])
 
-  // Debounced auto-save function (~500ms)
   const setPlanWithDebouncedSave = useCallback(
     (
       updater: Record<number, PlacedCourse[]> | ((
@@ -292,7 +288,6 @@ export function useDegreePlanStorage(): UseDegreePlanStorageReturn {
     setPlanWithDebouncedSave(activeDraft.initialPlan ?? {})
   }, [activeDraft.initialPlan, setPlanWithDebouncedSave])
 
-  // Cleanup pending timer on unmount
   useEffect(() => {
     return () => {
       clearTimeout(saveTimerRef.current ?? undefined)

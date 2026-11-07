@@ -77,7 +77,6 @@ export default function PlannerHeader({
 
   return (
     <>
-      {/* AI Generated Plan Banner */}
       {appliedSummary && (
         <div className="mb-4 p-4 bg-teal/15 border border-teal/40 rounded-xl flex items-center justify-between gap-4 animate-in fade-in duration-300">
           <div className="flex items-center gap-3">
@@ -112,8 +111,6 @@ export default function PlannerHeader({
         </div>
       )}
 
-      {/* Header & Legend */}
-      {/* Role-Specific Mode Banner */}
       {currentUser?.role === "admin" && (
         <div className="mb-3 px-3.5 py-2 rounded-xl bg-gold/15 border border-gold/40 text-navy text-xs flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -145,7 +142,6 @@ export default function PlannerHeader({
         </div>
       )}
 
-      {/* Multi-Draft Scenario Selector Card */}
       {drafts && drafts.length > 0 && (
         <div className="mb-4 p-3.5 bg-surface border border-border rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-2xs">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -166,7 +162,6 @@ export default function PlannerHeader({
               </div>
             </div>
 
-            {/* Dropdown Selector */}
             <div className="flex items-center gap-2">
               <select
                 id="draft-selector"
@@ -183,9 +178,7 @@ export default function PlannerHeader({
             </div>
           </div>
 
-          {/* Actions & Status */}
           <div className="flex flex-wrap items-center gap-2">
-            {/* Auto-save status indicator */}
             <div className="flex items-center gap-1.5 text-[11px] font-mono mr-1">
               {isSaving ? (
                 <span className="text-warning flex items-center gap-1">
@@ -202,7 +195,6 @@ export default function PlannerHeader({
               )}
             </div>
 
-            {/* Reset Draft to Default */}
             {onResetDraft && (
               <button
                 type="button"
@@ -215,7 +207,6 @@ export default function PlannerHeader({
               </button>
             )}
 
-            {/* Duplicate Draft */}
             {onDuplicateDraft && (
               <button
                 type="button"
@@ -228,7 +219,6 @@ export default function PlannerHeader({
               </button>
             )}
 
-            {/* New Draft */}
             {onCreateDraft && (
               <button
                 type="button"
@@ -282,7 +272,6 @@ export default function PlannerHeader({
         </div>
       </div>
 
-      {/* Drag hint */}
       {dragging && (
         <div className="mb-3 p-3 bg-navy/5 border border-navy/15 rounded-lg flex items-center gap-3 text-sm flex-shrink-0 animate-in fade-in duration-150">
           <GripVertical className="w-4 h-4 text-navy/40" />

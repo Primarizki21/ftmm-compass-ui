@@ -59,7 +59,6 @@ export default function CourseDetailView({
 
   return (
     <div className="h-full flex flex-col animate-in fade-in duration-300">
-      {/* Header */}
       <div className="bg-navy text-white rounded-xl p-6 mb-5 relative overflow-hidden flex-shrink-0">
         <div className="absolute -right-10 -top-10 w-64 h-64 bg-gold/10 rounded-full blur-3xl" />
         <div className="absolute -left-10 bottom-0 w-48 h-48 bg-teal/5 rounded-full blur-2xl" />
@@ -88,7 +87,6 @@ export default function CourseDetailView({
       </div>
 
       <div className="flex-1 overflow-y-auto space-y-4 pb-4">
-        {/* Academic Classification Callout */}
         {currentCourse.category === "pdb_univ" && (
           <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 flex items-start gap-3">
             <div className="p-2 bg-purple-100 text-purple-700 rounded-lg flex-shrink-0 mt-0.5">
@@ -147,7 +145,6 @@ export default function CourseDetailView({
             </div>
           )}
 
-        {/* Description + Workload */}
         <div className="bg-surface rounded-xl border border-border p-6">
           <h3 className="font-heading font-bold text-lg text-navy mb-3">
             Deskripsi Mata Kuliah
@@ -163,7 +160,6 @@ export default function CourseDetailView({
           )}
         </div>
 
-        {/* Prerequisite Diagram */}
         <div className="bg-surface rounded-xl border border-border p-6">
           <h3 className="font-heading font-bold text-lg text-navy mb-5">
             Diagram Alur Prasyarat
@@ -175,7 +171,6 @@ export default function CourseDetailView({
           />
         </div>
 
-        {/* Action: Only for students */}
         {currentUser?.role === "student" && (
           <div className="bg-surface rounded-xl border border-border p-5">
             <button

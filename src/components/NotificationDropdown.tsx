@@ -131,7 +131,6 @@ export default function NotificationDropdown({
 
       {isOpen && (
         <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-surface border border-border rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-          {/* Header */}
           <div className="px-4 py-3 bg-navy text-white flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="font-heading font-semibold text-sm">
@@ -155,7 +154,6 @@ export default function NotificationDropdown({
             )}
           </div>
 
-          {/* Notification List */}
           <div className="max-h-80 overflow-y-auto divide-y divide-border/60">
             {notifications.length === 0 ? (
               <div className="p-6 text-center text-muted text-sm">
@@ -215,7 +213,6 @@ export default function NotificationDropdown({
             )}
           </div>
 
-          {/* Footer */}
           <div className="p-2.5 bg-background/50 border-t border-border text-center">
             <span className="text-[11px] text-muted">
               Terhubung dengan Kalender Akademik FTMM UNAIR

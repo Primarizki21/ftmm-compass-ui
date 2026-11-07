@@ -166,7 +166,6 @@ export async function copyTimetableShareUrl(
       await navigator.clipboard.writeText(url)
       return { success: true, url }
     }
-    // Fallback if clipboard API not available
     const textarea = document.createElement("textarea")
     textarea.value = url
     textarea.style.position = "fixed"

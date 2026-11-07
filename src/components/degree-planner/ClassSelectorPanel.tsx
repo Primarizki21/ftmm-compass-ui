@@ -47,7 +47,6 @@ export default function ClassSelectorPanel({
 
   return (
     <div className="bg-surface rounded-2xl border border-border shadow-xs p-4 sm:p-5 flex flex-col h-full">
-      {/* Panel Header */}
       <div className="pb-4 border-b border-border/70 flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
@@ -65,7 +64,6 @@ export default function ClassSelectorPanel({
           </p>
         </div>
 
-        {/* Conflict Badge & Auto Resolve */}
         <div className="flex items-center gap-2">
           {conflicts.length > 0 ? (
             <div className="flex items-center gap-2">
@@ -94,7 +92,6 @@ export default function ClassSelectorPanel({
         </div>
       </div>
 
-      {/* Course List & Section Selectors */}
       <div className="flex-1 overflow-y-auto py-3 space-y-3.5 pr-0.5">
         {semesterCourses.length === 0 ? (
           <div className="h-40 flex flex-col items-center justify-center text-center p-4 border border-dashed border-border rounded-xl">
@@ -128,7 +125,6 @@ export default function ClassSelectorPanel({
                     : "bg-background border-border/80 hover:border-gold/50",
                 )}
               >
-                {/* Course Header Row */}
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
@@ -157,7 +153,6 @@ export default function ClassSelectorPanel({
                   )}
                 </div>
 
-                {/* Section Choices */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
                   {offering.sections.map((sec) => {
                     const isSelected = currentSectionId === sec.sectionId
@@ -245,7 +240,6 @@ export default function ClassSelectorPanel({
         )}
       </div>
 
-      {/* Panel Footer Summary */}
       <div className="pt-3 border-t border-border flex items-center justify-between text-xs text-muted">
         <span>
           Terpilih: <strong className="text-navy">{selectedCount}</strong> dari{" "}

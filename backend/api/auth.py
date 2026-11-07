@@ -133,7 +133,6 @@ async def v1_update_profile(
         ]
 
     await db.commit()
-    # Re-fetch with student_profile relationship loaded
     stmt = (
         select(User)
         .options(selectinload(User.student_profile).selectinload(StudentProfileModel.study_program))

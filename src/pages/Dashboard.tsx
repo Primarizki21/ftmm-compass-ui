@@ -171,11 +171,8 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Four Stat Cards */}
-      {/* Four Dynamic Stat Cards Based on Role */}
       {dashboardData?.stats?.type === "lecturer" ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Matakuliah Diampu */}
           <div className="bg-surface rounded-xl p-5 border border-border shadow-sm flex flex-col relative overflow-hidden group">
             <div className="absolute -right-6 -top-6 w-24 h-24 bg-navy-light/10 rounded-full blur-2xl group-hover:bg-navy-light/20 transition-colors" />
             <h3 className="text-muted text-xs font-medium mb-1 flex items-center gap-2">
@@ -192,7 +189,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </p>
           </div>
 
-          {/* Beban SKS Mengajar */}
           <div className="bg-surface rounded-xl p-5 border border-border shadow-sm flex flex-col relative overflow-hidden group">
             <div className="absolute -right-6 -top-6 w-24 h-24 bg-gold/10 rounded-full blur-2xl group-hover:bg-gold/20 transition-colors" />
             <h3 className="text-muted text-xs font-medium mb-1 flex items-center gap-2">
@@ -221,7 +217,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </p>
           </div>
 
-          {/* Mahasiswa Diajar */}
           <div className="bg-surface rounded-xl p-5 border border-border shadow-sm flex flex-col relative overflow-hidden group">
             <div className="absolute -right-6 -top-6 w-24 h-24 bg-teal/10 rounded-full blur-2xl group-hover:bg-teal/20 transition-colors" />
             <h3 className="text-muted text-xs font-medium mb-1 flex items-center gap-2">
@@ -238,7 +233,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </p>
           </div>
 
-          {/* Status Dosen */}
           <div className="bg-surface rounded-xl p-5 border border-border shadow-sm flex flex-col relative overflow-hidden group">
             <div className="absolute -right-6 -top-6 w-24 h-24 bg-teal-dark/10 rounded-full blur-2xl group-hover:bg-teal-dark/20 transition-colors" />
             <h3 className="text-muted text-xs font-medium mb-1 flex items-center gap-2">
@@ -256,7 +250,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         </div>
       ) : dashboardData?.stats?.type === "admin" ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Total Mahasiswa */}
           <div className="bg-surface rounded-xl p-5 border border-border shadow-sm flex flex-col relative overflow-hidden group">
             <div className="absolute -right-6 -top-6 w-24 h-24 bg-teal/10 rounded-full blur-2xl group-hover:bg-teal/20 transition-colors" />
             <h3 className="text-muted text-xs font-medium mb-1 flex items-center gap-2">
@@ -275,7 +268,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </p>
           </div>
 
-          {/* Total Dosen */}
           <div className="bg-surface rounded-xl p-5 border border-border shadow-sm flex flex-col relative overflow-hidden group">
             <div className="absolute -right-6 -top-6 w-24 h-24 bg-gold/10 rounded-full blur-2xl group-hover:bg-gold/20 transition-colors" />
             <h3 className="text-muted text-xs font-medium mb-1 flex items-center gap-2">
@@ -292,7 +284,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </p>
           </div>
 
-          {/* Total Kurikulum & Matkul */}
           <div className="bg-surface rounded-xl p-5 border border-border shadow-sm flex flex-col relative overflow-hidden group">
             <div className="absolute -right-6 -top-6 w-24 h-24 bg-navy-light/10 rounded-full blur-2xl group-hover:bg-navy-light/20 transition-colors" />
             <h3 className="text-muted text-xs font-medium mb-1 flex items-center gap-2">
@@ -309,7 +300,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </p>
           </div>
 
-          {/* Status Sistem & Polling */}
           <div className="bg-surface rounded-xl p-5 border border-border shadow-sm flex flex-col relative overflow-hidden group">
             <div className="absolute -right-6 -top-6 w-24 h-24 bg-teal-dark/10 rounded-full blur-2xl group-hover:bg-teal-dark/20 transition-colors" />
             <h3 className="text-muted text-xs font-medium mb-1 flex items-center gap-2">
@@ -331,7 +321,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         </div>
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* SKS Ditempuh */}
           <div className="bg-surface rounded-xl p-5 border border-border shadow-sm flex flex-col relative overflow-hidden group">
             <div className="absolute -right-6 -top-6 w-24 h-24 bg-teal-light/10 rounded-full blur-2xl group-hover:bg-teal-light/20 transition-colors" />
             <h3 className="text-muted text-xs font-medium mb-1 flex items-center gap-2">
@@ -370,7 +359,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </p>
           </div>
 
-          {/* Semester Aktif */}
           <div className="bg-surface rounded-xl p-5 border border-border shadow-sm flex flex-col relative overflow-hidden group">
             <div className="absolute -right-6 -top-6 w-24 h-24 bg-gold/10 rounded-full blur-2xl group-hover:bg-gold/20 transition-colors" />
             <h3 className="text-muted text-xs font-medium mb-1 flex items-center gap-2">
@@ -393,7 +381,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </p>
           </div>
 
-          {/* Matkul Direncanakan */}
           <div className="bg-surface rounded-xl p-5 border border-border shadow-sm flex flex-col relative overflow-hidden group">
             <div className="absolute -right-6 -top-6 w-24 h-24 bg-navy-light/5 rounded-full blur-2xl group-hover:bg-navy-light/10 transition-colors" />
             <h3 className="text-muted text-xs font-medium mb-1 flex items-center gap-2">
@@ -417,7 +404,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </p>
           </div>
 
-          {/* IPK Kumulatif */}
           <div className="bg-surface rounded-xl p-5 border border-border shadow-sm flex flex-col relative overflow-hidden group">
             <div className="absolute -right-6 -top-6 w-24 h-24 bg-teal/10 rounded-full blur-2xl group-hover:bg-teal/20 transition-colors" />
             <h3 className="text-muted text-xs font-medium mb-1 flex items-center gap-2">
@@ -454,7 +440,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         </div>
       )}
 
-      {/* Schedule Widget (Student & Lecturer) OR Operational Monitoring (Admin) */}
       {user?.role === "admin" ? (
         <div className="bg-surface rounded-xl border border-border shadow-sm overflow-hidden p-5 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/80 pb-4">
@@ -567,7 +552,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           />
         </div>
       )}
-      {/* Lecturer-Specific Operational Section: Kelas Ampuan & Advisee Review */}
       {user?.role === "lecturer" && (
         <div className="bg-surface rounded-xl border border-border shadow-sm p-5">
           <div className="flex items-center gap-2.5 border-b border-border/80 pb-3">
@@ -601,7 +585,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         </div>
       )}
 
-      {/* Pre-KRS Section: Separated for Student (Personal Status) vs Lecturer/Admin (Demand Analytics) */}
       {user?.role === "student" ? (
         <div className="bg-surface rounded-xl border border-border shadow-sm overflow-hidden space-y-4 p-5">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-border/70 pb-4">
@@ -735,7 +718,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </div>
 
             <div className="flex items-center gap-2 self-start md:self-center">
-              {/* Prodi Filter */}
               <div className="relative">
                 <select
                   value={selectedProdi}
@@ -759,7 +741,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                 </div>
               </div>
 
-              {/* Export CSV Button */}
               <button
                 type="button"
                 onClick={handleExportCSV}
@@ -772,7 +753,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </div>
           </div>
 
-          {/* Summary Mini Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
             <div className="p-3 rounded-xl bg-background border border-border">
               <span className="text-muted block text-[11px]">
@@ -813,7 +793,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </div>
           </div>
 
-          {/* Demand Forecasting Table */}
           <div className="overflow-x-auto border border-border rounded-xl">
             <table className="w-full text-left text-xs">
               <thead className="bg-background text-muted uppercase font-mono text-[10px] tracking-wider border-b border-border">

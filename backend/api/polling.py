@@ -289,7 +289,6 @@ async def _fetch_demand_analytics(
     res_period = await db.execute(stmt_period)
     active_period = res_period.scalars().first()
 
-    # Fallback period jika belum ada periode aktif
     if not active_period:
         stmt_last = select(ElectivePollingPeriod).order_by(ElectivePollingPeriod.created_at.desc())
         res_last = await db.execute(stmt_last)

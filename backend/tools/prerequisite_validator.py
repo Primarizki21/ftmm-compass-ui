@@ -46,7 +46,6 @@ def validate_plan_constraints(
     semester_credits: Dict[int, int] = {}
     total_credits = 0
 
-    # Accumulate courses completed prior to starting the plan
     completed_so_far: Set[str] = set(riwayat_matkul_lulus)
     scheduled_ids: Set[str] = set()
 
@@ -56,7 +55,6 @@ def validate_plan_constraints(
         is_odd_sem = (sem % 2 == 1)
 
         for course in courses:
-            # 1. Parity Check
             if course.parity == "odd" and not is_odd_sem:
                 errors.append(
                     f"Mata kuliah '{course.name}' adalah matkul Semester Ganjil (odd), tidak boleh diambil di Semester {sem} (Genap)."
@@ -66,7 +64,6 @@ def validate_plan_constraints(
                     f"Mata kuliah '{course.name}' adalah matkul Semester Genap (even), tidak boleh diambil di Semester {sem} (Ganjil)."
                 )
 
-            # 2. Prerequisite Check (only if not already completed in prior history)
             if course.status != "completed":
                 for prereq in course.prerequisites:
                     if not is_course_completed(prereq, completed_so_far):
@@ -74,7 +71,6 @@ def validate_plan_constraints(
                             f"Prasyarat tidak terpenuhi: '{course.name}' (Sem {sem}) membutuhkan '{prereq}', yang belum lulus atau belum dijadwalkan di semester sebelumnya."
                         )
 
-            # 3. Duplicate check
             course_key = f"{course.id}_{normalize_title(course.name)}"
             if course_key in scheduled_ids:
                 warnings.append(
@@ -87,7 +83,6 @@ def validate_plan_constraints(
 
         semester_credits[sem] = current_sem_credits
 
-        # 4. SKS Limit Check
         if current_sem_credits > maks_sks_per_semester:
             errors.append(
                 f"Semester {sem} memiliki {current_sem_credits} SKS, melebihi batas maksimum {maks_sks_per_semester} SKS."
@@ -97,14 +92,12 @@ def validate_plan_constraints(
                 f"Semester {sem} memiliki beban tinggi ({current_sem_credits} SKS). Pastikan IPK semester sebelumnya mencukupi."
             )
 
-        # After processing this semester, all its courses are considered completed for future semesters
         for course in courses:
             completed_so_far.add(course.name)
             if course.code:
                 completed_so_far.add(course.code)
             completed_so_far.add(course.id)
 
-    # 4. Max 1 Religion Type Constraint
     religions_found: Dict[str, List[str]] = {}
     for sem_num, sem_courses in plan.items():
         for c in sem_courses:

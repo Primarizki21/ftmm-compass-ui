@@ -1,6 +1,5 @@
 import type { WorkloadInfo } from "../../data"
 
-/** Distribusi beban belajar: jam per semester, SKS kuliah, SKS praktikum. */
 export default function WorkloadGrid({
   workload,
   title = "Beban Kuliah",

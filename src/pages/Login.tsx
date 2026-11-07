@@ -38,7 +38,6 @@ export default function Login({ onLogin }: LoginProps) {
 
   return (
     <div className="min-h-screen w-full flex bg-background font-sans">
-      {/* Left Panel - Branding */}
       <div className="hidden lg:flex w-1/2 bg-navy relative overflow-hidden flex-col justify-between p-12">
         <div className="absolute inset-0 z-0 bg-gradient-to-br from-navy-dark via-navy to-navy-light/90">
           <div className="absolute -top-24 -left-24 w-96 h-96 bg-gold/10 rounded-full blur-3xl pointer-events-none" />
@@ -75,7 +74,6 @@ export default function Login({ onLogin }: LoginProps) {
         </div>
       </div>
 
-      {/* Right Panel - Login Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-surface">
         <div className="max-w-md w-full">
           <div className="text-center mb-10">

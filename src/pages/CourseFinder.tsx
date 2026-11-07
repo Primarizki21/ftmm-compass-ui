@@ -300,7 +300,6 @@ export default function CourseFinder({
           {pollingError}
         </div>
       )}
-      {/* Search & Filter Header */}
       <div className="bg-surface rounded-xl border border-border shadow-sm p-4 mb-4 space-y-3.5 flex-shrink-0">
         <div className="flex items-center gap-3">
           <div className="relative flex-1">
@@ -328,7 +327,6 @@ export default function CourseFinder({
           )}
         </div>
 
-        {/* Program Tabs with Abbreviations */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           <button
             type="button"
@@ -368,10 +366,8 @@ export default function CourseFinder({
           })}
         </div>
 
-        {/* Secondary Filter Controls: Parity, SKS Dropdown, PDB Category Dropdown */}
         <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-border/50 text-xs">
           <div className="flex flex-wrap items-center gap-2">
-            {/* Type Selector: Semua Tipe, Wajib, Pilihan */}
             <div className="inline-flex rounded-lg border border-border bg-background p-0.5">
               <button
                 type="button"
@@ -411,7 +407,6 @@ export default function CourseFinder({
               </button>
             </div>
 
-            {/* Parity Selector */}
             <div className="inline-flex rounded-lg border border-border bg-background p-0.5">
               <button
                 type="button"
@@ -451,7 +446,6 @@ export default function CourseFinder({
               </button>
             </div>
 
-            {/* SKS Dropdown */}
             <div className="relative">
               <select
                 value={selectedCredits}
@@ -475,7 +469,6 @@ export default function CourseFinder({
               </div>
             </div>
 
-            {/* PDB Category Dropdown */}
             <div className="relative">
               <select
                 value={selectedCategory}
@@ -493,7 +486,6 @@ export default function CourseFinder({
               </div>
             </div>
 
-            {/* Status Ketersediaan Kelas Dropdown */}
             <div className="relative">
               <select
                 value={selectedAvailability}
@@ -547,7 +539,6 @@ export default function CourseFinder({
         </div>
       </div>
 
-      {/* Course Grid */}
       <div className="flex-1 overflow-y-auto">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-muted">
@@ -741,7 +732,6 @@ export default function CourseFinder({
         )}
       </div>
 
-      {/* Quick Modal */}
       <CourseQuickModal
         course={selectedCourse}
         catalog={courses}
@@ -757,7 +747,6 @@ export default function CourseFinder({
         minQuorum={pollingPeriod?.min_quorum ?? 0}
       />
 
-      {/* Priority & Wishlist Selection Modal */}
       {priorityModalCourse && (
         <div
           className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200"
@@ -789,7 +778,6 @@ export default function CourseFinder({
               </button>
             </div>
 
-            {/* Slot Info Banner */}
             <div className="p-3 rounded-xl bg-background border border-border flex items-center justify-between text-xs">
               <span className="text-muted font-medium">
                 Slot Wishlist Tersedia:
@@ -801,7 +789,6 @@ export default function CourseFinder({
               </span>
             </div>
 
-            {/* Priority Selector */}
             <div className="space-y-2">
               <label className="text-xs font-semibold text-navy block">
                 Tingkat Prioritas Peminatan:
@@ -832,7 +819,6 @@ export default function CourseFinder({
               </div>
             </div>
 
-            {/* Quorum Note */}
             <div className="text-[11px] text-muted flex items-start gap-2 bg-gold/10 text-navy p-3 rounded-xl border border-gold/30">
               <AlertCircle className="w-4 h-4 text-gold flex-shrink-0 mt-0.5" />
               <p>
@@ -842,7 +828,6 @@ export default function CourseFinder({
               </p>
             </div>
 
-            {/* Action Buttons */}
             <div className="flex items-center justify-between gap-3 pt-2">
               {Boolean(voteFor(priorityModalCourse)) ? (
                 <button
@@ -881,7 +866,6 @@ export default function CourseFinder({
           </div>
         </div>
       )}
-      {/* Admin Create/Edit Course Modal */}
       <CourseFormModal
         isOpen={isCourseFormOpen}
         onClose={() => {
