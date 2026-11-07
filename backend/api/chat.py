@@ -1,6 +1,5 @@
 """Router HTTP. Setiap modul didaftarkan dua kali oleh app.py (v1 dan legacy)."""
 
-import os
 import sys
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -42,7 +41,7 @@ logger = logging.getLogger("ftmm_compass.gateway")
 
 
 def _check_circular_url(service_url: str):
-    current_port = int(os.getenv("BACKEND_PORT", "8001"))
+    current_port = int(settings.PORT_OVERRIDE or settings.DEFAULT_BACKEND_PORT)
     if f":{current_port}" in service_url:
         raise HTTPException(
             status_code=500,
@@ -67,8 +66,8 @@ def _resolve_user_id(request_data: ChatRequest, client_request: Request | None =
                 sub = payload.get("sub")
                 if sub:
                     return uuid.UUID(str(sub))
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Token JWT tidak valid pada payload chat: %s", exc)
     return None
 
 
@@ -258,8 +257,8 @@ async def handle_chat_stream(request: ChatRequest, client_request: Request | Non
                                     action_type = event_data.get("action_type")
                                     routing_mode = event_data.get("routing_mode")
                                     latency_ms = event_data.get("latency_ms")
-                            except Exception:
-                                pass
+                            except Exception as exc:
+                                logger.debug("Frame SSE dilewati: %s", exc)
 
             assistant_reply = final_reply or "".join(accumulated_tokens)
             elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
@@ -326,8 +325,8 @@ async def handle_reset_chat_session(session_id: str) -> dict:
     try:
         async with httpx.AsyncClient(timeout=2.0) as client:
             await client.delete(f"{settings.CHATBOT_SERVICE_URL}/api/v1/chat/sessions/{session_id}")
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.info("Reset sesi upstream tidak tersedia: %s", exc)
 
     return {
         "status": "success",

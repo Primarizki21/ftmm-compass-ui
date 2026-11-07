@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react"
 import { BookOpen, Calendar } from "lucide-react"
 import { cn } from "../utils"
 import { Course, TIMETABLE_DAYS } from "../data"
-import { SEMESTERS } from "../domain/academics"
+import { currentAcademicPeriod, SEMESTERS } from "../domain/academics"
 import { courseReligion } from "../domain/course"
 import TimetableGrid from "../components/TimetableGrid"
 import {
@@ -32,6 +32,7 @@ export default function DegreePlanner({
   onNavigate,
   initialTab,
 }: DegreePlannerProps) {
+  const academicPeriod = currentAcademicPeriod()
   const planner = usePlanner()
   const { user } = useSession()
   const { courses: catalog, programs: availablePrograms } = useCatalog()
@@ -500,7 +501,7 @@ export default function DegreePlanner({
                   Jadwal Kuliah Aktif
                 </h3>
                 <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-gold/15 text-navy border border-gold/30">
-                  Semester Ganjil 2024/2025
+                  {academicPeriod.termDisplay}
                 </span>
               </div>
               <p className="text-xs text-muted mt-0.5">

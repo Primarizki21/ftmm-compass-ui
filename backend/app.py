@@ -37,8 +37,7 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"[WARN] Alembic migration notice: {e}", flush=True)
 
-    auto_seed = os.getenv("AUTO_SEED", "true").lower() in ("true", "1", "yes")
-    if auto_seed:
+    if settings.AUTO_SEED:
         try:
             from seed import seed_data
             await seed_data()
@@ -53,7 +52,7 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"[WARN] Katalog DB tidak terbaca, memakai Ekstrak: {e}", flush=True)
 
-    current_port = os.getenv("BACKEND_PORT", os.getenv("PORT", "8001"))
+    current_port = settings.PORT_OVERRIDE or settings.DEFAULT_BACKEND_PORT
     print(f"\n[INFO] FTMM Compass Gateway is LIVE & READY", flush=True)
     print(f"       Base API: http://127.0.0.1:{current_port}/api/v1", flush=True)
     print(f"       Swagger Docs: http://127.0.0.1:{current_port}/docs", flush=True)
@@ -228,10 +227,9 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 def find_free_port(start_port: int = 8001, max_port: int = 8050) -> int:
     import socket
-    import os
-    env_port = os.getenv("BACKEND_PORT", os.getenv("PORT"))
-    if env_port:
-        return int(env_port)
+
+    if settings.PORT_OVERRIDE:
+        return int(settings.PORT_OVERRIDE)
     for p in range(start_port, max_port + 1):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             try:

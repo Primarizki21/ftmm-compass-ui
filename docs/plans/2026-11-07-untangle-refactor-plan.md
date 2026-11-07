@@ -2,7 +2,7 @@
 
 **Document ID:** `PLAN-UNTANGLE-20261107`
 **Branch:** `refactor/untangle-audit`
-**Status:** Audit + Plan Only — belum ada kode yang diubah
+**Status:** Audit + Plan + Executed (2026-11-07)
 **Basis commit:** `24cd286` (baseline `pnpm typecheck` = exit 0)
 **Scope audit:** 68 berkas sumber (≈11.4k LOC `src/`, ≈8.6k LOC `backend/` di luar `.venv`, `database/schema_v2_1_rc1.sql`)
 **Metode:** import graph statis (`src/`) + 6 pembacaan audit paralel read-only (pages, components, data layer, `app.py`, backend domain, tests/schema)
@@ -391,3 +391,36 @@ Smoke browser (wajib, sesuai AGENTS.md): `http://localhost:8443` → login (stud
 5. **F12 (config)**: satu `backend/config.py` + satu `.env` sebagai sumber port/DSN/Ollama/CORS, atau biarkan env per-service. Rekomendasi: satu config, karena `BACKEND_PORT`/`HOST` saat ini diteruskan tetapi tidak berpengaruh (#99).
 6. **Tambahan Comments — DIPILIH.** Dikerjakan sebagai F14 (fase 9): hapus komentar yang mengulang implementasi sesuai daftar target, pertahankan komentar tentang hal di luar kode.
 7. **Tambahan Tests — DIPILIH.** Dikerjakan sebagai F13 (fase 10): hapus tes yang tidak bisa gagal atau mengulang internal, tulis ulang yang bergantung pada konstanta seed, satukan definisi suite dengan CI.
+
+---
+
+## 8. Catatan Eksekusi (2026-11-07)
+
+Status: **selesai dieksekusi** di branch `refactor/untangle-audit`. Ringkasan hasil per fase:
+
+| Fase | Hasil | Bukti |
+|---|---|---|
+| 0 | Baseline: DB + backend + frontend menyala, snapshot JSON dan screenshot 5 halaman 2 peran | `pnpm typecheck` 0, screenshot di `/tmp/ftmm_baseline` |
+| 1 | `src/api/{client,session}.ts`; 8 literal `127.0.0.1:8001` dan 4 resolver URL chat hilang | `rg '127.0.0.1:8001' src` = 0 |
+| 2 | `src/domain/{academics,course}.ts`; parity, batas SKS, periode, normalizer katalog satu tempat | `rg '% 2 ===' src` hanya domain |
+| 3 | `src/state/{session,catalog,polling,planner}.tsx`; halaman tanpa fetch ganda; draft punya `initialPlan` | planner→dashboard jadwal + bentrok, reset kembali ke rencana draft |
+| 4 | `domain/prerequisites.ts`, `domain/timetable.ts`, `components/course/*`; section key benar; `<pre>` ganda hilang | picker Esc menutup, badge/beban satu definisi |
+| 5 | `backend/catalog.py` (DB → Ekstrak fallback), admin CRUD DB-only, prasyarat dari pohon requirement | `/api/v1/courses` = 411 dari database; create/delete roundtrip |
+| 6 | `backend/api/*` per resource + satu router dipasang dua tier; `app.py` 2235 → 267 baris | 24 path v1, legacy 200/401 sesuai |
+| 7 | Data demo dihapus (dashboard, jadwal, polling, login, notifikasi); angka berasal dari DB | dashboard 44/144 SKS, 3.78 IPK, period 2026/2027 |
+| 8 | Baseline Alembic menerapkan SQL kanonik; env hanya dibaca `settings.py`; Dockerfile mengikuti env | `alembic upgrade head` di DB kosong = 42 tabel/57 fungsi/44 trigger/364 kolom |
+| 9 | Dead code frontend/backend dan komentar restating dihapus; `schemas.py` model mati dibuang | `pnpm typecheck` 0, `ruff check` bersih |
+| 10 | Suite pytest baru (42 tes) satu entry point dengan CI | `make test` = 42 passed |
+
+Penyimpangan dari rencana (disengaja, dengan alasan):
+
+1. **Kartu mata kuliah (F10) tidak digabung menjadi satu `CourseCard`.** Kartu planner punya Drag-and-Drop, kartu finder punya aksi vote/form admin; menggabungkannya menambah parameter mode yang hanya dipakai satu pemanggil. Yang digabung adalah isi yang benar-benar berubah bersama: `CourseBadges`, `WorkloadGrid`, `ModalShell`.
+2. **Model error/pagination di `schemas.py` dihapus, bukan dipakai.** Envelope sudah satu implementasi di exception handler; menambah `response_model` untuk handler yang mengembalikan dict menambah kode tanpa kontrak baru.
+3. **`backend/config.py` berbentuk `settings.py` biasa** (membaca env), tanpa menambah dependensi `pydantic-settings`.
+4. **Katalog memilih kurikulum dengan cakupan mata kuliah terbanyak per prodi.** DB pengembangan dapat memuat lebih dari satu kurikulum (seed demo + seed kanonik); kurikulum dengan cakupan terbanyak adalah hasil seed kanonik.
+5. **Seed demo transkrip (`seed.py`) tetap ada** sebagai fixture integrasi (user, transkrip, polling, notifikasi); katalog yang disajikan API tidak lagi bergantung padanya.
+6. **Tes integrasi memakai database pengembangan** dan akan di-skip bila PostgreSQL tidak tersedia; isolasi per-tes butuh database sementara yang belum menjadi bagian pipeline.
+
+Kriteria §5 yang sudah diverifikasi: (1) 0 literal port, (2) parity hanya di domain, (3) `24 SKS` hanya dari konstanta, (4) `Ekstrak` hanya di `courseData.ts` dan `catalog.py` (plus skrip build), (6) `app.py` 267 baris, (9) tidak ada `dual-tier` di tes, (11) paritas skema DB, (12) satu entry point tes, (13) angka duplikasi turun, (14) `make test` + `pnpm build` lulus, smoke browser 5 halaman × 2 peran tanpa error konsol.
+
+Catatan terbuka: `overtime` dashboard memakai periode akademik dari DB (`academic_periods`) sementara header aplikasi memakai kalender domain; setelah seed diperbaiki, keduanya menunjuk 2026/2027 Ganjil, tetapi mekanisme penentuan periode masih dua (DB vs kalkulasi tanggal) dan layak disatukan lewat satu endpoint periode pada iterasi berikutnya.

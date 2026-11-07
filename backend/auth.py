@@ -1,4 +1,3 @@
-import os
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -14,9 +13,11 @@ from sqlalchemy.orm import selectinload
 from database import get_db
 from models import StudentProfile, User
 
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "ftmm-compass-secret-key-production-dev-2026-safe-default")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
+from settings import (
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    JWT_ALGORITHM as ALGORITHM,
+    JWT_SECRET_KEY as SECRET_KEY,
+)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

@@ -1,5 +1,6 @@
 """Router HTTP. Setiap modul didaftarkan dua kali oleh app.py (v1 dan legacy)."""
 
+import logging
 import sys
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -20,6 +21,8 @@ from schemas import (
 import settings
 from tools.planner import generate_study_plan
 from tools.prerequisite_validator import validate_plan_constraints
+
+logger = logging.getLogger("ftmm_compass.gateway")
 
 router = APIRouter()
 
@@ -112,8 +115,8 @@ async def handle_validate_plan(request: PlanValidationRequest) -> PlanValidation
                     semester_credits=semester_credits,
                     details_per_semester=details,
                 )
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("%s", exc)
 
     return local_val
 
@@ -129,8 +132,8 @@ async def handle_generate_plan(profile: StudentProfile) -> DegreePlanPayload:
             if resp.status_code == 200:
                 data = resp.json()
                 return normalize_plan_payload(data, profile)
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("%s", exc)
 
     # Local fallback
     try:

@@ -1,14 +1,13 @@
 """Rate limiter bersama untuk seluruh router."""
 
-import os
-
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-rate_limit_default = os.getenv("DEFAULT_RATE_LIMIT", "300/minute")
+from settings import DEFAULT_RATE_LIMIT
+
 default_limits = (
-    [rate_limit_default]
-    if rate_limit_default and rate_limit_default.lower() not in ("none", "false", "0")
+    [DEFAULT_RATE_LIMIT]
+    if DEFAULT_RATE_LIMIT and DEFAULT_RATE_LIMIT.lower() not in ("none", "false", "0")
     else []
 )
 

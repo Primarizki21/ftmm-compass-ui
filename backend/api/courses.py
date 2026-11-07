@@ -105,8 +105,8 @@ async def handle_list_courses(
                     "programs": raw_programs,
                     "courses": raw_courses,
                 }
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("%s", exc)
 
     # 2. Resilient fallback to local dataset
     if not norm_prodi or norm_prodi.lower() in ("all", "semua"):
@@ -195,8 +195,8 @@ async def handle_search_courses(
                     total_hits=data.get("total_hits", len(data.get("results", []))),
                     results=[CourseSearchItem(**item) for item in data.get("results", [])],
                 )
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("%s", exc)
 
     # Local fallback
     if norm_prodi and norm_prodi.lower() not in ("all", "semua"):
