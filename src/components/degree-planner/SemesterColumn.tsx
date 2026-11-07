@@ -4,7 +4,6 @@ import {
   CheckCircle2,
   Lock,
   Clock,
-  Bookmark,
   X,
   Plus,
   AlertTriangle,
@@ -69,7 +68,6 @@ export function PlannerCourseCard({
         course.status === "completed" && "border-teal-light/50",
         course.status === "planned" && !semLocked && "border-gold/50",
         course.status === "planned" && semLocked && "border-navy/20",
-        course.status === "wishlist" && "border-dashed border-border",
         isDropTargetTop && "border-t-2 border-t-teal shadow-md",
       )}
     >
@@ -138,12 +136,6 @@ export function PlannerCourseCard({
           {course.status === "completed" && (
             <span className="text-[8px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-teal/15 text-navy leading-none flex items-center gap-1 font-medium">
               Lulus
-            </span>
-          )}
-          {course.status === "wishlist" && (
-            <span className="text-[8px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border border-dashed border-border text-muted leading-none flex items-center gap-1">
-              <Bookmark className="w-2.5 h-2.5 text-muted" />
-              Wishlist
             </span>
           )}
           {course.status === "planned" && !completed && (

@@ -29,7 +29,7 @@ function formatUtcTimestamp(date: Date): string {
   return `${y}${m}${d}T${h}${min}${s}Z`
 }
 
-export function generateIcsCalendar(
+function generateIcsCalendar(
   schedule: ScheduleItem[],
   options?: { calendarName?: string },
 ): string {

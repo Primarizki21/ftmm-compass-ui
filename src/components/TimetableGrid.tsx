@@ -51,7 +51,6 @@ export default function TimetableGrid({
     semester?: number
   } | null>(null)
 
-  // Auto-read shared timetable from URL on mount
   useEffect(() => {
     const shared = getSharedTimetableFromLocation()
     if (shared && shared.schedule.length > 0) {

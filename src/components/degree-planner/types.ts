@@ -2,7 +2,7 @@ import { type Course } from "../../data"
 import { isOddSemester } from "../../domain/academics"
 
 export interface PlacedCourse extends Course {
-  status: "completed" | "planned" | "wishlist"
+  status: "completed" | "planned"
 }
 
 export const INITIAL_PLAN: Record<number, PlacedCourse[]> = {
@@ -86,11 +86,9 @@ export const INITIAL_PLAN: Record<number, PlacedCourse[]> = {
   ],
 }
 
-// Completed courses are locked in their semester and cannot be moved
 export const isCompleted = (c: PlacedCourse): boolean =>
   c.status === "completed"
 
-// Wajib courses cannot be moved across semesters (intra-semester reordering only)
 export const isSemLocked = (c: PlacedCourse): boolean => c.type === "Wajib"
 
 export const canDrop = (

@@ -65,12 +65,7 @@ export default function CoursePickerModal({
 
   const filtered = basePool
     .filter((c) => (pickerType === "all" ? true : c.type === pickerType))
-    .sort((a, b) => {
-      const aExact = a.semester === pickerSem ? 0 : 1
-      const bExact = b.semester === pickerSem ? 0 : 1
-      if (aExact !== bExact) return aExact - bExact
-      return a.name.localeCompare(b.name)
-    })
+    .sort((a, b) => a.name.localeCompare(b.name))
 
   return (
     <ModalShell

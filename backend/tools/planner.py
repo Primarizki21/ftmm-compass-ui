@@ -1,4 +1,4 @@
-from typing import Dict, List, Set
+from typing import Dict, List
 from schemas import (
     StudentProfile,
     PlacedCourseModel,
@@ -24,7 +24,6 @@ def generate_study_plan(profile: StudentProfile) -> DegreePlanPayload:
     interest_keywords = [k.lower() for k in profile.minat_fokus] if profile.minat_fokus else ["data", "machine learning", "ai"]
 
     plan: Dict[int, List[PlacedCourseModel]] = {s: [] for s in range(1, target_sem + 1)}
-    completed_names: Set[str] = set(profile.riwayat_matkul_lulus)
 
     # 1. First pass: Place all courses for past semesters (< current_sem) as completed
     for course in catalog:
@@ -35,9 +34,6 @@ def generate_study_plan(profile: StudentProfile) -> DegreePlanPayload:
                 status="completed"
             )
             plan[course.semester].append(placed)
-            completed_names.add(course.name)
-            if course.code:
-                completed_names.add(course.code)
 
     # 2. Second pass: Place Wajib (Compulsory) courses for current and future semesters
     for course in catalog:

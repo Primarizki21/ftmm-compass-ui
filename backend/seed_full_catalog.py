@@ -166,7 +166,7 @@ async def seed(session):
             n=f"Kurikulum 2021 {PROGRAM_NAMES[prog]} (Panduan 2024-2025)")
 
     # 3. Matkul global + alias
-    chosen, all_names = canonical_names(catalog, decisions)
+    chosen, _ = canonical_names(catalog, decisions)
     course_ids = {}
     for code, name in sorted(chosen.items()):
         course_ids[code] = await scalar(session, """

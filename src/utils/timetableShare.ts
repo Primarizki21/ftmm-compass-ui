@@ -61,7 +61,7 @@ function fromBase64Url(base64Url: string): string {
   return new TextDecoder().decode(bytes)
 }
 
-export function serializeTimetable(
+function serializeTimetable(
   schedule: ScheduleItem[],
   semester?: number,
 ): string {
@@ -85,7 +85,7 @@ export function serializeTimetable(
   return toBase64Url(jsonStr)
 }
 
-export function deserializeTimetable(
+function deserializeTimetable(
   encoded: string,
 ): DeserializedTimetableResult | null {
   try {
@@ -121,7 +121,7 @@ export function deserializeTimetable(
   }
 }
 
-export function generateTimetableShareUrl(
+function generateTimetableShareUrl(
   schedule: ScheduleItem[],
   semester?: number,
 ): string {

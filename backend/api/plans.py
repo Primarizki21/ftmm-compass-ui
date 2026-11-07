@@ -115,15 +115,7 @@ async def handle_validate_plan(request: PlanValidationRequest) -> PlanValidation
     except Exception:
         pass
 
-    # Deterministic local fallback
-    try:
-        return validate_plan_constraints(
-            plan=request.plan,
-            riwayat_matkul_lulus=request.riwayat_matkul_lulus,
-            maks_sks_per_semester=request.maks_sks_per_semester,
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error validating plan: {str(e)}")
+    return local_val
 
 
 async def handle_generate_plan(profile: StudentProfile) -> DegreePlanPayload:

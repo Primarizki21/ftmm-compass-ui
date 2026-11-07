@@ -5,7 +5,6 @@ import {
   CheckCircle2,
   Lock,
   Clock,
-  Bookmark,
   GripVertical,
   FolderGit2,
   Copy,
@@ -57,12 +56,6 @@ const LEGEND_ITEMS = [
     label: "Direncanakan",
     badge: "Geser Sem & Atas/Bawah ⋮⋮",
     badgeStyle: "bg-gold/15 text-navy border-gold/40",
-  },
-  {
-    icon: <Bookmark className="w-3.5 h-3.5 text-muted" />,
-    label: "Wishlist",
-    badge: "Geser Sem, Atas/Bawah & Hapus",
-    badgeStyle: "bg-surface text-muted border-dashed border-border",
   },
 ] as const
 
