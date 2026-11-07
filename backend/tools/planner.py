@@ -5,7 +5,7 @@ from schemas import (
     DegreePlanPayload,
     PlanPayloadSummary,
 )
-from data_loader import get_courses_for_program, normalize_prodi
+from catalog import get_courses_for_program, normalize_prodi
 from tools.prerequisite_validator import validate_plan_constraints
 
 

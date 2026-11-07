@@ -25,14 +25,7 @@ PDF_DIR = os.path.join(EKSTRAK_DIR, "pdf")
 REPORT_PATH = os.path.join(OUT_DIR, "source_verification.md")
 JSON_PATH = os.path.join(OUT_DIR, "source_verification.json")
 
-PROGRAM_HEADINGS = {
-    "TSD": "S1 Teknologi Sains Data",
-    "RN": "S1 Rekayasa Nanoteknologi",
-    "TRKB": "S1 Teknik Robotika dan Kecerdasan Buatan",
-    "TE": "S1 Teknik Elektro",
-    "TI": "S1 Teknik Industri",
-}
-PROGRAM_ORDER = ["TSD", "RN", "TRKB", "TE", "TI"]
+from catalog import PROGRAM_HEADINGS, PROGRAM_ORDER
 
 CURRICULUM_DOCS = {
     "TRKB": "754 KR KURIKULUM S1 TEKNIK ROBOTIKA KECERDASAN BUATAN FTMM stempel.pdf",

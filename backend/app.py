@@ -68,7 +68,6 @@ from models import (
     ElectiveCourseVote,
     AcademicPeriod,
     Course,
-    Curriculum,
     CurriculumCourse,
     StudentCourseRecord,
     CourseOffering,
@@ -81,15 +80,15 @@ from models import (
     UserNotification,
 )
 from auth import authenticate_user, create_access_token, get_current_user, SECRET_KEY, ALGORITHM
-from data_loader import (
+from catalog import (
+    authoritative_curriculum_id,
+    catalog_source,
     get_courses_for_program,
     get_all_courses,
     get_available_programs,
+    get_course,
     normalize_prodi,
-    add_course_to_catalog,
-    update_course_in_catalog,
-    remove_course_from_catalog,
-    get_admin_custom_courses,
+    refresh_from_db,
 )
 from tools.planner import generate_study_plan
 from tools.prerequisite_validator import validate_plan_constraints
@@ -119,6 +118,14 @@ async def lifespan(app: FastAPI):
             await seed_data()
         except Exception as e:
             print(f"[WARN] Auto-seed skipped or encountered an error: {e}", flush=True)
+
+    try:
+        from database import AsyncSessionLocal
+        async with AsyncSessionLocal() as session:
+            total_courses = await refresh_from_db(session)
+        print(f"[OK] Katalog aktif dari database: {total_courses} mata kuliah", flush=True)
+    except Exception as e:
+        print(f"[WARN] Katalog DB tidak terbaca, memakai Ekstrak: {e}", flush=True)
 
     current_port = os.getenv("BACKEND_PORT", os.getenv("PORT", "8001"))
     print(f"\n[INFO] FTMM Compass Gateway is LIVE & READY", flush=True)
@@ -425,14 +432,6 @@ async def handle_list_courses(
                     if isinstance(c, dict) and "program" in c and isinstance(c["program"], str):
                         c["program"] = c["program"].replace("S1 ", "").strip()
 
-                # Merge local custom courses added by admin
-                existing_codes = {c.get("code") for c in raw_courses if isinstance(c, dict)}
-                for ac in get_admin_custom_courses():
-                    if ac.code not in existing_codes:
-                        target_p = clean_prodi or norm_prodi
-                        if not target_p or target_p.lower() in ("all", "semua") or normalize_prodi(ac.program) == normalize_prodi(target_p):
-                            raw_courses.append(ac.model_dump())
-                            existing_codes.add(ac.code)
                 # If paginated shape
                 if "meta" in data and "data" in data:
                     raw_paged = data.get("data", [])
@@ -491,7 +490,7 @@ async def handle_list_courses(
             prefix += f"&q={q}"
 
         return {
-            "source": "local_fallback",
+            "source": f"catalog_{catalog_source()}",
             "data": [c.model_dump() for c in sliced],
             "meta": {
                 "total": total,
@@ -510,7 +509,7 @@ async def handle_list_courses(
         }
 
     return {
-        "source": "local_fallback",
+        "source": f"catalog_{catalog_source()}",
         "program_studi": active_prodi,
         "total_courses": len(courses),
         "programs": get_available_programs(),
@@ -572,7 +571,7 @@ async def handle_search_courses(
     hits.sort(key=lambda x: x.score, reverse=True)
     selected = hits[:top_k]
     return CourseSearchResponse(
-        source="local_fallback",
+        source=f"catalog_{catalog_source()}",
         query=q,
         program_studi=norm_prodi,
         total_hits=len(selected),
@@ -1220,46 +1219,31 @@ async def v1_admin_create_course(
     await db.flush()
 
     norm_prodi = normalize_prodi(payload.program_name) or "Teknologi Sains Data"
-    stmt_prog = select(StudyProgram).where(StudyProgram.program_name.ilike(f"%{norm_prodi}%"))
-    prog = (await db.execute(stmt_prog)).scalars().first()
-    if prog:
-        stmt_curr = (
-            select(Curriculum)
-            .where(Curriculum.study_program_id == prog.study_program_id)
-            .order_by(Curriculum.curriculum_year.desc())
+    curriculum_id = await authoritative_curriculum_id(db, norm_prodi)
+    if curriculum_id:
+        curr_course = CurriculumCourse(
+            curriculum_id=curriculum_id,
+            course_id=new_course.course_id,
+            credits_total=payload.credits,
+            recommended_semester=payload.recommended_semester,
+            term=payload.term,
+            course_type=payload.course_type.lower(),
+            course_scope="program_studi",
+            description=payload.description or "",
+            is_active=True,
         )
-        curr = (await db.execute(stmt_curr)).scalars().first()
-        if curr:
-            curr_course = CurriculumCourse(
-                curriculum_id=curr.curriculum_id,
-                course_id=new_course.course_id,
-                credits_total=payload.credits,
-                recommended_semester=payload.recommended_semester,
-                term=payload.term,
-                course_type=payload.course_type.lower(),
-                course_scope="program_studi",
-                description=payload.description or "",
-                is_active=True,
-            )
-            db.add(curr_course)
+        db.add(curr_course)
 
     await db.commit()
 
-    cm = CourseModel(
-        id=payload.course_code,
-        code=payload.course_code,
-        name=payload.course_name,
-        credits=payload.credits,
-        semester=payload.recommended_semester,
-        type=payload.course_type,
-        parity="odd" if payload.term == "ganjil" else "even",
-        desc=payload.description or "",
-        program=norm_prodi,
-        lecturer=payload.lecturer or "Tim Dosen FTMM UNAIR",
-        prerequisites=payload.prerequisites,
-    )
-    add_course_to_catalog(cm)
-    return cm
+    await refresh_from_db(db)
+    created = get_course(payload.course_code)
+    if created is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Mata kuliah tersimpan tetapi gagal dibaca dari katalog.",
+        )
+    return created
 
 
 @v1_router.put("/admin/courses/{course_id}", response_model=CourseModel)
@@ -1295,18 +1279,11 @@ async def v1_admin_update_course(
         cc = (await db.execute(stmt_cc)).scalars().first()
         if cc:
             if payload.program_name:
-                norm_p = normalize_prodi(payload.program_name) or "Teknologi Sains Data"
-                stmt_p = select(StudyProgram).where(StudyProgram.program_name.ilike(f"%{norm_p}%"))
-                prog = (await db.execute(stmt_p)).scalars().first()
-                if prog:
-                    stmt_c = (
-                        select(Curriculum)
-                        .where(Curriculum.study_program_id == prog.study_program_id)
-                        .order_by(Curriculum.curriculum_year.desc())
-                    )
-                    curr = (await db.execute(stmt_c)).scalars().first()
-                    if curr:
-                        cc.curriculum_id = curr.curriculum_id
+                curriculum_id = await authoritative_curriculum_id(
+                    db, payload.program_name
+                )
+                if curriculum_id:
+                    cc.curriculum_id = curriculum_id
             if payload.credits is not None:
                 cc.credits_total = payload.credits
             if payload.recommended_semester is not None:
@@ -1343,27 +1320,14 @@ async def v1_admin_update_course(
         updates["lecturer"] = payload.lecturer
     if payload.prerequisites is not None:
         updates["prerequisites"] = payload.prerequisites
-    updated = update_course_in_catalog(course_id, updates)
-    if not updated and not course_db:
+    await refresh_from_db(db)
+    target_code = payload.course_code or (course_db.course_code if course_db else course_id)
+    updated = get_course(target_code)
+    if updated is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Mata kuliah dengan ID/kode '{course_id}' tidak ditemukan.",
         )
-
-    if not updated:
-        updated = CourseModel(
-            id=course_db.course_code,
-            code=course_db.course_code,
-            name=course_db.course_name,
-            credits=payload.credits or 3,
-            semester=payload.recommended_semester or 1,
-            type=payload.course_type or "Pilihan",
-            parity="odd" if payload.term == "ganjil" else "even",
-            desc=payload.description or "",
-            program="Teknologi Sains Data",
-            prerequisites=payload.prerequisites or [],
-        )
-
     return updated
 
 
@@ -1385,7 +1349,7 @@ async def v1_admin_delete_course(
         course_db.is_active = False
         await db.commit()
 
-    remove_course_from_catalog(course_id)
+    await refresh_from_db(db)
     return {"status": "success", "message": f"Mata kuliah {course_id} berhasil dinonaktifkan."}
 
 

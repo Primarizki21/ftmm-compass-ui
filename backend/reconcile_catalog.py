@@ -35,14 +35,10 @@ DEFAULT_POLICIES = {
 }
 POLICIES = dict(DEFAULT_POLICIES)
 
-# Label prodi di JSON -> master study_programs (kode sama dengan backend/seed.py)
-PROGRAMS = {
-    "teknologi sains data": ("TSD", "Teknologi Sains Data"),
-    "teknik robotika dan kecerdasan buatan": ("TRKB", "Teknik Robotika & Kecerdasan Buatan"),
-    "rekayasa nanoteknologi": ("RN", "Rekayasa Nanoteknologi"),
-    "teknik industri": ("TI", "Teknik Industri"),
-    "teknik elektro": ("TE", "Teknik Elektro"),
-}
+# Label prodi di JSON -> master study_programs (kode sama dengan backend/catalog.py)
+from catalog import PROGRAM_NAMES
+
+PROGRAMS = {name.lower(): (code, name) for code, name in PROGRAM_NAMES.items()}
 
 ROMAN = {"i": "1", "ii": "2", "iii": "3", "iv": "4", "v": "5"}
 SPELLING = {"budha": "buddha", "konghucu": "khonghucu", "pemorgraman": "pemrograman"}

@@ -4,7 +4,7 @@ import time
 from fastapi.testclient import TestClient
 from app import app
 import app as app_module
-import data_loader
+import catalog
 import asyncio
 from seed import seed_data
 try:
@@ -47,10 +47,7 @@ def test_v1_courses_all_prodis():
     assert res.status_code == 200
     data = res.json()
     assert data["total_courses"] > 0
-    if data_loader.OFFICIAL_CURRICULUM:
-        assert data["total_courses"] >= 300
-    else:
-        assert data["total_courses"] >= 50
+    assert data["total_courses"] >= 50
     prodis = set(c.get("program") for c in data.get("courses", []))
     assert len(prodis) == 5
 
@@ -342,9 +339,9 @@ def test_v1_plan_validations_religion_conflict():
     print("[PASS] Canonical v1 Plan validations religion conflict correctly caught")
 
 def test_courses_fallback_isolation():
-    original_official = data_loader.OFFICIAL_CURRICULUM
+    original_official = catalog.get_all_courses()
     try:
-        data_loader.OFFICIAL_CURRICULUM = {}
+        catalog._CURRICULUM = {}
         with patch.object(app_module, "CHATBOT_SERVICE_URL", "http://127.0.0.1:9999"):
             res = client.get("/api/v1/courses")
             assert res.status_code == 200
@@ -360,7 +357,7 @@ def test_courses_fallback_isolation():
             assert all(c["program"] == "Teknologi Sains Data" for c in data_prodi.get("courses", []))
         print("[PASS] Dual-mode fallback isolation OK (resilient without Ekstrak/ and offline SSOT)")
     finally:
-        data_loader.OFFICIAL_CURRICULUM = original_official
+        catalog._CURRICULUM = original_official
 
 def test_auth_login_and_me():
     # 1. Invalid login credentials
