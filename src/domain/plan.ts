@@ -1,3 +1,17 @@
+import type { Course } from "../data"
+
+export interface PlanCourse extends Course {
+  status: "completed" | "planned"
+}
+
+export interface DegreePlanDraft {
+  id: string
+  name: string
+  status: "draft" | "active" | "archived"
+  plan: Record<number, PlanCourse[]>
+  updatedAt: string
+}
+
 export interface DegreePlanCourseItem {
   id?: string
   code?: string
