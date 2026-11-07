@@ -3,18 +3,19 @@ import { Send, Bot, Sparkles, AlertCircle, RotateCcw } from "lucide-react"
 import { cn } from "../utils"
 import MarkdownRenderer from "../components/MarkdownRenderer"
 import {
-  StudentProfileState,
-  DegreePlanPayload,
-  ChatMessage,
-  BACKEND_API_URL,
-  BACKEND_STREAM_URL,
-  BACKEND_HEALTH_URL,
-  BACKEND_LEGACY_HEALTH_URL,
+  type StudentProfileState,
+  type DegreePlanPayload,
+  type ChatMessage,
+  type ChatResponse,
+  CHAT_PATH,
+  CHAT_STREAM_PATH,
+  HEALTH_PATH,
   sanitizeErrorMessage,
   QUICK_PROMPTS,
   INITIAL_CHAT_MESSAGES,
   INITIAL_STUDENT_PROFILE,
 } from "../components/chatbot/chatService"
+import { API_BASE, ApiError, apiFetch } from "../api/client"
 import DegreePlanActionCard from "../components/chatbot/DegreePlanActionCard"
 
 export type { DegreePlanPayload } from "../components/chatbot/chatService"
@@ -99,31 +100,31 @@ export default function Chatbot({
   } | null>(null)
 
   useEffect(() => {
-    fetch(BACKEND_HEALTH_URL, { signal: AbortSignal.timeout(4000) })
-      .then((res) =>
-        res.ok
-          ? res.json()
-          : fetch(BACKEND_LEGACY_HEALTH_URL, {
-              signal: AbortSignal.timeout(4000),
-            }).then((r) => (r.ok ? r.json() : null)),
-      )
+    apiFetch<{
+      status?: string
+      service?: string
+      ollama_online?: boolean
+      chatbot_service_online?: boolean
+      chatbot_model?: string
+      default_model?: string
+      bonsai_online?: boolean
+      generator_model?: string
+    }>(HEALTH_PATH, { signal: AbortSignal.timeout(4000) })
       .then((data) => {
-        if (data) {
-          setBackendStatus({
-            ...data,
-            chatbot_service_online:
-              data.chatbot_service_online ??
-              (data.status === "healthy" ||
-                data.status === "ok" ||
-                data.status === "online" ||
-                Boolean(data.ollama_online || data.bonsai_online)),
-            chatbot_model:
-              data.chatbot_model ||
-              data.default_model ||
-              data.generator_model ||
-              "Hybrid Engine",
-          })
-        }
+        setBackendStatus({
+          ...data,
+          chatbot_service_online:
+            data.chatbot_service_online ??
+            (data.status === "healthy" ||
+              data.status === "ok" ||
+              data.status === "online" ||
+              Boolean(data.ollama_online || data.bonsai_online)),
+          chatbot_model:
+            data.chatbot_model ||
+            data.default_model ||
+            data.generator_model ||
+            "Hybrid Engine",
+        })
       })
       .catch(() => {})
   }, [])
@@ -155,18 +156,20 @@ export default function Chatbot({
     if (!messageText) setInput("")
     setIsLoading(true)
 
+    const chatBody = {
+      message: textToSend,
+      history: messages.slice(-6).map((m) => ({
+        role: m.role,
+        content: m.content,
+      })),
+      student_profile: profile,
+    }
+
     try {
-      const streamRes = await fetch(BACKEND_STREAM_URL, {
+      const streamRes = await fetch(`${API_BASE}${CHAT_STREAM_PATH}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: textToSend,
-          history: messages.slice(-6).map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
-          student_profile: profile,
-        }),
+        body: JSON.stringify(chatBody),
       })
 
       if (streamRes.ok && streamRes.body) {
@@ -200,7 +203,7 @@ export default function Chatbot({
               }
 
               if (data.error) {
-                accumulatedContent = `⚠️ **Layanan Tidak Tersedia**\n\n${data.error.message || "Gagal memproses permintaan."}`
+                accumulatedContent = `⚠️ **Layanan Tidak Tersedia**\n\n${sanitizeErrorMessage(data.error.message) || "Gagal memproses permintaan."}`
                 setMessages((prev) =>
                   prev.map((m) =>
                     m.id === assistantMsgId
@@ -258,72 +261,39 @@ export default function Chatbot({
         return
       }
 
-      // Standard non-streaming fallback
-      const fallbackRes = await fetch(BACKEND_API_URL, {
+      const data = await apiFetch<ChatResponse>(CHAT_PATH, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: textToSend,
-          history: messages.slice(-6).map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
-          student_profile: profile,
-        }),
+        body: chatBody,
       })
-
-      if (fallbackRes.ok) {
-        const data = await fallbackRes.json()
-        if (data.updated_profile) setProfile(data.updated_profile)
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantMsgId
-              ? {
-                  ...m,
-                  content: data.reply,
-                  plan_payload: data.plan_payload,
-                  action_type: data.action_type,
-                  routing_mode: data.routing_mode,
-                  latency_ms: data.latency_ms,
-                }
-              : m,
-          ),
-        )
-      } else {
-        const errorData = (await fallbackRes.json().catch(() => null)) as {
-          error?: ApiChatErrorDetail
-          detail?: string
-        } | null
-        const detail =
-          errorData?.error?.message ||
-          sanitizeErrorMessage(errorData?.detail) ||
-          "Gagal memproses pesan. Pastikan layanan backend dan microservice aktif."
-        const isRetry =
-          fallbackRes.status === 503 ||
-          errorData?.error?.code === "upstream_service_unavailable"
-        const retryNote = isRetry
-          ? "\n\n*Layanan AI sedang inisialisasi. Silakan ulangi dalam beberapa saat.*"
-          : ""
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantMsgId
-              ? {
-                  ...m,
-                  content: `⚠️ **Layanan Tidak Tersedia (${fallbackRes.status})**\n\n${detail}${retryNote}`,
-                  action_type: "GENERAL",
-                }
-              : m,
-          ),
-        )
-      }
-    } catch {
+      if (data.updated_profile) setProfile(data.updated_profile)
       setMessages((prev) =>
         prev.map((m) =>
           m.id === assistantMsgId
             ? {
                 ...m,
-                content:
-                  "⚠️ **Koneksi Terputus**\n\nTidak dapat terhubung ke server FTMM Compass AI. Pastikan backend Gateway (`pnpm dev:backend`) dan kontainer Docker Chatbot (`ftmm-compass-chatbot`) telah aktif.",
+                content: data.reply,
+                plan_payload: data.plan_payload,
+                action_type: data.action_type,
+                routing_mode: data.routing_mode,
+                latency_ms: data.latency_ms,
+              }
+            : m,
+        ),
+      )
+    } catch (error) {
+      const failed = error instanceof ApiError
+      const retryNote =
+        failed && (error.status === 503 || error.status === 502)
+          ? "\n\n*Layanan AI sedang inisialisasi. Silakan ulangi dalam beberapa saat.*"
+          : ""
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantMsgId
+            ? {
+                ...m,
+                content: failed
+                  ? `⚠️ **Layanan Tidak Tersedia (${error.status})**\n\n${error.message}${retryNote}`
+                  : "⚠️ **Koneksi Terputus**\n\nTidak dapat terhubung ke server FTMM Compass AI. Pastikan backend Gateway (`pnpm dev:backend`) dan kontainer Docker Chatbot (`ftmm-compass-chatbot`) telah aktif.",
                 action_type: "GENERAL",
               }
             : m,

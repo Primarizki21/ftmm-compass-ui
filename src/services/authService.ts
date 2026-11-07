@@ -1,3 +1,12 @@
+import { ApiError, apiFetch, authHeaders } from "../api/client"
+import {
+  clearSession,
+  readToken,
+  readUser,
+  writeToken,
+  writeUser,
+} from "../api/session"
+
 export interface LoginCredentials {
   identifier: string
   password: string
@@ -39,206 +48,48 @@ export interface AuthResponse {
   user: AuthUser
 }
 
-const TOKEN_KEY = "auth_token"
-const USER_KEY = "auth_user"
-
 export const authService = {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    let response: Response
-
-    try {
-      response = await fetch("/api/v1/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(credentials),
-      })
-
-      if (!response.ok && response.status === 404) {
-        response = await fetch("http://127.0.0.1:8001/api/v1/auth/login", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(credentials),
-        })
-      }
-    } catch {
-      response = await fetch("http://127.0.0.1:8001/api/v1/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(credentials),
-      })
-    }
-
-    if (!response.ok) {
-      let errorMessage =
-        "Autentikasi gagal. Silakan periksa kembali kredensial Anda."
-      try {
-        const errJson = await response.json()
-        if (errJson.detail) {
-          errorMessage =
-            typeof errJson.detail === "string"
-              ? errJson.detail
-              : JSON.stringify(errJson.detail)
-        } else if (errJson.message) {
-          errorMessage = errJson.message
-        }
-      } catch {
-        // Fallback ke status text default
-        if (response.status === 401) {
-          errorMessage = "Identifier atau password salah."
-        }
-      }
-      throw new Error(errorMessage)
-    }
-
-    const data: AuthResponse = await response.json()
-
-    if (typeof window !== "undefined" && window.localStorage) {
-      localStorage.setItem(TOKEN_KEY, data.access_token)
-      localStorage.setItem(USER_KEY, JSON.stringify(data.user))
-    }
-
+    const data = await apiFetch<AuthResponse>("/api/v1/auth/login", {
+      method: "POST",
+      body: credentials,
+    })
+    writeToken(data.access_token)
+    writeUser(data.user)
     return data
   },
 
   getStoredUser(): AuthUser | null {
-    if (typeof window === "undefined" || !window.localStorage) return null
-    try {
-      const rawUser = localStorage.getItem(USER_KEY)
-      return rawUser ? JSON.parse(rawUser) as AuthUser : null
-    } catch {
-      return null
-    }
+    return readUser<AuthUser>()
   },
 
   getStoredToken(): string | null {
-    if (typeof window === "undefined" || !window.localStorage) return null
-    return localStorage.getItem(TOKEN_KEY)
+    return readToken()
   },
 
   logout(): void {
-    if (typeof window === "undefined" || !window.localStorage) return
-    localStorage.removeItem(TOKEN_KEY)
-    localStorage.removeItem(USER_KEY)
+    clearSession()
   },
 
   getAuthHeaders(): Record<string, string> {
-    const token = this.getStoredToken()
-    return token ? { Authorization: `Bearer ${token}` } : {}
+    return authHeaders()
   },
 
   async getMe(): Promise<AuthUser> {
-    const token = this.getStoredToken()
-    if (!token) {
-      throw new Error("Sesi tidak ditemukan")
-    }
-
-    let response: Response
-    try {
-      response = await fetch("/api/v1/auth/me", {
-        headers: {
-          ...this.getAuthHeaders(),
-          Accept: "application/json",
-        },
-      })
-      if (!response.ok && response.status === 404) {
-        response = await fetch("http://127.0.0.1:8001/api/v1/auth/me", {
-          headers: {
-            ...this.getAuthHeaders(),
-            Accept: "application/json",
-          },
-        })
-      }
-    } catch {
-      response = await fetch("http://127.0.0.1:8001/api/v1/auth/me", {
-        headers: {
-          ...this.getAuthHeaders(),
-          Accept: "application/json",
-        },
-      })
-    }
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        this.logout()
-      }
-      throw new Error("Gagal mengambil profil pengguna.")
-    }
-
-    const user: AuthUser = await response.json()
-    if (typeof window !== "undefined" && window.localStorage) {
-      localStorage.setItem(USER_KEY, JSON.stringify(user))
-    }
+    if (!readToken()) throw new ApiError("Sesi tidak ditemukan", 401)
+    const user = await apiFetch<AuthUser>("/api/v1/auth/me", { auth: true })
+    writeUser(user)
     return user
   },
 
   async updateProfile(payload: ProfileUpdatePayload): Promise<AuthUser> {
-    const token = this.getStoredToken()
-    if (!token) {
-      throw new Error("Sesi tidak ditemukan")
-    }
-
-    let response: Response
-    try {
-      response = await fetch("/api/v1/auth/me/profile", {
-        method: "PATCH",
-        headers: {
-          ...this.getAuthHeaders(),
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify(payload),
-      })
-      if (!response.ok && response.status === 404) {
-        response = await fetch("http://127.0.0.1:8001/api/v1/auth/me/profile", {
-          method: "PATCH",
-          headers: {
-            ...this.getAuthHeaders(),
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify(payload),
-        })
-      }
-    } catch {
-      response = await fetch("http://127.0.0.1:8001/api/v1/auth/me/profile", {
-        method: "PATCH",
-        headers: {
-          ...this.getAuthHeaders(),
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify(payload),
-      })
-    }
-
-    if (!response.ok) {
-      let errorMessage = "Gagal memperbarui profil pengguna."
-      try {
-        const errJson = await response.json()
-        if (errJson.detail) {
-          errorMessage =
-            typeof errJson.detail === "string"
-              ? errJson.detail
-              : JSON.stringify(errJson.detail)
-        } else if (errJson.message) {
-          errorMessage = errJson.message
-        }
-      } catch {
-        // fallback default
-      }
-      throw new Error(errorMessage)
-    }
-
-    const updatedUser: AuthUser = await response.json()
-    if (typeof window !== "undefined" && window.localStorage) {
-      localStorage.setItem(USER_KEY, JSON.stringify(updatedUser))
-    }
-    return updatedUser
+    if (!readToken()) throw new ApiError("Sesi tidak ditemukan", 401)
+    const user = await apiFetch<AuthUser>("/api/v1/auth/me/profile", {
+      method: "PATCH",
+      body: payload,
+      auth: true,
+    })
+    writeUser(user)
+    return user
   },
 }

@@ -1,4 +1,4 @@
-import { authService } from "./authService"
+import { apiFetch } from "../api/client"
 
 export interface StudentDashboardStats {
   type: "student"
@@ -67,31 +67,6 @@ export interface DashboardMeResponse {
 
 export const dashboardService = {
   async getDashboardMe(): Promise<DashboardMeResponse> {
-    const headers = {
-      ...authService.getAuthHeaders(),
-      "Content-Type": "application/json",
-    }
-
-    let response: Response
-    try {
-      response = await fetch("/api/v1/dashboard/me", {
-        headers,
-      })
-      if (!response.ok && response.status === 404) {
-        response = await fetch("http://127.0.0.1:8001/api/v1/dashboard/me", {
-          headers,
-        })
-      }
-    } catch {
-      response = await fetch("http://127.0.0.1:8001/api/v1/dashboard/me", {
-        headers,
-      })
-    }
-
-    if (!response.ok) {
-      throw new Error(`Gagal memuat data dashboard: status ${response.status}`)
-    }
-
-    return response.json()
+    return apiFetch<DashboardMeResponse>("/api/v1/dashboard/me", { auth: true })
   },
 }

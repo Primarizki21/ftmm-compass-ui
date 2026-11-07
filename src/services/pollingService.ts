@@ -1,4 +1,5 @@
-import { authService } from "./authService"
+import { apiFetch } from "../api/client"
+import { readUser } from "../api/session"
 
 export interface PollingPeriod {
   period_id: string
@@ -51,7 +52,7 @@ export interface DemandAnalyticsResponse {
 
 const STORAGE_KEY_VOTES = "ftmm_prekrs_my_votes"
 
-// Fallback period data
+// ponytail: fixture sementara sampai F6 menghapus data demo dari jalur produksi.
 const DEFAULT_ACTIVE_PERIOD: PollingPeriod = {
   period_id: "poll-2024-genap-01",
   academic_year: "2024/2025",
@@ -66,7 +67,7 @@ const DEFAULT_ACTIVE_PERIOD: PollingPeriod = {
     "Pra-KRS Peminatan Mata Kuliah Pilihan Semester Genap 2024/2025 FTMM UNAIR",
 }
 
-// Fallback mock demand analytics
+// ponytail: fixture sementara sampai F6 menghapus data demo dari jalur produksi.
 const MOCK_DEMAND_ANALYTICS: CourseDemandItem[] = [
   {
     course_id: "SIC304",
@@ -205,218 +206,116 @@ function saveLocalVotes(votes: StudentVote[]) {
   localStorage.setItem(STORAGE_KEY_VOTES, JSON.stringify(votes))
 }
 
+function replaceVote(courseId: string, next?: StudentVote): void {
+  const kept = getLocalVotes().filter((vote) => vote.course_id !== courseId)
+  saveLocalVotes(next ? [...kept, next] : kept)
+}
+
 export const pollingService = {
-  /**
-   * Mengambil data periode polling pra-KRS yang sedang aktif.
-   */
   async getActivePeriod(): Promise<PollingPeriod> {
-    const headers = {
-      ...authService.getAuthHeaders(),
-      "Content-Type": "application/json",
-    }
-
     try {
-      const response = await fetch("/api/v1/polling/periods/active", {
-        headers,
+      return await apiFetch<PollingPeriod>("/api/v1/polling/periods/active", {
+        auth: true,
       })
-      if (response.ok) {
-        return (await response.json()) as PollingPeriod
-      }
     } catch {
-      // Fallback network error
+      return DEFAULT_ACTIVE_PERIOD
     }
-
-    return DEFAULT_ACTIVE_PERIOD
   },
 
-  /**
-   * Mengambil daftar vote/wishlist mahasiswa yang sedang login.
-   */
   async getMyVotes(): Promise<StudentVote[]> {
-    const headers = {
-      ...authService.getAuthHeaders(),
-      "Content-Type": "application/json",
-    }
-
     try {
-      const response = await fetch("/api/v1/polling/my-votes", {
-        headers,
+      const votes = await apiFetch<StudentVote[]>("/api/v1/polling/my-votes", {
+        auth: true,
       })
-      if (response.ok) {
-        const data = (await response.json()) as StudentVote[]
-        saveLocalVotes(data)
-        return data
-      }
+      saveLocalVotes(votes)
+      return votes
     } catch {
-      // Fallback network error
+      return getLocalVotes()
     }
-
-    return getLocalVotes()
   },
 
-  /**
-   * Mengirim atau memperbarui vote wishlist untuk mata kuliah tertentu dengan skala prioritas.
-   */
   async submitVote(payload: SubmitVotePayload): Promise<StudentVote> {
-    const headers = {
-      ...authService.getAuthHeaders(),
-      "Content-Type": "application/json",
-    }
-
     try {
-      const response = await fetch("/api/v1/polling/votes", {
+      const vote = await apiFetch<StudentVote>("/api/v1/polling/votes", {
         method: "POST",
-        headers,
-        body: JSON.stringify(payload),
+        body: payload,
+        auth: true,
       })
-
-      if (response.ok) {
-        const result = (await response.json()) as StudentVote
-        // Update local mirror
-        const existing = getLocalVotes().filter(
-          (v) => v.course_id !== payload.course_id,
-        )
-        existing.push(result)
-        saveLocalVotes(existing)
-        return result
-      }
+      replaceVote(payload.course_id, vote)
+      return vote
     } catch {
-      // Fallback network error
+      const vote: StudentVote = {
+        vote_id: `vote-${Date.now()}`,
+        course_id: payload.course_id,
+        priority: payload.priority,
+        created_at: new Date().toISOString(),
+      }
+      replaceVote(payload.course_id, vote)
+      return vote
     }
-
-    // Local state fallback update
-    const existing = getLocalVotes().filter(
-      (v) => v.course_id !== payload.course_id,
-    )
-    const newVote: StudentVote = {
-      vote_id: `vote-${Date.now()}`,
-      course_id: payload.course_id,
-      priority: payload.priority,
-      created_at: new Date().toISOString(),
-    }
-    existing.push(newVote)
-    saveLocalVotes(existing)
-    return newVote
   },
 
-  /**
-   * Menghapus vote wishlist mata kuliah untuk mahasiswa aktif.
-   */
   async removeVote(courseId: string): Promise<void> {
-    const headers = {
-      ...authService.getAuthHeaders(),
-      "Content-Type": "application/json",
-    }
-
-    try {
-      const response = await fetch(
-        `/api/v1/polling/votes/${encodeURIComponent(courseId)}`,
-        {
-          method: "DELETE",
-          headers,
-        },
-      )
-      if (response.ok) {
-        const existing = getLocalVotes().filter((v) => v.course_id !== courseId)
-        saveLocalVotes(existing)
-        return
-      }
-    } catch {
-      // Fallback network error
-    }
-
-    const existing = getLocalVotes().filter((v) => v.course_id !== courseId)
-    saveLocalVotes(existing)
+    await apiFetch<void>(
+      `/api/v1/polling/votes/${encodeURIComponent(courseId)}`,
+      { method: "DELETE", auth: true },
+    ).catch(() => undefined)
+    replaceVote(courseId)
   },
 
-  /**
-   * Mengambil rekap analitik peminatan mata kuliah untuk Kaprodi/Dosen/Admin.
-   */
   async getDemandAnalytics(
     studyProgram?: string,
   ): Promise<DemandAnalyticsResponse> {
-    const headers = {
-      ...authService.getAuthHeaders(),
-      "Content-Type": "application/json",
-    }
-
     const query =
       studyProgram && studyProgram !== "all"
         ? `?study_program=${encodeURIComponent(studyProgram)}`
         : ""
+    const role = readUser<{ role: string }>()?.role ?? "student"
+    const base = ["lecturer", "admin", "faculty_staff"].includes(role)
+      ? "/api/v1/admin/polling/demand-analytics"
+      : "/api/v1/polling/demand-analytics"
 
     try {
-      let response = await fetch(`/api/v1/polling/demand-analytics${query}`, {
-        headers,
+      return await apiFetch<DemandAnalyticsResponse>(`${base}${query}`, {
+        auth: true,
       })
-      if (!response.ok) {
-        response = await fetch(
-          `/api/v1/admin/polling/demand-analytics${query}`,
-          {
-            headers,
-          },
-        )
-      }
-      if (response.ok) {
-        return (await response.json()) as DemandAnalyticsResponse
-      }
     } catch {
-      // Fallback network error
-    }
-
-    // Dynamic mock analytics with local votes reflection
-    const currentVotes = getLocalVotes()
-    const clonedItems = MOCK_DEMAND_ANALYTICS.map((item) => {
-      const extra = currentVotes.find(
-        (v) =>
-          v.course_id === item.course_id || v.course_id === item.course_code,
-      )
-      if (extra) {
-        const total = item.total_votes + 1
-        const p1 =
-          extra.priority === 1
-            ? item.priority_1_votes + 1
-            : item.priority_1_votes
-        const p2 =
-          extra.priority === 2
-            ? item.priority_2_votes + 1
-            : item.priority_2_votes
-        const p3 =
-          extra.priority === 3
-            ? item.priority_3_votes + 1
-            : item.priority_3_votes
-        const status: "QUALIFIED" | "BORDERLINE" | "UNQUALIFIED" =
-          total >= 15 ? "QUALIFIED" : total >= 10 ? "BORDERLINE" : "UNQUALIFIED"
-        const projected = Math.max(
-          status === "QUALIFIED" ? Math.ceil(total / 30) : 0,
-          0,
+      const currentVotes = getLocalVotes()
+      const items = MOCK_DEMAND_ANALYTICS.map((item) => {
+        const extra = currentVotes.find(
+          (vote) =>
+            vote.course_id === item.course_id ||
+            vote.course_id === item.course_code,
         )
+        if (!extra) return item
+        const total = item.total_votes + 1
+        const status: CourseDemandItem["status"] =
+          total >= 15 ? "QUALIFIED" : total >= 10 ? "BORDERLINE" : "UNQUALIFIED"
         return {
           ...item,
           total_votes: total,
-          priority_1_votes: p1,
-          priority_2_votes: p2,
-          priority_3_votes: p3,
+          priority_1_votes:
+            item.priority_1_votes + (extra.priority === 1 ? 1 : 0),
+          priority_2_votes:
+            item.priority_2_votes + (extra.priority === 2 ? 1 : 0),
+          priority_3_votes:
+            item.priority_3_votes + (extra.priority === 3 ? 1 : 0),
           status,
-          projected_classes: projected,
+          projected_classes: status === "QUALIFIED" ? Math.ceil(total / 30) : 0,
         }
+      })
+      return {
+        period: DEFAULT_ACTIVE_PERIOD,
+        total_students_voted: 142 + currentVotes.length,
+        items:
+          studyProgram && studyProgram !== "all"
+            ? items.filter(
+                (item) =>
+                  item.study_program === studyProgram ||
+                  item.program_code === studyProgram,
+              )
+            : items,
       }
-      return item
-    })
-
-    const filtered =
-      studyProgram && studyProgram !== "all"
-        ? clonedItems.filter(
-            (it) =>
-              it.study_program === studyProgram ||
-              it.program_code === studyProgram,
-          )
-        : clonedItems
-
-    return {
-      period: DEFAULT_ACTIVE_PERIOD,
-      total_students_voted: 142 + currentVotes.length,
-      items: filtered,
     }
   },
 }

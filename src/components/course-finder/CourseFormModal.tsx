@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { X, BookPlus, Edit3, AlertCircle, Loader2 } from "lucide-react"
 import { Course } from "../../data"
-import { authService } from "../../services/authService"
+import { apiErrorMessage, apiFetch } from "../../api/client"
 
 interface CourseFormModalProps {
   isOpen: boolean
@@ -46,7 +46,11 @@ export default function CourseFormModal({
       setLecturer(
         initialCourse.lecturer || "Dr. Ir. Hendra Kurniawan, S.T., M.T.",
       )
-      setPrereqInput(initialCourse.prerequisites?.join(", ") || "")
+      setPrereqInput(
+        initialCourse.prerequisites
+          ?.map((prereq) => prereq.id || prereq.name)
+          .join(", ") || "",
+      )
     } else {
       setCode("")
       setName("")
@@ -69,13 +73,6 @@ export default function CourseFormModal({
     setIsLoading(true)
     setErrorMessage(null)
 
-    const token = authService.getStoredToken()
-    if (!token) {
-      setErrorMessage("Sesi autentikasi telah berakhir. Silakan login kembali.")
-      setIsLoading(false)
-      return
-    }
-
     const prereqs = prereqInput
       .split(",")
       .map((s) => s.trim())
@@ -97,28 +94,10 @@ export default function CourseFormModal({
         }
 
         const courseId = initialCourse.code || initialCourse.id
-        const res = await fetch(
+        const saved = await apiFetch<Course>(
           `/api/v1/admin/courses/${encodeURIComponent(courseId)}`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(payload),
-          },
+          { method: "PUT", body: payload, auth: true },
         )
-
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}))
-          throw new Error(
-            errData.detail ||
-              errData.error?.message ||
-              "Gagal memperbarui mata kuliah",
-          )
-        }
-
-        const saved: Course = await res.json()
         onSuccess(saved)
         onClose()
       } else {
@@ -135,32 +114,16 @@ export default function CourseFormModal({
           prerequisites: prereqs,
         }
 
-        const res = await fetch("/api/v1/admin/courses", {
+        const created = await apiFetch<Course>("/api/v1/admin/courses", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
+          body: payload,
+          auth: true,
         })
-
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}))
-          throw new Error(
-            errData.detail ||
-              errData.error?.message ||
-              "Gagal menambahkan mata kuliah",
-          )
-        }
-
-        const created: Course = await res.json()
         onSuccess(created)
         onClose()
       }
     } catch (err: unknown) {
-      setErrorMessage(
-        err instanceof Error ? err.message : "Terjadi kesalahan pada server",
-      )
+      setErrorMessage(apiErrorMessage(err, "Terjadi kesalahan pada server"))
     } finally {
       setIsLoading(false)
     }
