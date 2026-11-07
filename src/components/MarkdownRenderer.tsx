@@ -87,6 +87,18 @@ export function MarkdownRenderer({
               {children}
             </blockquote>
           ),
+          pre: ({ children }) => (
+            <pre
+              className={cn(
+                "p-3 rounded-lg overflow-x-auto font-mono text-xs my-2",
+                isUser
+                  ? "bg-navy-dark text-teal-light"
+                  : "bg-navy-dark text-white border border-border/20",
+              )}
+            >
+              {children}
+            </pre>
+          ),
           code: ({ className: codeClassName, children, ...props }) => {
             const isInline =
               !codeClassName &&
@@ -108,16 +120,9 @@ export function MarkdownRenderer({
               )
             }
             return (
-              <pre
-                className={cn(
-                  "p-3 rounded-lg overflow-x-auto font-mono text-xs my-2",
-                  isUser
-                    ? "bg-navy-dark text-teal-light"
-                    : "bg-navy-dark text-white border border-border/20",
-                )}
-              >
-                <code {...props}>{children}</code>
-              </pre>
+              <code className={codeClassName} {...props}>
+                {children}
+              </code>
             )
           },
           table: ({ children }) => (

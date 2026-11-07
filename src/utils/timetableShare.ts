@@ -1,4 +1,5 @@
 import type { ScheduleItem } from "../data"
+import { markConflicts } from "../domain/timetable"
 
 export interface CompactScheduleEntry {
   c: string // code
@@ -109,19 +110,7 @@ export function deserializeTimetable(
       conflict: false,
     }))
 
-    // Detect conflicts among items
-    for (let i = 0; i < items.length; i++) {
-      for (let j = i + 1; j < items.length; j++) {
-        const a = items[i]
-        const b = items[j]
-        const aEnd = a.start + a.duration
-        const bEnd = b.start + b.duration
-        if (a.day === b.day && a.start < bEnd && b.start < aEnd) {
-          a.conflict = true
-          b.conflict = true
-        }
-      }
-    }
+    markConflicts(items)
 
     return {
       schedule: items,

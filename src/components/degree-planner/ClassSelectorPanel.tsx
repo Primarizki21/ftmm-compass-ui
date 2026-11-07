@@ -8,19 +8,8 @@ import {
 } from "lucide-react"
 import { cn } from "../../utils"
 import { CourseOffering, getOfferingForCourse } from "../../data"
+import type { TimetableConflict } from "../../domain/timetable"
 import { PlacedCourse } from "./types"
-
-export interface TimetableConflict {
-  courseA: string
-  codeA: string
-  sectionA: string
-  courseB: string
-  codeB: string
-  sectionB: string
-  day: string
-  start: number
-  end: number
-}
 
 interface ClassSelectorPanelProps {
   activeSemester: number
@@ -39,9 +28,11 @@ export default function ClassSelectorPanel({
   conflicts,
   onAutoResolveConflicts,
 }: ClassSelectorPanelProps) {
-  const offerings: CourseOffering[] = semesterCourses.map((c) =>
-    getOfferingForCourse(c),
-  )
+  const offerings: CourseOffering[] = semesterCourses.map((course) => ({
+    ...getOfferingForCourse(course),
+    // Section dipilih per kartu rencana, jadi kuncinya id PlacedCourse (bukan kode katalog).
+    courseId: course.id,
+  }))
 
   const conflictingCourseIds = new Set<string>()
   conflicts.forEach((c) => {

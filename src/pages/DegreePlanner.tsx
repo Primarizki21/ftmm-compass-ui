@@ -19,9 +19,8 @@ import {
 } from "../components/degree-planner/SemesterColumn"
 import CoursePickerModal from "../components/degree-planner/CoursePickerModal"
 import CourseInspectModal from "../components/degree-planner/CourseInspectModal"
-import ClassSelectorPanel, {
-  TimetableConflict,
-} from "../components/degree-planner/ClassSelectorPanel"
+import ClassSelectorPanel from "../components/degree-planner/ClassSelectorPanel"
+import { markConflicts } from "../domain/timetable"
 import { getOfferingForCourse, ScheduleItem } from "../data"
 import { usePlanner } from "../state/planner"
 import { useSession } from "../state/session"
@@ -339,33 +338,7 @@ export default function DegreePlanner({
       }
     })
 
-    // Detect overlapping slots
-    const foundConflicts: TimetableConflict[] = []
-    for (let i = 0; i < items.length; i++) {
-      for (let j = i + 1; j < items.length; j++) {
-        const a = items[i]
-        const b = items[j]
-        const aEnd = a.start + a.duration
-        const bEnd = b.start + b.duration
-
-        if (a.day === b.day && a.start < bEnd && b.start < aEnd) {
-          a.conflict = true
-          b.conflict = true
-          foundConflicts.push({
-            courseA: a.course,
-            codeA: a.code,
-            sectionA: a.sectionCode || "Kelas",
-            courseB: b.course,
-            codeB: b.code,
-            sectionB: b.sectionCode || "Kelas",
-            day: a.day,
-            start: Math.max(a.start, b.start),
-            end: Math.min(aEnd, bEnd),
-          })
-        }
-      }
-    }
-
+    const foundConflicts = markConflicts(items)
     return { dynamicSchedule: items, conflicts: foundConflicts }
   }, [currentTimetableCourses, selectedSections])
 
