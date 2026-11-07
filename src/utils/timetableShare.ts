@@ -136,7 +136,6 @@ function generateTimetableShareUrl(
 export function getSharedTimetableFromLocation(): DeserializedTimetableResult | null {
   if (typeof window === "undefined") return null
 
-  // Check URL hash first (#timetable=... or #tt=...)
   const hash = window.location.hash
   if (hash) {
     const hashParams = new URLSearchParams(hash.replace(/^#/, ""))
@@ -147,7 +146,6 @@ export function getSharedTimetableFromLocation(): DeserializedTimetableResult | 
     }
   }
 
-  // Check URL query string (?timetable=... or ?tt=...)
   const searchParams = new URLSearchParams(window.location.search)
   const queryToken = searchParams.get("timetable") || searchParams.get("tt")
   if (queryToken) {

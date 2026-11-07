@@ -1,3 +1,4 @@
+from datetime import date
 from typing import List, Optional, Dict, Literal, Any, Union
 from pydantic import BaseModel, Field
 
@@ -57,13 +58,13 @@ class CourseModel(BaseModel):
 class AdminCourseCreateRequest(BaseModel):
     course_code: str
     course_name: str
-    program_name: str = "Teknologi Sains Data"
+    program_name: str
     credits: int = 3
     recommended_semester: int = 1
     term: Literal["ganjil", "genap"] = "ganjil"
     course_type: Literal["Wajib", "Pilihan"] = "Pilihan"
     description: Optional[str] = ""
-    lecturer: Optional[str] = "Tim Dosen FTMM UNAIR"
+    lecturer: Optional[str] = None
     prerequisites: List[str] = Field(default_factory=list)
 
 class AdminCourseUpdateRequest(BaseModel):
@@ -269,13 +270,24 @@ class DashboardScheduleItem(BaseModel):
     color: Optional[str] = "teal"
 
 
+class AcademicPeriodResponse(BaseModel):
+    academic_year: str
+    term: Literal["ganjil", "genap", "pendek"]
+    label: str
+    term_label: str
+    week_label: str
+    start_date: date
+    end_date: date
+    first_week_monday: date
+    semester_weeks: int
+
+
 class StudentDashboardStats(BaseModel):
     type: Literal["student"] = "student"
     sks_completed: int
     sks_target: int = 144
     completion_percentage: float
     current_semester: int
-    term_name: str
     courses_planned: int
     sks_planned: int
     gpa: float
@@ -288,7 +300,6 @@ class LecturerDashboardStats(BaseModel):
     sks_taught: int
     total_students: int
     advisee_students: int
-    active_term: str
     status: str
 
 
@@ -298,7 +309,6 @@ class AdminDashboardStats(BaseModel):
     total_lecturers: int
     total_courses: int
     total_study_programs: int
-    active_polling_period: str
     system_status: str
 
 
@@ -309,8 +319,6 @@ class DashboardMeResponse(BaseModel):
     email: str
     student_number: Optional[str] = None
     study_program: Optional[str] = None
-    period_name: str
-    academic_week: int = 4
     stats: Union[StudentDashboardStats, LecturerDashboardStats, AdminDashboardStats]
     schedule: List[DashboardScheduleItem] = Field(default_factory=list)
 

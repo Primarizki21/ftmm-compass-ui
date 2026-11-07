@@ -424,3 +424,20 @@ Penyimpangan dari rencana (disengaja, dengan alasan):
 Kriteria §5 yang sudah diverifikasi: (1) 0 literal port, (2) parity hanya di domain, (3) `24 SKS` hanya dari konstanta, (4) `Ekstrak` hanya di `courseData.ts` dan `catalog.py` (plus skrip build), (6) `app.py` 267 baris, (9) tidak ada `dual-tier` di tes, (11) paritas skema DB, (12) satu entry point tes, (13) angka duplikasi turun, (14) `make test` + `pnpm build` lulus, smoke browser 5 halaman × 2 peran tanpa error konsol.
 
 Catatan terbuka: `overtime` dashboard memakai periode akademik dari DB (`academic_periods`) sementara header aplikasi memakai kalender domain; setelah seed diperbaiki, keduanya menunjuk 2026/2027 Ganjil, tetapi mekanisme penentuan periode masih dua (DB vs kalkulasi tanggal) dan layak disatukan lewat satu endpoint periode pada iterasi berikutnya.
+
+---
+
+## 9. Catatan Eksekusi Lanjutan (2026-11-07)
+
+Catatan terbuka dari §8 ditutup pada iterasi ini.
+
+| Area | Hasil | Bukti |
+|---|---|---|
+| Periode akademik | `academics.py` menjadi satu-satunya aturan; `GET /api/v1/academic-periods/current` + legacy alias; `state/academic.tsx` menjadi konsumen tunggal di frontend | Header, Dashboard, DegreePlanner, Profile menampilkan `Semester Ganjil 2026/2027 · Week 11`; ICS memakai `first_week_monday` + `semester_weeks` dari API |
+| Katalog | Loader `/Ekstrak` di frontend dihapus; `CatalogProvider` mulai kosong dan hanya membaca API | `rg "Ekstrak\|ALL_COURSES\|PROGRAMS" src` = 0; Course Finder menampilkan 411 MK dari backend |
+| Data frontend | Draft demo, MK fiktif, NIM/NIP fallback, dosen default, dan angka statistik hardcoded dihapus | `rg "195 Mata Kuliah\|36 Tabel\|97/97\|164231001\|Hendra" src` = 0 |
+| Badge | `CourseIdentityBadges` menjadi satu definisi prodi/kode/PDB | Dipakai `CourseBadges` dan kartu Course Finder |
+| Komentar | Komentar yang mengulang implementasi dihapus; alasan eksternal dipertahankan | `ruff check` bersih; `pnpm typecheck` 0 |
+| Tes | Opsi A: transaksi per-tes di-rollback; DB tidak tersedia = fail, bukan skip | `45 passed` dua kali; jumlah `courses` berkode `TST%` tidak bertambah |
+
+Verifikasi: `pnpm typecheck`, `pnpm build`, `uv run --directory backend ruff check .`, `uv run --directory backend python -m pytest tests -q` (45 passed dua kali), smoke browser student + admin tanpa error konsol.

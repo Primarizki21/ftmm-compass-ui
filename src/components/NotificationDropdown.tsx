@@ -60,7 +60,6 @@ export default function NotificationDropdown({
 
   const unreadCount = notifications.filter((n) => !n.isRead).length
 
-  // Close on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -78,7 +77,6 @@ export default function NotificationDropdown({
     }
   }, [isOpen])
 
-  // Close on Escape key
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {

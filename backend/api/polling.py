@@ -117,7 +117,6 @@ async def get_my_votes(
             detail="Akses ditolak: Hanya mahasiswa yang memiliki daftar vote pilihan.",
         )
 
-    # Dapatkan periode aktif saat ini jika ada
     stmt_period = (
         select(ElectivePollingPeriod)
         .where(ElectivePollingPeriod.status == "open")
@@ -159,7 +158,6 @@ async def submit_vote(
             detail="Akses ditolak: Hanya mahasiswa yang dapat melakukan voting peminatan.",
         )
 
-    # 1. Cari periode aktif
     stmt_period = (
         select(ElectivePollingPeriod)
         .where(ElectivePollingPeriod.status == "open")
@@ -173,7 +171,6 @@ async def submit_vote(
             detail="Tidak ada periode polling pra-KRS yang sedang aktif.",
         )
 
-    # 2. Validasi profil mahasiswa & paritas semester
     student_profile = current_user.student_profile
     if not student_profile:
         raise HTTPException(
@@ -189,7 +186,6 @@ async def submit_vote(
             detail=f"Paritas semester tidak sesuai. Periode polling untuk semester {active_period.target_term}, sedangkan mahasiswa berada pada semester {student_parity} (semester {current_sem}).",
         )
 
-    # 3. Cari info mata kuliah dari catalog
     all_courses = get_all_courses()
     matched_course = None
     for c in all_courses:
@@ -201,7 +197,6 @@ async def submit_vote(
     c_name = matched_course.name if matched_course else payload.course_id
     c_credits = matched_course.credits if matched_course else 3
 
-    # 4. Cek apakah user sudah pernah vote course ini di periode aktif (idempotent update)
     stmt_existing = select(ElectiveCourseVote).where(
         ElectiveCourseVote.polling_period_id == active_period.polling_period_id,
         ElectiveCourseVote.user_id == current_user.user_id,
@@ -223,7 +218,6 @@ async def submit_vote(
             created_at=existing_vote.created_at.isoformat(),
         )
 
-    # 5. Cek batas maksimal vote jika vote baru
     stmt_count = select(func.count(ElectiveCourseVote.vote_id)).where(
         ElectiveCourseVote.polling_period_id == active_period.polling_period_id,
         ElectiveCourseVote.user_id == current_user.user_id,
@@ -237,7 +231,6 @@ async def submit_vote(
             detail=f"Batas kuota vote telah tercapai ({active_period.max_votes_per_student} mata kuliah). Batalkan vote yang ada terlebih dahulu jika ingin mengganti pilihan.",
         )
 
-    # 6. Buat record vote baru
     new_vote = ElectiveCourseVote(
         polling_period_id=active_period.polling_period_id,
         user_id=current_user.user_id,
@@ -288,7 +281,6 @@ async def _fetch_demand_analytics(
     study_program: Optional[str],
     db: AsyncSession,
 ) -> DemandAnalyticsResponse:
-    # 1. Ambil periode aktif
     stmt_period = (
         select(ElectivePollingPeriod)
         .where(ElectivePollingPeriod.status == "open")
@@ -309,7 +301,6 @@ async def _fetch_demand_analytics(
             detail="Belum ada periode polling yang terdaftar di sistem.",
         )
 
-    # 2. Hitung total mahasiswa unik yang telah memberikan suara pada periode ini
     stmt_total_mhs = (
         select(func.count(func.distinct(ElectiveCourseVote.user_id)))
         .where(ElectiveCourseVote.polling_period_id == active_period.polling_period_id)
@@ -317,7 +308,6 @@ async def _fetch_demand_analytics(
     res_total_mhs = await db.execute(stmt_total_mhs)
     total_students_voted = res_total_mhs.scalar() or 0
 
-    # 3. Agregasi vote per course_id
     stmt_votes = (
         select(
             ElectiveCourseVote.course_id,
@@ -340,7 +330,6 @@ async def _fetch_demand_analytics(
     res_votes = await db.execute(stmt_votes)
     vote_rows = res_votes.all()
 
-    # Lookup mapping catalog
     all_courses = get_all_courses()
     course_lookup = {c.id: c for c in all_courses}
     course_code_lookup = {c.code: c for c in all_courses}
@@ -353,7 +342,6 @@ async def _fetch_demand_analytics(
         c_obj = course_lookup.get(cid) or course_code_lookup.get(row.course_code)
         prog_name = c_obj.program if c_obj else "Teknologi Sains Data"
 
-        # Tentukan kode prodi singkat
         prog_code = None
         if "Sains Data" in prog_name:
             prog_code = "TSD"
@@ -380,7 +368,6 @@ async def _fetch_demand_analytics(
 
         proj_classes = (tot // 40) + 1 if tot > 0 else 0
 
-        # Filter jika ada parameter study_program
         if study_program and study_program != "all":
             if prog_name != study_program and prog_code != study_program:
                 continue
@@ -403,7 +390,6 @@ async def _fetch_demand_analytics(
             )
         )
 
-    # Sort items berdasarkan total_votes descending lalu priority_1_votes descending
     items.sort(key=lambda it: (it.total_votes, it.priority_1_votes), reverse=True)
 
     return DemandAnalyticsResponse(

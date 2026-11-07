@@ -115,7 +115,6 @@ export default function BrandLogo({
     )
   }
 
-  // Default compact header variant
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <img

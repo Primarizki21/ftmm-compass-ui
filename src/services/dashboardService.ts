@@ -6,7 +6,6 @@ export interface StudentDashboardStats {
   sks_target: number
   completion_percentage: number
   current_semester: number
-  term_name: string
   courses_planned: number
   sks_planned: number
   gpa: number
@@ -19,7 +18,6 @@ export interface LecturerDashboardStats {
   sks_taught: number
   total_students: number
   advisee_students: number
-  active_term: string
   status: string
 }
 
@@ -29,7 +27,6 @@ export interface AdminDashboardStats {
   total_lecturers: number
   total_courses: number
   total_study_programs: number
-  active_polling_period: string
   system_status: string
 }
 
@@ -59,8 +56,6 @@ export interface DashboardMeResponse {
   email: string
   student_number?: string
   study_program?: string
-  period_name: string
-  academic_week: number
   stats: DashboardStats
   schedule: DashboardScheduleItem[]
 }

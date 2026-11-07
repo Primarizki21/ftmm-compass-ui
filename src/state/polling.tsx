@@ -14,6 +14,7 @@ import {
   type StudentVote,
 } from "../services/pollingService"
 import { apiErrorMessage } from "../api/client"
+import { useSession } from "./session"
 
 interface PollingContextValue {
   period: PollingPeriod | null
@@ -29,6 +30,7 @@ interface PollingContextValue {
 const PollingContext = createContext<PollingContextValue | null>(null)
 
 export function PollingProvider({ children }: { children: ReactNode }) {
+  const { user } = useSession()
   const [period, setPeriod] = useState<PollingPeriod | null>(null)
   const [myVotes, setMyVotes] = useState<StudentVote[]>([])
   const [demand, setDemand] = useState<Record<string, DemandAnalyticsResponse>>(
@@ -40,7 +42,11 @@ export function PollingProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true
     setIsLoading(true)
-    Promise.all([pollingService.getActivePeriod(), pollingService.getMyVotes()])
+    const votesRequest =
+      user?.role === "student"
+        ? pollingService.getMyVotes()
+        : Promise.resolve<StudentVote[]>([])
+    Promise.all([pollingService.getActivePeriod(), votesRequest])
       .then(([nextPeriod, votes]) => {
         if (!active) return
         setPeriod(nextPeriod)
@@ -55,7 +61,7 @@ export function PollingProvider({ children }: { children: ReactNode }) {
     return () => {
       active = false
     }
-  }, [])
+  }, [user?.role])
 
   const loadDemand = useCallback(async (studyProgram: string) => {
     const key = studyProgram || "all"

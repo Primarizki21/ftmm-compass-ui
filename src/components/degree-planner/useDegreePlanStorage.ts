@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { type PlacedCourse, INITIAL_PLAN } from "./types"
 
-export const DEGREE_PLAN_STORAGE_KEY = "ftmm_compass_degree_drafts"
+export const DEGREE_PLAN_STORAGE_KEY = "ftmm_compass_degree_drafts_v2"
 
 export interface DegreePlanDraft {
   id: string
@@ -21,124 +21,10 @@ export interface DegreePlanStorageState {
 
 const DEFAULT_DRAFTS: DegreePlanDraft[] = [
   {
-    id: "draft-regular",
-    name: "Draft 1: Reguler",
-    description:
-      "Jalur reguler standar 8 semester (144 SKS) dengan sebaran matkul wajib dan pilihan seimbang.",
+    id: "draft-1",
+    name: "Draft 1",
+    description: "",
     plan: INITIAL_PLAN,
-    updatedAt: new Date().toISOString(),
-    isDefault: true,
-  },
-  {
-    id: "draft-acceleration",
-    name: "Draft 2: Akselerasi",
-    description:
-      "Skenario percepatan lulus 7 semester dengan pemadatan beban SKS dan persiapan tugas akhir lebih awal.",
-    plan: {
-      ...INITIAL_PLAN,
-      5: [
-        ...(INITIAL_PLAN[5] || []),
-        {
-          id: "TSD3101",
-          name: "Big Data Architecture",
-          code: "TSD3101",
-          credits: 3,
-          semester: 5,
-          type: "Pilihan",
-          desc: "Hadoop, Spark, Kafka, streaming architecture.",
-          parity: "odd",
-          status: "planned",
-        },
-      ],
-      6: [
-        ...(INITIAL_PLAN[6] || []),
-        {
-          id: "TSD3201",
-          name: "Natural Language Processing",
-          code: "TSD3201",
-          credits: 3,
-          semester: 6,
-          type: "Pilihan",
-          desc: "Text embeddings, LLM, BERT, tokenization.",
-          parity: "even",
-          status: "planned",
-        },
-        {
-          id: "TSD3203",
-          name: "Metodologi Penelitian & Penulisan Ilmiah",
-          code: "TSD3203",
-          credits: 2,
-          semester: 6,
-          type: "Wajib",
-          desc: "Penyusunan proposal skripsi dan studi literatur.",
-          parity: "even",
-          status: "planned",
-        },
-      ],
-      7: [
-        {
-          id: "TSD4101",
-          name: "Tugas Akhir / Skripsi",
-          code: "TSD4101",
-          credits: 6,
-          semester: 7,
-          type: "Wajib",
-          desc: "Penelitian skripsi mandiri tingkat sarjana.",
-          parity: "odd",
-          status: "planned",
-        },
-      ],
-    },
-    updatedAt: new Date().toISOString(),
-    isDefault: true,
-  },
-  {
-    id: "draft-mbkm",
-    name: "Draft 3: MBKM / Peminatan",
-    description:
-      "Skenario alokasi magang industri bersertifikat / studi independen MBKM pada semester 6-7.",
-    plan: {
-      ...INITIAL_PLAN,
-      6: [
-        {
-          id: "MBKM601",
-          name: "Magang Industri Bersertifikat MBKM",
-          code: "MBKM601",
-          credits: 20,
-          semester: 6,
-          type: "Pilihan",
-          desc: "Konversi 20 SKS program magang mitra DUDI Kemendikbudristek.",
-          parity: "even",
-          status: "planned",
-        },
-      ],
-      7: [
-        {
-          id: "MBKM701",
-          name: "Studi Independen / Riset Terapan MBKM",
-          code: "MBKM701",
-          credits: 20,
-          semester: 7,
-          type: "Pilihan",
-          desc: "Proyek inovasi teknologi multidisiplin dan riset industri.",
-          parity: "odd",
-          status: "planned",
-        },
-      ],
-      8: [
-        {
-          id: "TSD4201",
-          name: "Tugas Akhir & Ujian Komprehensif",
-          code: "TSD4201",
-          credits: 6,
-          semester: 8,
-          type: "Wajib",
-          desc: "Penyusunan laporan komprehensif hasil hilirisasi MBKM.",
-          parity: "even",
-          status: "planned",
-        },
-      ],
-    },
     updatedAt: new Date().toISOString(),
     isDefault: true,
   },
@@ -151,10 +37,7 @@ function withInitialPlans(
     ...state,
     drafts: state.drafts.map((draft) => ({
       ...draft,
-      initialPlan:
-        draft.initialPlan ??
-        DEFAULT_DRAFTS.find((preset) => preset.id === draft.id)?.plan ??
-        draft.plan,
+      initialPlan: draft.initialPlan ?? draft.plan,
     })),
   }
 }
@@ -162,7 +45,7 @@ function withInitialPlans(
 function loadInitialState(): DegreePlanStorageState {
   if (typeof window === "undefined") {
     return withInitialPlans({
-      activeDraftId: "draft-regular",
+      activeDraftId: "draft-1",
       drafts: DEFAULT_DRAFTS,
     })
   }
@@ -173,12 +56,12 @@ function loadInitialState(): DegreePlanStorageState {
       window.localStorage.setItem(
         DEGREE_PLAN_STORAGE_KEY,
         JSON.stringify({
-          activeDraftId: "draft-regular",
+          activeDraftId: "draft-1",
           drafts: DEFAULT_DRAFTS,
         }),
       )
       return {
-        activeDraftId: "draft-regular",
+        activeDraftId: "draft-1",
         drafts: DEFAULT_DRAFTS,
       }
     }
@@ -203,7 +86,7 @@ function loadInitialState(): DegreePlanStorageState {
   }
 
   return {
-    activeDraftId: "draft-regular",
+    activeDraftId: "draft-1",
     drafts: DEFAULT_DRAFTS,
   }
 }
@@ -258,7 +141,6 @@ export function useDegreePlanStorage(): UseDegreePlanStorageReturn {
   const latestPlanRef = useRef<Record<number, PlacedCourse[]>>(currentPlan)
   latestPlanRef.current = currentPlan
 
-  // Flush pending save to localStorage
   const flushSave = useCallback(
     (planToSave: Record<number, PlacedCourse[]>) => {
       setStorageState((prevState) => {
@@ -305,7 +187,6 @@ export function useDegreePlanStorage(): UseDegreePlanStorageReturn {
     [flushSave],
   )
 
-  // Switch to another draft
   const switchDraft = useCallback(
     (draftId: string) => {
       clearTimeout(saveTimerRef.current ?? undefined)
@@ -327,7 +208,6 @@ export function useDegreePlanStorage(): UseDegreePlanStorageReturn {
     [flushSave],
   )
 
-  // Create new draft
   const createDraft = useCallback(
     (
       name: string,
@@ -360,7 +240,6 @@ export function useDegreePlanStorage(): UseDegreePlanStorageReturn {
     [],
   )
 
-  // Duplicate current draft
   const duplicateCurrentDraft = useCallback(
     (customName?: string) => {
       const name = customName || `${activeDraft.name} (Salinan)`
@@ -369,7 +248,6 @@ export function useDegreePlanStorage(): UseDegreePlanStorageReturn {
     [activeDraft, createDraft],
   )
 
-  // Rename a draft
   const renameDraft = useCallback((draftId: string, newName: string) => {
     setStorageState((prev) => {
       const nextState: DegreePlanStorageState = {
@@ -383,7 +261,6 @@ export function useDegreePlanStorage(): UseDegreePlanStorageReturn {
     })
   }, [])
 
-  // Delete a draft
   const deleteDraft = useCallback(
     (draftId: string): boolean => {
       if (storageState.drafts.length <= 1) {
@@ -411,9 +288,8 @@ export function useDegreePlanStorage(): UseDegreePlanStorageReturn {
     [storageState.drafts.length],
   )
 
-  // Reset active draft to default plan
   const resetCurrentDraft = useCallback(() => {
-    setPlanWithDebouncedSave(activeDraft.initialPlan ?? INITIAL_PLAN)
+    setPlanWithDebouncedSave(activeDraft.initialPlan ?? {})
   }, [activeDraft.initialPlan, setPlanWithDebouncedSave])
 
   // Cleanup pending timer on unmount

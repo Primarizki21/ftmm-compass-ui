@@ -26,7 +26,7 @@ import {
   type DashboardMeResponse,
   type DashboardScheduleItem,
 } from "../services/dashboardService"
-import { currentAcademicPeriod } from "../domain/academics"
+import { useAcademicPeriod } from "../state/academic"
 import { useSession } from "../state/session"
 import { usePlanner } from "../state/planner"
 import { usePolling } from "../state/polling"
@@ -35,20 +35,22 @@ interface DashboardProps {
   onNavigate: (page: string) => void
 }
 
-function toScheduleItem(item: DashboardScheduleItem): ScheduleItem {
-  const [startHour, startMinute] = (item.start_time || "08:00")
-    .split(":")
-    .map(Number)
-  const [endHour, endMinute] = (item.end_time || "10:00").split(":").map(Number)
-  const start = (startHour || 0) + (startMinute || 0) / 60
-  const end = (endHour || 0) + (endMinute || 0) / 60
+function toScheduleItem(item: DashboardScheduleItem): ScheduleItem | null {
+  const [startHour, startMinute] = item.start_time.split(":").map(Number)
+  const [endHour, endMinute] = item.end_time.split(":").map(Number)
+  if (![startHour, startMinute, endHour, endMinute].every(Number.isFinite)) {
+    return null
+  }
+  const start = startHour + startMinute / 60
+  const end = endHour + endMinute / 60
+  if (end <= start) return null
   return {
     id: item.id,
     course: item.course_name,
     code: item.course_code,
     day: item.day,
     start,
-    duration: Math.max(1, end - start),
+    duration: end - start,
     color: item.color || "teal",
     room: item.room,
     sectionCode: item.class_name,
@@ -58,7 +60,7 @@ function toScheduleItem(item: DashboardScheduleItem): ScheduleItem {
 
 export default function Dashboard({ onNavigate }: DashboardProps) {
   const { user } = useSession()
-  const academicPeriod = currentAcademicPeriod()
+  const { period } = useAcademicPeriod()
   const { schedule } = usePlanner()
   const {
     period: pollingPeriod,
@@ -75,7 +77,9 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   const displayedSchedule = useMemo<ScheduleItem[]>(() => {
     if (user?.role === "admin") return []
     if (schedule.length > 0) return schedule
-    return (dashboardData?.schedule ?? []).map(toScheduleItem)
+    return (dashboardData?.schedule ?? [])
+      .map(toScheduleItem)
+      .filter((item): item is ScheduleItem => item !== null)
   }, [user?.role, dashboardData, schedule])
 
   const hasConflict = displayedSchedule.some((item) => item.conflict)
@@ -106,6 +110,8 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   }, [demand, loadDemand, selectedProdi, user])
 
   const demandAnalytics = demand[selectedProdi]
+  const adminStats =
+    dashboardData?.stats.type === "admin" ? dashboardData.stats : null
 
   const items = useMemo(() => demandAnalytics?.items || [], [demandAnalytics])
 
@@ -311,7 +317,11 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </h3>
             <div className="flex items-end gap-1.5 mt-2">
               <span className="text-xl font-heading font-bold text-navy">
-                {dashboardData.stats.active_polling_period}
+                {pollingPeriod
+                  ? `${pollingPeriod.academic_year} ${
+                      pollingPeriod.term === "ganjil" ? "Ganjil" : "Genap"
+                    }`
+                  : "Tidak ada polling aktif"}
               </span>
             </div>
             <p className="text-[10px] text-muted mt-3 font-mono">
@@ -374,7 +384,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
               </span>
               <span className="text-muted text-xs mb-1">
                 {dashboardData?.stats?.type === "student"
-                  ? dashboardData.stats.term_name
+                  ? (period?.term_label ?? "")
                   : ""}
               </span>
             </div>
@@ -464,7 +474,9 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </div>
             <span className="text-xs font-mono text-emerald-800 bg-emerald-100 border border-emerald-300 px-3 py-1 rounded-full flex items-center gap-1.5 font-semibold self-start sm:self-center">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-              Sistem Operasional Normal
+              {dashboardData?.stats.type === "admin"
+                ? dashboardData.stats.system_status
+                : "Status tidak tersedia"}
             </span>
           </div>
 
@@ -473,15 +485,15 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-navy flex items-center gap-1.5">
                   <Database className="w-4 h-4 text-gold" />
-                  PostgreSQL 16 Engine
+                  Mahasiswa Aktif
                 </span>
                 <span className="h-2 w-2 rounded-full bg-teal"></span>
               </div>
               <p className="text-xl font-heading font-bold text-navy">
-                36 Tabel Aktif
+                {adminStats?.total_active_students ?? 0}
               </p>
               <p className="text-[11px] text-muted">
-                Lulus 97/97 static audit checks (Baseline V2.1 RC1).
+                Mahasiswa terdaftar pada program studi FTMM.
               </p>
             </div>
 
@@ -489,15 +501,15 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-navy flex items-center gap-1.5">
                   <Server className="w-4 h-4 text-teal" />
-                  FastAPI Gateway Dual-Tier
+                  Dosen
                 </span>
                 <span className="h-2 w-2 rounded-full bg-teal"></span>
               </div>
               <p className="text-xl font-heading font-bold text-navy">
-                Online &amp; Resilient
+                {adminStats?.total_lecturers ?? 0}
               </p>
               <p className="text-[11px] text-muted">
-                Rute /api/v1/* dan /api/* backward-compatible aktif.
+                Dosen aktif yang tercatat di basis data.
               </p>
             </div>
 
@@ -505,15 +517,15 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-navy flex items-center gap-1.5">
                   <BookOpen className="w-4 h-4 text-navy-light" />
-                  Master Kurikulum 5 Prodi
+                  Mata Kuliah Aktif
                 </span>
                 <span className="h-2 w-2 rounded-full bg-teal"></span>
               </div>
               <p className="text-xl font-heading font-bold text-navy">
-                195 Mata Kuliah
+                {adminStats?.total_courses ?? 0}
               </p>
               <p className="text-[11px] text-muted">
-                TSD, TRKB, RN, TI, dan TE sinkron dengan SSOT resmi.
+                {adminStats?.total_study_programs ?? 0} program studi aktif.
               </p>
             </div>
           </div>
@@ -529,10 +541,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                   : "Jadwal Perkuliahan Minggu Ini"}
               </h3>
               <span className="text-xs font-mono text-muted bg-background border border-border px-2 py-0.5 rounded">
-                {dashboardData?.period_name || academicPeriod.termDisplay} ·{" "}
-                {dashboardData?.academic_week
-                  ? `Week ${dashboardData.academic_week}`
-                  : academicPeriod.weekDisplay}
+                {period?.label ?? "—"} · {period?.week_label ?? ""}
               </span>
               {hasConflict && (
                 <span className="flex items-center gap-1 text-xs font-medium text-danger bg-danger/8 px-2 py-0.5 rounded-full border border-danger/20">

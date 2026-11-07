@@ -15,7 +15,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 
-from api import auth, chat, courses, dashboard, health, plans, polling
+from api import (
+    academic_periods,
+    auth,
+    chat,
+    courses,
+    dashboard,
+    health,
+    plans,
+    polling,
+)
 import settings
 from catalog import refresh_from_db
 from rate_limit import limiter
@@ -85,7 +94,16 @@ def mount_resource(router):
     app.include_router(router, prefix="/api", include_in_schema=False, tags=["legacy"])
 
 
-for resource in (health, auth, courses, chat, plans, polling, dashboard):
+for resource in (
+    health,
+    auth,
+    courses,
+    chat,
+    plans,
+    polling,
+    dashboard,
+    academic_periods,
+):
     mount_resource(resource.router)
 
 # Dua path legacy dengan nama berbeda tetap dilayani tanpa salinan handler.
@@ -104,10 +122,6 @@ app.add_api_route(
     include_in_schema=False,
 )
 
-
-# ============================================================================
-# Global Exception Handlers (skill://api-design & standard error envelopes)
-# ============================================================================
 
 @app.exception_handler(RateLimitExceeded)
 def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):

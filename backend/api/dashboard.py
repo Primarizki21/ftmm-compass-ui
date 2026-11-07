@@ -1,7 +1,5 @@
 """Dashboard telemetry per peran. Semua angka berasal dari database."""
 
-from datetime import date
-
 from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,7 +9,6 @@ from academics import TOTAL_SKS_FOR_GRADUATION, grade_points
 from auth import get_current_user
 from database import get_db
 from models import (
-    AcademicPeriod,
     ClassSchedule,
     ClassSection,
     Course,
@@ -37,24 +34,6 @@ router = APIRouter()
 
 DAY_NAMES = {1: "Senin", 2: "Selasa", 3: "Rabu", 4: "Kamis", 5: "Jumat"}
 COLOR_PALETTE = ["teal", "navy", "gold", "orange"]
-
-
-def _period_label(period: AcademicPeriod | None) -> str:
-    if period is None:
-        return ""
-    term = "Genap" if period.term == "genap" else "Ganjil"
-    return f"Semester {term} {period.academic_year_start}/{period.academic_year_start + 1}"
-
-
-def _academic_week(period: AcademicPeriod | None) -> int:
-    if period is None or period.start_date is None:
-        return 0
-    start = period.start_date
-    if isinstance(start, date):
-        elapsed = (date.today() - start).days
-    else:
-        return 0
-    return max(1, min(16, elapsed // 7 + 1))
 
 
 def _schedule_item(
@@ -120,12 +99,6 @@ async def get_dashboard_me(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    active_period = (
-        await db.execute(select(AcademicPeriod).where(AcademicPeriod.is_active.is_(True)))
-    ).scalars().first()
-    period_name = _period_label(active_period)
-    academic_week = _academic_week(active_period)
-
     if current_user.role == "student":
         profile = (
             await db.execute(
@@ -175,7 +148,6 @@ async def get_dashboard_me(
             if sks_completed
             else 0.0,
             current_semester=profile.current_semester if profile else 1,
-            term_name=period_name.replace("Semester ", ""),
             courses_planned=courses_planned,
             sks_planned=sks_planned,
             gpa=gpa,
@@ -199,8 +171,6 @@ async def get_dashboard_me(
                 if (profile and profile.study_program)
                 else ""
             ),
-            period_name=period_name,
-            academic_week=academic_week,
             stats=stats,
             schedule=await _student_schedule(db, current_user.user_id),
         )
@@ -212,7 +182,6 @@ async def get_dashboard_me(
             sks_taught=0,
             total_students=0,
             advisee_students=0,
-            active_term=period_name,
             status="Belum ada penugasan mengajar tercatat",
         )
         return DashboardMeResponse(
@@ -220,8 +189,6 @@ async def get_dashboard_me(
             full_name=current_user.full_name,
             role=current_user.role,
             email=current_user.email,
-            period_name=period_name,
-            academic_week=academic_week,
             stats=stats,
             schedule=[],
         )
@@ -245,7 +212,6 @@ async def get_dashboard_me(
         total_lecturers=total_lecturers,
         total_courses=total_courses,
         total_study_programs=total_programs,
-        active_polling_period=period_name,
         system_status="Database & API aktif",
     )
     return DashboardMeResponse(
@@ -253,8 +219,6 @@ async def get_dashboard_me(
         full_name=current_user.full_name,
         role=current_user.role,
         email=current_user.email,
-        period_name=period_name,
-        academic_week=academic_week,
         stats=stats,
         schedule=[],
     )

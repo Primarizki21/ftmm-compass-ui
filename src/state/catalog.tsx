@@ -8,8 +8,7 @@ import {
   type ReactNode,
 } from "react"
 import type { Course } from "../data"
-import { ALL_COURSES, PROGRAMS, fetchCatalog } from "../courseData"
-import { apiErrorMessage } from "../api/client"
+import { fetchCatalog } from "../courseData"
 
 interface CatalogContextValue {
   courses: Course[]
@@ -24,16 +23,9 @@ interface CatalogContextValue {
 
 const CatalogContext = createContext<CatalogContextValue | null>(null)
 
-function mergeWithLocal(fetched: Course[]): Course[] {
-  const programs = new Set(fetched.map((course) => course.program))
-  if (programs.size >= 5) return fetched
-  const known = new Set(fetched.map((course) => course.id))
-  return [...fetched, ...ALL_COURSES.filter((course) => !known.has(course.id))]
-}
-
 export function CatalogProvider({ children }: { children: ReactNode }) {
-  const [courses, setCourses] = useState<Course[]>(ALL_COURSES)
-  const [programs, setPrograms] = useState<string[]>(PROGRAMS)
+  const [courses, setCourses] = useState<Course[]>([])
+  const [programs, setPrograms] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -41,16 +33,11 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
     setIsLoading(true)
     try {
       const result = await fetchCatalog("all")
-      setCourses(mergeWithLocal(result.courses))
-      setPrograms(result.programs?.length ? result.programs : PROGRAMS)
+      setCourses(result.courses)
+      setPrograms(result.programs)
       setError(null)
-    } catch (cause) {
-      setError(
-        apiErrorMessage(
-          cause,
-          "Katalog backend tidak tersedia, memakai kurikulum lokal.",
-        ),
-      )
+    } catch {
+      setError("Katalog backend tidak tersedia.")
     } finally {
       setIsLoading(false)
     }

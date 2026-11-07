@@ -1,5 +1,6 @@
 import type { Course } from "../../data"
 import { cn } from "../../utils"
+import CourseIdentityBadges from "./CourseIdentityBadges"
 
 interface CourseBadgesProps {
   course: Course
@@ -9,7 +10,7 @@ interface CourseBadgesProps {
   children?: React.ReactNode
 }
 
-/** Kluster badge mata kuliah: prodi, kode, SKS/semester, tipe, dan kategori kurikulum. */
+/** Kluster badge mata kuliah: identitas, SKS/semester, tipe, dan kategori kurikulum. */
 export default function CourseBadges({
   course,
   variant = "inline",
@@ -25,27 +26,7 @@ export default function CourseBadges({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {course.prodiAbbr && (
-        <span
-          className={cn(
-            "font-mono font-bold tracking-wide rounded",
-            size,
-            overlay ? "bg-white/20 text-white" : "bg-navy text-white",
-          )}
-          title={`Program Studi: ${course.program}`}
-        >
-          {course.prodiAbbr}
-        </span>
-      )}
-      <span
-        className={cn(
-          "font-mono font-bold rounded",
-          size,
-          overlay ? "text-teal-light" : "bg-navy/8 text-navy",
-        )}
-      >
-        {course.code || course.id}
-      </span>
+      <CourseIdentityBadges course={course} variant={variant} />
       <span className={cn("font-medium rounded", size, chip)}>
         {course.credits} SKS
       </span>
@@ -65,32 +46,6 @@ export default function CourseBadges({
       >
         {course.type}
       </span>
-      {course.category === "pdb_univ" && (
-        <span
-          className={cn(
-            "font-bold rounded",
-            size,
-            overlay
-              ? "bg-purple-500/30 text-purple-200 border border-purple-300/40"
-              : "bg-purple-100 text-purple-800 border border-purple-200",
-          )}
-        >
-          PDB Univ
-        </span>
-      )}
-      {course.category === "pdb_saintek" && (
-        <span
-          className={cn(
-            "font-bold rounded",
-            size,
-            overlay
-              ? "bg-teal/30 text-teal-light border border-teal/40"
-              : "bg-teal/20 text-navy border border-teal/40",
-          )}
-        >
-          PDB Saintek
-        </span>
-      )}
       {showParity && (
         <span className={cn("font-medium rounded", size, chip)}>
           Ditawarkan Sem{" "}

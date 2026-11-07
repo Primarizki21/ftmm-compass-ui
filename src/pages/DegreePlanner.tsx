@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react"
 import { BookOpen, Calendar } from "lucide-react"
 import { cn } from "../utils"
 import { Course, TIMETABLE_DAYS } from "../data"
-import { currentAcademicPeriod, SEMESTERS } from "../domain/academics"
+import { SEMESTERS } from "../domain/academics"
 import { courseReligion } from "../domain/course"
 import TimetableGrid from "../components/TimetableGrid"
 import {
@@ -24,6 +24,7 @@ import { markConflicts } from "../domain/timetable"
 import { getOfferingForCourse, ScheduleItem } from "../data"
 import { usePlanner } from "../state/planner"
 import { useSession } from "../state/session"
+import { useAcademicPeriod } from "../state/academic"
 import { useCatalog } from "../state/catalog"
 
 export type { PlacedCourse } from "../components/degree-planner/types"
@@ -32,7 +33,7 @@ export default function DegreePlanner({
   onNavigate,
   initialTab,
 }: DegreePlannerProps) {
-  const academicPeriod = currentAcademicPeriod()
+  const { period } = useAcademicPeriod()
   const planner = usePlanner()
   const { user } = useSession()
   const { courses: catalog, programs: availablePrograms } = useCatalog()
@@ -69,14 +70,11 @@ export default function DegreePlanner({
     course: PlacedCourse
     sem: number
   } | null>(null)
-  const [activeTimetableSem, setActiveTimetableSem] = useState<number>(5)
+  const [activeTimetableSem, setActiveTimetableSem] = useState<number>(() =>
+    Math.min(8, Math.max(1, user?.student_profile?.current_semester ?? 1)),
+  )
   const [selectedSections, setSelectedSections] =
-    useState<Record<string, string>>({
-      II4042: "II4042-A",
-      II4045: "II4045-A",
-      KU2001: "KU2001-A",
-      II4050: "II4050-A",
-    })
+    useState<Record<string, string>>({})
   const activeReligion = useMemo(() => {
     for (const courses of Object.values(plan)) {
       for (const c of courses) {
@@ -87,7 +85,6 @@ export default function DegreePlanner({
     return null
   }, [plan])
 
-  // Map course ID to semester where it is currently placed
   const placedMap = useMemo(() => {
     const map = new Map<string, number>()
     Object.entries(plan).forEach(([semStr, list]) => {
@@ -96,7 +93,6 @@ export default function DegreePlanner({
     return map
   }, [plan])
 
-  // Close modal on Escape
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") setPickerSem(null)
@@ -224,7 +220,6 @@ export default function DegreePlanner({
           : plan[sem]?.length || 0
 
     if (fromSem === sem) {
-      // Intra-semester reordering (atas-bawah)
       setPlan((prev) => {
         const currentList = [...(prev[sem] || [])]
         const fromIdx =
@@ -247,7 +242,6 @@ export default function DegreePlanner({
         return { ...prev, [sem]: currentList }
       })
     } else if (fromSem === "bank") {
-      // Drop from Bank Matkul Pilihan
       removePendingCourse(course.id)
       setPlan((prev) => {
         const currentList = [...(prev[sem] || [])]
@@ -260,7 +254,6 @@ export default function DegreePlanner({
         return { ...prev, [sem]: currentList }
       })
     } else {
-      // Cross-semester move (Pilihan)
       setPlan((prev) => {
         const sourceList = (prev[fromSem] || []).filter(
           (c) => c.id !== course.id,
@@ -298,13 +291,11 @@ export default function DegreePlanner({
     }))
   }
 
-  // Active semester courses for timetable view
   const currentTimetableCourses = useMemo(
     () => plan[activeTimetableSem] || [],
     [plan, activeTimetableSem],
   )
 
-  // Derive dynamic schedule items & detect conflicts
   const { dynamicSchedule, conflicts } = useMemo(() => {
     const COLOR_PALETTE = [
       "bg-teal/20 text-navy border-teal/50",
@@ -501,7 +492,7 @@ export default function DegreePlanner({
                   Jadwal Kuliah Aktif
                 </h3>
                 <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-gold/15 text-navy border border-gold/30">
-                  {academicPeriod.termDisplay}
+                  {period?.label ?? "—"}
                 </span>
               </div>
               <p className="text-xs text-muted mt-0.5">

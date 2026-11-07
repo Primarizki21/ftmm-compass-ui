@@ -12,7 +12,6 @@ import { useState, useMemo, useEffect } from "react"
 import { cn } from "./utils"
 import type { Course } from "./data"
 
-// Pages
 import Dashboard from "./pages/Dashboard"
 import CourseFinder from "./pages/CourseFinder"
 import DegreePlanner from "./pages/DegreePlanner"
@@ -28,33 +27,37 @@ import Profile from "./pages/Profile"
 import Login from "./pages/Login"
 import ErrorBoundary from "./components/ErrorBoundary"
 import { SessionProvider, useSession } from "./state/session"
-import { CatalogProvider } from "./state/catalog"
+import { CatalogProvider, useCatalog } from "./state/catalog"
 import { PollingProvider } from "./state/polling"
 import { PlannerProvider, usePlanner } from "./state/planner"
 
 import BrandLogo from "./components/BrandLogo"
 import AnimatedMenuToggle from "./components/AnimatedMenuToggle"
 import NotificationDropdown from "./components/NotificationDropdown"
-import { currentAcademicPeriod } from "./domain/academics"
+import { AcademicPeriodProvider, useAcademicPeriod } from "./state/academic"
 
 type Page = "dashboard" | "course-finder" | "degree-planner" | "chatbot" | "profile"
 
 export default function App() {
   return (
     <SessionProvider>
-      <CatalogProvider>
-        <PollingProvider>
-          <PlannerProvider>
-            <AppShell />
-          </PlannerProvider>
-        </PollingProvider>
-      </CatalogProvider>
+      <AcademicPeriodProvider>
+        <CatalogProvider>
+          <PollingProvider>
+            <PlannerProvider>
+              <AppShell />
+            </PlannerProvider>
+          </PollingProvider>
+        </CatalogProvider>
+      </AcademicPeriodProvider>
     </SessionProvider>
   )
 }
 
 function AppShell() {
   const { user, isLoggedIn, login, logout, canAccess } = useSession()
+  const { period } = useAcademicPeriod()
+  const { error: catalogError, reload: reloadCatalog } = useCatalog()
   const planner = usePlanner()
   const [activePage, setActivePage] = useState<Page>("dashboard")
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
@@ -73,8 +76,6 @@ function AppShell() {
   const [chatAppliedPlanId, setChatAppliedPlanId] = useState<string | null>(
     null,
   )
-  const academicPeriod = currentAcademicPeriod()
-
   useEffect(() => {
     if (!canAccess(activePage)) setActivePage("dashboard")
   }, [activePage, canAccess])
@@ -296,11 +297,9 @@ function AppShell() {
           <div className="flex items-center gap-2 md:gap-4">
             <NotificationDropdown currentUser={user} />
             <div className="text-sm text-right hidden sm:block">
-              <p className="font-medium text-navy">
-                {academicPeriod.termDisplay}
-              </p>
+              <p className="font-medium text-navy">{period?.label ?? "—"}</p>
               <p className="text-xs text-muted font-mono">
-                {academicPeriod.weekDisplay}
+                {period?.week_label ?? ""}
               </p>
             </div>
           </div>
@@ -315,6 +314,18 @@ function AppShell() {
               : "p-4 md:p-8",
           )}
         >
+          {catalogError && (
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-orange/30 bg-orange/10 px-4 py-3 text-xs text-navy">
+              <span>{catalogError}</span>
+              <button
+                type="button"
+                onClick={() => void reloadCatalog()}
+                className="rounded-lg border border-orange/40 px-3 py-1.5 font-semibold text-orange transition-colors hover:bg-orange/10"
+              >
+                Coba lagi
+              </button>
+            </div>
+          )}
           <div
             className={cn(
               "mx-auto h-full",

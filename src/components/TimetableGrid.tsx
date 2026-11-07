@@ -14,6 +14,7 @@ import {
   getSharedTimetableFromLocation,
 } from "../utils/timetableShare"
 import { exportTimetableToIcs } from "../utils/icsExport"
+import { useAcademicPeriod } from "../state/academic"
 
 const HOURS = Array.from({ length: 10 }, (_, i) => i + 7)
 
@@ -44,6 +45,7 @@ export default function TimetableGrid({
   onLoadSharedSchedule,
   showActions = true,
 }: TimetableGridProps) {
+  const { period } = useAcademicPeriod()
   const [copied, setCopied] = useState(false)
   const [exported, setExported] = useState(false)
   const [sharedData, setSharedData] = useState<{
@@ -73,9 +75,14 @@ export default function TimetableGrid({
   }
 
   const handleExportIcs = () => {
+    if (!period) return
     const ok = exportTimetableToIcs(
       displayedSchedule,
       `jadwal-kuliah-ftmm${semester ? `-sem${semester}` : ""}.ics`,
+      {
+        firstWeekMonday: period.first_week_monday,
+        semesterWeeks: period.semester_weeks,
+      },
     )
     if (ok) {
       setExported(true)
@@ -193,9 +200,14 @@ export default function TimetableGrid({
             <button
               type="button"
               onClick={handleExportIcs}
-              title="Ekspor ke iCalendar (.ics) untuk Google Calendar / Apple Calendar"
+              disabled={!period}
+              title={
+                period
+                  ? "Ekspor ke iCalendar (.ics) untuk Google Calendar / Apple Calendar"
+                  : "Periode akademik belum tersedia"
+              }
               className={cn(
-                "px-3 py-1.5 rounded-lg text-xs font-semibold border flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs",
+                "px-3 py-1.5 rounded-lg text-xs font-semibold border flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed",
                 exported
                   ? "bg-gold/20 text-navy border-gold/50"
                   : "bg-surface hover:bg-navy/5 text-navy border-border hover:border-navy/30",

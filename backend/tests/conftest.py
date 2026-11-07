@@ -1,8 +1,7 @@
 """Fixture integrasi backend.
 
-Tes ini berjalan terhadap database PostgreSQL pengembangan karena kontrak yang
-diuji adalah query nyata (katalog, transkrip, polling). Seed dijalankan sekali
-secara eksplisit, bukan sebagai efek samping import.
+Tes berjalan terhadap PostgreSQL pengembangan, tetapi setiap tes dibungkus satu
+transaksi yang di-rollback. Database yang tidak tersedia menggagalkan suite.
 """
 
 import asyncio
@@ -10,9 +9,10 @@ import asyncio
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 import app as app_module
-from database import AsyncSessionLocal
+from database import AsyncSessionLocal, engine, get_db
 from seed import seed_data
 
 SEEDED_STUDENT = ("mahasiswa.testing@ftmm.unair.ac.id", "Mahasiswa2026!")
@@ -32,15 +32,12 @@ def _database_reachable() -> bool:
     return asyncio.run(probe())
 
 
-if not _database_reachable():
-    pytest.skip(
-        "PostgreSQL tidak tersedia; jalankan `make db-up && make migrate`.",
-        allow_module_level=True,
-    )
-
-
 @pytest.fixture(scope="session", autouse=True)
 def seeded_database():
+    if not _database_reachable():
+        pytest.fail(
+            "PostgreSQL tidak tersedia; jalankan `make db-up && make migrate`."
+        )
     asyncio.run(seed_data())
 
 
@@ -48,6 +45,42 @@ def seeded_database():
 def client(seeded_database):
     with TestClient(app_module.app) as test_client:
         yield test_client
+
+
+@pytest.fixture(autouse=True)
+def isolated_db(client):
+    async def begin():
+        connection = await engine.connect()
+        transaction = await connection.begin()
+        session = AsyncSession(
+            bind=connection,
+            expire_on_commit=False,
+            join_transaction_mode="create_savepoint",
+        )
+        return connection, transaction, session
+
+    connection, transaction, session = client.portal.call(begin)
+
+    async def override_get_db():
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+
+    app_module.app.dependency_overrides[get_db] = override_get_db
+    try:
+        yield
+    finally:
+        app_module.app.dependency_overrides.pop(get_db, None)
+
+        async def end():
+            await session.close()
+            await transaction.rollback()
+            await connection.close()
+
+        client.portal.call(end)
 
 
 def _login(client: TestClient, credentials: tuple[str, str]) -> str:

@@ -47,7 +47,6 @@ export default function CoursePickerModal({
     .filter((c) => c.status === "planned" || c.status === "completed")
     .reduce((sum, c) => sum + c.credits, 0)
 
-  // Base pool filtered by semester, program, and search query
   const basePool = catalog.filter((c) => {
     if (c.semester !== pickerSem) return false
     if (pickerProgram !== "all" && c.program !== pickerProgram) return false

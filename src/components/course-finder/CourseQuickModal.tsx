@@ -10,7 +10,6 @@ import {
 import { cn } from "../../utils"
 import { Course } from "../../data"
 import { type AuthUser } from "../../services/authService"
-import { ALL_COURSES } from "../../courseData"
 import { findCourseByNameOrCode } from "../../domain/course"
 import CourseDescriptionView from "./CourseDescriptionView"
 import CourseBadges from "../course/CourseBadges"
@@ -19,7 +18,7 @@ import WorkloadGrid from "../course/WorkloadGrid"
 
 export interface CourseQuickModalProps {
   course: Course | null
-  catalog?: Course[]
+  catalog: Course[]
   addedCourseIds: Set<string>
   onClose: () => void
   onAddToPlanner: (course: Course) => void
@@ -31,7 +30,7 @@ export interface CourseQuickModalProps {
 
 export default function CourseQuickModal({
   course,
-  catalog = ALL_COURSES,
+  catalog,
   addedCourseIds,
   onClose,
   onAddToPlanner,

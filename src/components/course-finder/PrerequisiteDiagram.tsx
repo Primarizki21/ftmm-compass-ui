@@ -1,6 +1,5 @@
 import { CheckCircle2, Clock, AlertCircle } from "lucide-react"
 import { Course } from "../../data"
-import { ALL_COURSES } from "../../courseData"
 import {
   findCourseByNameOrCode,
   findUnlockedCourses,
@@ -8,7 +7,7 @@ import {
 
 export interface PrerequisiteDiagramProps {
   course: Course
-  catalog?: Course[]
+  catalog: Course[]
   onSelectCourse?: (targetCourse: Course) => void
 }
 
@@ -21,14 +20,13 @@ interface DiagramNodeItem {
 
 export default function PrerequisiteDiagram({
   course,
-  catalog = ALL_COURSES,
+  catalog,
   onSelectCourse,
 }: PrerequisiteDiagramProps) {
   const allPrereqs = course.prerequisites || []
   const coursePrereqs = allPrereqs.filter((p) => !p.isAdministrative)
   const adminPrereqs = allPrereqs.filter((p) => p.isAdministrative)
 
-  // 1. Resolve Inbound Prerequisites (Courses required before this course)
   const inboundNodes: DiagramNodeItem[] = coursePrereqs.map((p) => {
     const matched = findCourseByNameOrCode(p.name, catalog, course.program)
     return {
@@ -39,7 +37,6 @@ export default function PrerequisiteDiagram({
     }
   })
 
-  // 2. Resolve Outbound Courses (Courses that require this course)
   const unlockedCourses = findUnlockedCourses(course, catalog)
   const outboundNodes: DiagramNodeItem[] = unlockedCourses.map((c) => ({
     id: c.id,
@@ -51,7 +48,6 @@ export default function PrerequisiteDiagram({
   const hasInbound = inboundNodes.length > 0
   const hasOutbound = outboundNodes.length > 0
 
-  // Empty state: Neither inbound nor outbound courses exist
   if (!hasInbound && !hasOutbound) {
     if (adminPrereqs.length > 0) {
       return (
@@ -100,7 +96,6 @@ export default function PrerequisiteDiagram({
   const V_GAP = 60
   const CTRL = 26
 
-  // Tier configuration
   let numTiers = 1
   let inboundTier = -1
   let currentTier = 0

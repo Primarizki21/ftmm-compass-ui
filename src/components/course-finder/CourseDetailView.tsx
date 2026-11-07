@@ -16,7 +16,7 @@ import WorkloadGrid from "../course/WorkloadGrid"
 
 export interface CourseDetailViewProps {
   course: Course
-  catalog?: Course[]
+  catalog: Course[]
   onBack: () => void
   onAdd: (c: Course) => void
   addedCourseIds: Set<string>

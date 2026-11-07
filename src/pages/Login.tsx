@@ -36,7 +36,6 @@ export default function Login({ onLogin }: LoginProps) {
     }
   }
 
-  // removed helper
   return (
     <div className="min-h-screen w-full flex bg-background font-sans">
       {/* Left Panel - Branding */}

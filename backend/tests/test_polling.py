@@ -25,16 +25,17 @@ def test_vote_outside_period_parity_is_rejected(client, student_headers):
         if me["student_profile"]["current_semester"] % 2 == 1
         else "genap"
     )
-    if period["term"] == student_term:
-        return  # periode cocok dengan paritas mahasiswa; kasus ini tidak diuji
-
     response = client.post(
         "/api/v1/polling/votes",
         headers=student_headers,
         json={"course_id": "SIC304", "priority": 1},
     )
-    assert response.status_code == 400
-    assert response.json()["error"]["code"]
+    if period["term"] == student_term:
+        assert response.status_code == 200
+        assert response.json()["course_id"] == "SIC304"
+    else:
+        assert response.status_code == 400
+        assert response.json()["error"]["code"]
 
 
 def test_demand_analytics_requires_staff_role(client, student_headers, lecturer_headers):

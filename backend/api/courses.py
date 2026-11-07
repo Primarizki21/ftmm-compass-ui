@@ -53,7 +53,6 @@ async def handle_list_courses(
     target_prodi = prodi or program_studi
     norm_prodi = normalize_prodi(target_prodi) if target_prodi else None
 
-    # 1. Forward to Chatbot SSOT microservice if reachable
     try:
         async with httpx.AsyncClient(timeout=3.0) as client:
             params: dict[str, Any] = {}
@@ -85,7 +84,6 @@ async def handle_list_courses(
                     if isinstance(c, dict) and "program" in c and isinstance(c["program"], str):
                         c["program"] = c["program"].replace("S1 ", "").strip()
 
-                # If paginated shape
                 if "meta" in data and "data" in data:
                     raw_paged = data.get("data", [])
                     for c in raw_paged:
@@ -108,7 +106,6 @@ async def handle_list_courses(
     except Exception as exc:
         logger.debug("%s", exc)
 
-    # 2. Resilient fallback to local dataset
     if not norm_prodi or norm_prodi.lower() in ("all", "semua"):
         courses = get_all_courses()
         active_prodi = "Semua Program Studi"
@@ -126,7 +123,6 @@ async def handle_list_courses(
             if q_clean in c.name.lower() or q_clean in (c.code or "").lower() or q_clean in c.desc.lower()
         ]
 
-    # Adaptive pagination fallback
     if page is not None or per_page is not None:
         p = max(page or 1, 1)
         pp = max(per_page or 20, 1)
@@ -179,7 +175,6 @@ async def handle_search_courses(
     target_prodi = prodi or program_studi
     norm_prodi = normalize_prodi(target_prodi) if target_prodi else None
 
-    # Try microservice
     try:
         async with httpx.AsyncClient(timeout=3.0) as client:
             params = {"q": q, "top_k": top_k}
@@ -198,7 +193,6 @@ async def handle_search_courses(
     except Exception as exc:
         logger.debug("%s", exc)
 
-    # Local fallback
     if norm_prodi and norm_prodi.lower() not in ("all", "semua"):
         courses = get_courses_for_program(norm_prodi)
     else:
@@ -298,7 +292,12 @@ async def v1_admin_create_course(
     db.add(new_course)
     await db.flush()
 
-    norm_prodi = normalize_prodi(payload.program_name) or "Teknologi Sains Data"
+    norm_prodi = normalize_prodi(payload.program_name)
+    if not norm_prodi:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Program studi tidak dikenali.",
+        )
     curriculum_id = await authoritative_curriculum_id(db, norm_prodi)
     if curriculum_id:
         curr_course = CurriculumCourse(

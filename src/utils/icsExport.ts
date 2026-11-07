@@ -1,5 +1,4 @@
 import type { ScheduleItem } from "../data"
-import { SEMESTER_WEEKS, semesterStartMonday } from "../domain/academics"
 
 const DAY_OFFSETS: Record<string, number> = {
   senin: 0,
@@ -29,14 +28,25 @@ function formatUtcTimestamp(date: Date): string {
   return `${y}${m}${d}T${h}${min}${s}Z`
 }
 
+export interface IcsExportOptions {
+  firstWeekMonday: string
+  semesterWeeks: number
+  calendarName?: string
+}
+
+function parseIsoDate(value: string): Date {
+  const [year, month, day] = value.split("-").map(Number)
+  return new Date(year, month - 1, day)
+}
+
 function generateIcsCalendar(
   schedule: ScheduleItem[],
-  options?: { calendarName?: string },
+  options: IcsExportOptions,
 ): string {
-  const calName = options?.calendarName || "Jadwal Perkuliahan FTMM UNAIR"
+  const calName = options.calendarName || "Jadwal Perkuliahan FTMM UNAIR"
   const now = new Date()
   const dtStamp = formatUtcTimestamp(now)
-  const semMonday = semesterStartMonday()
+  const semMonday = parseIsoDate(options.firstWeekMonday)
 
   const lines: string[] = [
     "BEGIN:VCALENDAR",
@@ -91,7 +101,7 @@ function generateIcsCalendar(
       `DTSTAMP:${dtStamp}`,
       `DTSTART;TZID=Asia/Jakarta:${dtStart}`,
       `DTEND;TZID=Asia/Jakarta:${dtEnd}`,
-      `RRULE:FREQ=WEEKLY;COUNT=${SEMESTER_WEEKS}`,
+      `RRULE:FREQ=WEEKLY;COUNT=${options.semesterWeeks}`,
       `SUMMARY:${summary}`,
       `DESCRIPTION:${description}`,
       `LOCATION:${location}`,
@@ -107,13 +117,14 @@ function generateIcsCalendar(
 export function exportTimetableToIcs(
   schedule: ScheduleItem[],
   filename = "jadwal-kuliah-ftmm.ics",
+  options?: IcsExportOptions,
 ): boolean {
-  if (typeof window === "undefined" || schedule.length === 0) {
+  if (typeof window === "undefined" || schedule.length === 0 || !options) {
     return false
   }
 
   try {
-    const icsString = generateIcsCalendar(schedule)
+    const icsString = generateIcsCalendar(schedule, options)
     const blob = new Blob([icsString], {
       type: "text/calendar;charset=utf-8",
     })

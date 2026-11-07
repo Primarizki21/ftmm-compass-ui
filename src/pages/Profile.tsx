@@ -26,11 +26,8 @@ import {
 } from "lucide-react"
 import { authService, type AuthUser } from "../services/authService"
 import { useSession } from "../state/session"
-import {
-  currentAcademicPeriod,
-  isOddSemester,
-  SKS_CAP_BY_IPS,
-} from "../domain/academics"
+import { useAcademicPeriod } from "../state/academic"
+import { isOddSemester, SKS_CAP_BY_IPS } from "../domain/academics"
 
 interface ProfileProps {
   onNavigate: (page: string) => void
@@ -38,14 +35,13 @@ interface ProfileProps {
 }
 
 export default function Profile({ onNavigate, onRequestLogout }: ProfileProps) {
-  const academicPeriod = currentAcademicPeriod()
+  const { period } = useAcademicPeriod()
   const { user: currentUser, setUser } = useSession()
   const [user, setLocalUser] = useState<AuthUser | null>(currentUser)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [refreshSuccess, setRefreshSuccess] = useState(false)
   const [refreshError, setRefreshError] = useState<string | null>(null)
 
-  // Edit preferences modal state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editPhone, setEditPhone] = useState(user?.phone_number || "")
   const [editBio, setEditBio] = useState(user?.bio || "")
@@ -141,9 +137,7 @@ export default function Profile({ onNavigate, onRequestLogout }: ProfileProps) {
 
   const studentProfile = user?.student_profile
   const academicId =
-    user?.academic_identifier ||
-    studentProfile?.student_number ||
-    (user?.role === "student" ? "164231001" : "198803152015041002")
+    user?.academic_identifier || studentProfile?.student_number || "—"
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto animate-in fade-in duration-300 pb-12">
@@ -396,7 +390,7 @@ export default function Profile({ onNavigate, onRequestLogout }: ProfileProps) {
                     3 Mata Kuliah · 9 SKS
                   </p>
                   <p className="text-[11px] text-muted mt-0.5 font-mono">
-                    {academicPeriod.termDisplay}
+                    {period?.label ?? "—"}
                   </p>
                 </div>
               </div>
@@ -481,7 +475,7 @@ export default function Profile({ onNavigate, onRequestLogout }: ProfileProps) {
                     {isOddSemester(studentProfile?.current_semester || 3)
                       ? "Term Ganjil"
                       : "Term Genap"}{" "}
-                    {academicPeriod.academicYear}
+                    {period?.academic_year ?? "—"}
                   </p>
                 </div>
               </div>

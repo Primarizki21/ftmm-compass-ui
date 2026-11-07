@@ -24,6 +24,7 @@ import CourseFormModal from "../components/course-finder/CourseFormModal"
 import { getProdiAbbreviation } from "../domain/course"
 import CourseDetailView from "../components/course-finder/CourseDetailView"
 import CourseQuickModal from "../components/course-finder/CourseQuickModal"
+import CourseIdentityBadges from "../components/course/CourseIdentityBadges"
 export interface CourseFinderProps {
   onAddToPlanner: (course: Course) => void
   addedCourseIds: Set<string>
@@ -38,7 +39,12 @@ export default function CourseFinder({
   onClearInitialCourse,
 }: CourseFinderProps) {
   const { user: currentUser } = useSession()
-  const { courses: catalogCourses, programs, upsert } = useCatalog()
+  const {
+    courses: catalogCourses,
+    programs,
+    isLoading: catalogLoading,
+    upsert,
+  } = useCatalog()
   const {
     period: pollingPeriod,
     myVotes,
@@ -83,6 +89,15 @@ export default function CourseFinder({
     [activeProgram, catalogCourses],
   )
   const availablePrograms = programs
+  const creditCounts = useMemo(() => {
+    const counts: Record<string, number> = { other: 0 }
+    for (const item of courses) {
+      const key =
+        item.credits >= 1 && item.credits <= 4 ? String(item.credits) : "other"
+      counts[key] = (counts[key] ?? 0) + 1
+    }
+    return counts
+  }, [courses])
 
   useEffect(() => {
     if (!demand.all) void loadDemand("all")
@@ -445,11 +460,15 @@ export default function CourseFinder({
                 aria-label="Filter Bobot SKS"
               >
                 <option value="all">Bobot SKS: Semua</option>
-                <option value="2">2 SKS (195 Matkul)</option>
-                <option value="3">3 SKS (132 Matkul)</option>
-                <option value="4">4 SKS (13 Matkul)</option>
-                <option value="1">1 SKS (Praktikum)</option>
-                <option value="other">&gt; 4 SKS (Tugas Akhir)</option>
+                <option value="2">2 SKS ({creditCounts["2"] ?? 0} MK)</option>
+                <option value="3">3 SKS ({creditCounts["3"] ?? 0} MK)</option>
+                <option value="4">4 SKS ({creditCounts["4"] ?? 0} MK)</option>
+                <option value="1">
+                  1 SKS (Praktikum, {creditCounts["1"] ?? 0})
+                </option>
+                <option value="other">
+                  &gt; 4 SKS (Tugas Akhir, {creditCounts.other})
+                </option>
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-muted">
                 <Clock className="w-3.5 h-3.5" />
@@ -533,7 +552,11 @@ export default function CourseFinder({
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-muted">
             <BookOpen className="w-10 h-10 opacity-20 mb-3" />
-            <p className="text-sm">Tidak ada mata kuliah yang sesuai filter.</p>
+            <p className="text-sm">
+              {catalogLoading
+                ? "Memuat katalog dari backend..."
+                : "Tidak ada mata kuliah yang sesuai filter."}
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-4">
@@ -545,35 +568,7 @@ export default function CourseFinder({
               >
                 <div className="flex justify-between items-start gap-2">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {course.prodiAbbr && (
-                        <span
-                          className="px-1.5 py-0.5 rounded font-mono text-[10px] font-bold bg-navy text-white tracking-wide flex-shrink-0"
-                          title={`Program Studi ${course.program}`}
-                        >
-                          {course.prodiAbbr}
-                        </span>
-                      )}
-                      <span className="font-mono text-xs font-bold text-navy">
-                        {course.code ?? course.id}
-                      </span>
-                      {course.category === "pdb_univ" && (
-                        <span
-                          className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200 flex-shrink-0"
-                          title="PDB Universitas (Semester 1–2)"
-                        >
-                          PDB Univ
-                        </span>
-                      )}
-                      {course.category === "pdb_saintek" && (
-                        <span
-                          className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-teal/20 text-navy border border-teal/40 flex-shrink-0"
-                          title="PDB Saintek (Semester 1–2)"
-                        >
-                          PDB Saintek
-                        </span>
-                      )}
-                    </div>
+                    <CourseIdentityBadges course={course} />
                     <div className="flex items-center justify-between gap-2">
                       <h3 className="font-heading font-semibold text-base text-foreground mt-1.5 group-hover:text-gold transition-colors line-clamp-1">
                         {course.name}
