@@ -25,7 +25,6 @@ export default function AnimatedMenuToggle({
       )}
     >
       <div className="w-5 h-5 relative flex items-center justify-center">
-        {/* Chevron Left icon when sidebar is OPEN */}
         <span
           className={cn(
             "absolute inset-0 flex items-center justify-center transition-all duration-200 ease-in-out transform",
@@ -37,7 +36,6 @@ export default function AnimatedMenuToggle({
           <ChevronLeft className="w-5 h-5 text-current" />
         </span>
 
-        {/* 3-line Hamburger Menu icon when sidebar is CLOSED */}
         <span
           className={cn(
             "absolute inset-0 flex items-center justify-center transition-all duration-200 ease-in-out transform",

@@ -5,6 +5,7 @@ import sys
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
+from academics import current_period, semester_end, semester_start
 from auth import get_password_hash
 from database import AsyncSessionLocal
 from models import (
@@ -63,7 +64,6 @@ PRODIS = [
 ]
 
 COURSES_DATA = [
-    # Sem 1 (2023 Ganjil) - Passed
     {"code": "KIK101", "name": "Kalkulus I", "credits": 3, "sem": 1, "term": "ganjil", "type": "wajib"},
     {"code": "KIK102", "name": "Fisika Dasar", "credits": 3, "sem": 1, "term": "ganjil", "type": "wajib"},
     {"code": "TSD101", "name": "Pengantar Sains Data", "credits": 3, "sem": 1, "term": "ganjil", "type": "wajib"},
@@ -73,7 +73,6 @@ COURSES_DATA = [
     {"code": "KIK104", "name": "Kimia Dasar", "credits": 3, "sem": 1, "term": "ganjil", "type": "wajib"},
     {"code": "TSD103", "name": "Logika Pemrograman", "credits": 4, "sem": 1, "term": "ganjil", "type": "wajib"},
 
-    # Sem 2 (2023 Genap) - Passed
     {"code": "KIK103", "name": "Kalkulus II", "credits": 3, "sem": 2, "term": "genap", "type": "wajib"},
     {"code": "TSD102", "name": "Statistika Deskriptif", "credits": 3, "sem": 2, "term": "genap", "type": "wajib"},
     {"code": "TSD104", "name": "Pemrograman Python Lanjut", "credits": 3, "sem": 2, "term": "genap", "type": "wajib"},
@@ -83,7 +82,6 @@ COURSES_DATA = [
     {"code": "TSD106", "name": "Etika & Regulasi Data", "credits": 2, "sem": 2, "term": "genap", "type": "wajib"},
     {"code": "TSD107", "name": "Komputasi Numerik", "credits": 4, "sem": 2, "term": "genap", "type": "wajib"},
 
-    # Sem 3 (2024 Ganjil) - Taking
     {"code": "TSD201", "name": "Algoritma & Struktur Data", "credits": 3, "sem": 3, "term": "ganjil", "type": "wajib"},
     {"code": "TSD202", "name": "Statistika Inferensial", "credits": 3, "sem": 3, "term": "ganjil", "type": "wajib"},
     {"code": "TSD203", "name": "Basis Data Sains Data", "credits": 3, "sem": 3, "term": "ganjil", "type": "wajib"},
@@ -91,12 +89,10 @@ COURSES_DATA = [
     {"code": "TSD205", "name": "Organisasi & Arsitektur Komputer", "credits": 3, "sem": 3, "term": "ganjil", "type": "wajib"},
     {"code": "TSD206", "name": "Kalkulus Multivariabel", "credits": 2, "sem": 3, "term": "ganjil", "type": "wajib"},
 
-    # Sem 5 (Mata Kuliah Dosen Pengajar Dr. Hendra)
     {"code": "TSD301", "name": "Penambangan Data", "credits": 3, "sem": 5, "term": "ganjil", "type": "wajib"},
     {"code": "TSD302", "name": "Pembelajaran Mesin", "credits": 3, "sem": 5, "term": "ganjil", "type": "wajib"},
     {"code": "TSD303", "name": "Sains Data Spasial", "credits": 3, "sem": 5, "term": "ganjil", "type": "pilihan"},
 
-    # Sem 6 (Pilihan untuk Wishlist / Pre-KRS)
     {"code": "TSD401", "name": "Pemrosesan Bahasa Alami", "credits": 3, "sem": 6, "term": "genap", "type": "pilihan"},
     {"code": "TSD402", "name": "Sistem Rekomendasi", "credits": 3, "sem": 6, "term": "genap", "type": "pilihan"},
     {"code": "TSD403", "name": "Komputasi Awan", "credits": 3, "sem": 6, "term": "genap", "type": "pilihan"},
@@ -126,10 +122,12 @@ async def seed_data():
             prodi_map[prodi.program_code] = prodi
 
         print("\n[SEED 2/8] Checking and seeding Academic Periods...")
+        today = datetime.date.today()
+        current_year, current_term = current_period(today)
         period_configs = [
-            {"year": 2023, "term": "ganjil", "active": False},
-            {"year": 2023, "term": "genap", "active": False},
-            {"year": 2024, "term": "ganjil", "active": True},
+            {"year": current_year - 1, "term": "ganjil", "active": False},
+            {"year": current_year - 1, "term": "genap", "active": False},
+            {"year": current_year, "term": current_term, "active": True},
         ]
         period_map = {}
         for pcfg in period_configs:
@@ -138,25 +136,34 @@ async def seed_data():
                 AcademicPeriod.term == pcfg["term"],
             )
             p_obj = (await session.execute(stmt)).scalars().first()
+            start_date = semester_start(pcfg["year"], pcfg["term"])
+            end_date = semester_end(pcfg["year"], pcfg["term"])
             if not p_obj:
                 p_obj = AcademicPeriod(
                     academic_year_start=pcfg["year"],
                     term=pcfg["term"],
                     is_active=pcfg["active"],
+                    start_date=start_date,
+                    end_date=end_date,
                 )
                 session.add(p_obj)
                 await session.flush()
                 print(f"  [CREATED] Academic period: {pcfg['year']} {pcfg['term']} (active: {pcfg['active']})")
             else:
                 p_obj.is_active = pcfg["active"]
+                p_obj.start_date = start_date
+                p_obj.end_date = end_date
                 print(f"  [EXISTS] Academic period: {pcfg['year']} {pcfg['term']}")
             period_map[f"{pcfg['year']}_{pcfg['term']}"] = p_obj
 
-        active_period = period_map["2024_ganjil"]
+        # Hanya satu periode aktif, termasuk periode lama di database.
+        for existing in (await session.execute(select(AcademicPeriod))).scalars():
+            existing.is_active = False
+        active_period = period_map[f"{current_year}_{current_term}"]
+        active_period.is_active = True
 
         print("\n[SEED 3/8] Checking and seeding Test Users...")
 
-        # 1. Admin
         admin_email = "admin@ftmm.unair.ac.id"
         stmt = select(User).where(User.email == admin_email)
         admin_user = (await session.execute(stmt)).scalars().first()
@@ -176,7 +183,6 @@ async def seed_data():
             admin_user.full_name = "Super Admin FTMM"
             print(f"  [EXISTS] Admin user: {admin_email}")
 
-        # 2. Mahasiswa
         mhs_email = "mahasiswa.testing@ftmm.unair.ac.id"
         stmt = (
             select(User)
@@ -219,7 +225,6 @@ async def seed_data():
                 session.add(profile)
             print(f"  [EXISTS] Mahasiswa user: {mhs_email}")
 
-        # 3. Dosen
         dosen_email = "dosen.testing@ftmm.unair.ac.id"
         stmt = select(User).where(User.email == dosen_email)
         dosen_user = (await session.execute(stmt)).scalars().first()
@@ -260,7 +265,6 @@ async def seed_data():
         else:
             print("  [EXISTS] Curriculum: Kurikulum TSD 2023")
 
-        # Assign curriculum to student
         stmt_assign = select(StudentCurriculumAssignment).where(
             StudentCurriculumAssignment.user_id == mhs_user.user_id,
             StudentCurriculumAssignment.curriculum_id == curriculum.curriculum_id,
@@ -276,7 +280,6 @@ async def seed_data():
             await session.flush()
             print(f"  [ASSIGNED] Curriculum to student: {mhs_user.email}")
 
-        # Seed Courses and Curriculum Courses
         course_map = {}
         curriculum_course_map = {}
         for cdata in COURSES_DATA:
@@ -315,7 +318,6 @@ async def seed_data():
         print(f"  [OK] Verified and mapped {len(COURSES_DATA)} courses in curriculum")
 
         print("\n[SEED 5/8] Checking and seeding Student Course Records (Transkrip Akademik)...")
-        # Sem 1 grades (total 22 SKS, IP 3.86)
         sem1_records = [
             ("KIK101", "A"),
             ("KIK102", "AB"),
@@ -326,15 +328,16 @@ async def seed_data():
             ("KIK104", "AB"),
             ("TSD103", "A"),
         ]
-        p_2023_ganjil = period_map["2023_ganjil"]
+        p_2023_ganjil = period_map[f"{current_year - 1}_ganjil"]
         for code, grade in sem1_records:
             cc = curriculum_course_map[code]
             stmt_r = select(StudentCourseRecord).where(
                 StudentCourseRecord.user_id == mhs_user.user_id,
                 StudentCourseRecord.curriculum_course_id == cc.curriculum_course_id,
-                StudentCourseRecord.academic_period_id == p_2023_ganjil.academic_period_id,
             )
             rec = (await session.execute(stmt_r)).scalars().first()
+            if rec:
+                rec.academic_period_id = p_2023_ganjil.academic_period_id
             if not rec:
                 rec = StudentCourseRecord(
                     user_id=mhs_user.user_id,
@@ -346,7 +349,6 @@ async def seed_data():
                 )
                 session.add(rec)
 
-        # Sem 2 grades (total 22 SKS, IP 3.78)
         sem2_records = [
             ("KIK103", "A"),
             ("TSD102", "A"),
@@ -357,15 +359,16 @@ async def seed_data():
             ("TSD106", "A"),
             ("TSD107", "AB"),
         ]
-        p_2023_genap = period_map["2023_genap"]
+        p_2023_genap = period_map[f"{current_year - 1}_genap"]
         for code, grade in sem2_records:
             cc = curriculum_course_map[code]
             stmt_r = select(StudentCourseRecord).where(
                 StudentCourseRecord.user_id == mhs_user.user_id,
                 StudentCourseRecord.curriculum_course_id == cc.curriculum_course_id,
-                StudentCourseRecord.academic_period_id == p_2023_genap.academic_period_id,
             )
             rec = (await session.execute(stmt_r)).scalars().first()
+            if rec:
+                rec.academic_period_id = p_2023_genap.academic_period_id
             if not rec:
                 rec = StudentCourseRecord(
                     user_id=mhs_user.user_id,
@@ -377,16 +380,16 @@ async def seed_data():
                 )
                 session.add(rec)
 
-        # Sem 3 taking (20 SKS)
         sem3_codes = ["TSD201", "TSD202", "TSD203", "TSD204", "TSD205", "TSD206"]
         for code in sem3_codes:
             cc = curriculum_course_map[code]
             stmt_r = select(StudentCourseRecord).where(
                 StudentCourseRecord.user_id == mhs_user.user_id,
                 StudentCourseRecord.curriculum_course_id == cc.curriculum_course_id,
-                StudentCourseRecord.academic_period_id == active_period.academic_period_id,
             )
             rec = (await session.execute(stmt_r)).scalars().first()
+            if rec:
+                rec.academic_period_id = active_period.academic_period_id
             if not rec:
                 rec = StudentCourseRecord(
                     user_id=mhs_user.user_id,
@@ -402,7 +405,6 @@ async def seed_data():
         print("  [OK] Seeded 16 passed records (44 SKS lulus, IPK 3.82) and 6 active records (20 SKS taking)")
 
         print("\n[SEED 6/8] Checking and seeding Timetables & Class Schedules...")
-        # Timetable for student
         stmt_tt = select(Timetable).where(
             Timetable.user_id == mhs_user.user_id,
             Timetable.academic_period_id == active_period.academic_period_id,
@@ -420,7 +422,6 @@ async def seed_data():
             await session.flush()
             print("  [CREATED] Timetable for student")
 
-        # Class schedules for Sem 3
         # Day: 1=Senin, 2=Selasa, 3=Rabu, 4=Kamis, 5=Jumat
         schedule_configs = [
             {
@@ -477,7 +478,6 @@ async def seed_data():
                 "room": "Ruang Kuliah 3.01 (Gedung Nano)",
                 "lecturer_user": None,
             },
-            # Dosen schedules (Semester 5 courses taught by Hendra)
             {
                 "code": "TSD302",
                 "section": "A",
@@ -500,7 +500,6 @@ async def seed_data():
 
         for scfg in schedule_configs:
             c_obj = course_map[scfg["code"]]
-            # 1. Offering
             stmt_off = select(CourseOffering).where(
                 CourseOffering.academic_period_id == active_period.academic_period_id,
                 CourseOffering.course_id == c_obj.course_id,
@@ -515,7 +514,6 @@ async def seed_data():
                 session.add(offering)
                 await session.flush()
 
-            # 1b. Course Offering Eligibility for Curriculum
             cc_obj = curriculum_course_map[scfg["code"]]
             stmt_coe = select(CourseOfferingEligibility).where(
                 CourseOfferingEligibility.course_offering_id == offering.course_offering_id,
@@ -530,7 +528,6 @@ async def seed_data():
                 session.add(coe)
                 await session.flush()
 
-            # 2. Offering Component
             stmt_comp = select(OfferingComponent).where(
                 OfferingComponent.course_offering_id == offering.course_offering_id,
                 OfferingComponent.component_code == "KULIAH",
@@ -545,7 +542,6 @@ async def seed_data():
                 session.add(comp)
                 await session.flush()
 
-            # 3. Class Section
             stmt_sec = select(ClassSection).where(
                 ClassSection.offering_component_id == comp.offering_component_id,
                 ClassSection.section_code == scfg["section"],
@@ -561,7 +557,6 @@ async def seed_data():
                 session.add(sec)
                 await session.flush()
 
-            # 4. Class Schedule
             stmt_cs = select(ClassSchedule).where(
                 ClassSchedule.class_section_id == sec.class_section_id,
                 ClassSchedule.day_of_week == scfg["day"],
@@ -579,7 +574,6 @@ async def seed_data():
                 session.add(cs)
                 await session.flush()
 
-            # If it's a student course, attach to student's timetable
             if scfg["code"] in sem3_codes:
                 stmt_ti = select(TimetableItem).where(
                     TimetableItem.timetable_id == timetable.timetable_id,
@@ -621,8 +615,9 @@ async def seed_data():
         else:
             print(f"  [EXISTS] Active Polling Period: {polling_period.title}")
 
-        # 7a. Seed realistic elective votes from students
-        voter_users = [mhs_user]
+        # 7a. Seed realistic elective votes dari mahasiswa sintetis; mahasiswa uji
+        # diberi vote sendiri sebanyak batas periode agar tidak melampaui kuota.
+        voter_users = []
         for i in range(1, 46):
             v_email = f"student.voter{i:02d}@ftmm.unair.ac.id"
             stmt_vu = select(User).where(User.email == v_email)
@@ -671,13 +666,30 @@ async def seed_data():
                         priority=p_val,
                     )
                     session.add(new_v)
+        for index, dist in enumerate(vote_distributions[: polling_period.max_votes_per_student]):
+            stmt_chk = select(ElectiveCourseVote).where(
+                ElectiveCourseVote.polling_period_id == polling_period.polling_period_id,
+                ElectiveCourseVote.user_id == mhs_user.user_id,
+                ElectiveCourseVote.course_id == dist["code"],
+            )
+            if (await session.execute(stmt_chk)).scalars().first():
+                continue
+            session.add(
+                ElectiveCourseVote(
+                    polling_period_id=polling_period.polling_period_id,
+                    user_id=mhs_user.user_id,
+                    course_id=dist["code"],
+                    course_code=dist["code"],
+                    course_name=dist["name"],
+                    credits=dist["credits"],
+                    priority=index + 1,
+                )
+            )
         await session.flush()
         print(f"  [OK] Seeded {len(vote_distributions)} elective courses with realistic student quorum votes")
 
-        # 8. Seed persistent notifications for each role
         print("\n[SEED 8/8] Checking and seeding Persistent Notifications...")
         notifications_seed_data = [
-            # Student notifications
             {
                 "target_role": "student",
                 "title": "Deteksi Bentrok Jadwal Kuliah",
@@ -710,7 +722,6 @@ async def seed_data():
                 "is_read": True,
                 "action_url": "chatbot",
             },
-            # Lecturer notifications
             {
                 "target_role": "lecturer",
                 "title": "Pengajuan Rencana Studi Mahasiswa",
@@ -743,7 +754,6 @@ async def seed_data():
                 "is_read": True,
                 "action_url": "dashboard",
             },
-            # Admin notifications
             {
                 "target_role": "admin",
                 "title": "Monitoring Polling Pra-KRS",

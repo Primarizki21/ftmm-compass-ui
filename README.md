@@ -57,11 +57,11 @@ FTMM Compass helps students plan their degree journey across 8 semesters, explor
 ## Key Features
 
 ### 1. Dashboard
-- Ringkasan statistik akademik: SKS Kumulatif, Semester Aktif, dan IPK.
+- Ringkasan statistik akademik dari `/api/v1/dashboard/me`: SKS kumulatif, semester aktif, dan IPK (data PostgreSQL, tanpa angka demo; tampilan kosong bila DB belum di-seed).
 - Widget jadwal mingguan interaktif (*Timetable*) dengan deteksi bentrok jadwal (*conflict highlighting*).
 
 ### 2. Course Finder
-- Pencarian dan filter katalog mata kuliah berdasarkan prodi, semester, SKS, dan tipe (Wajib/Pilihan).
+- Pencarian dan filter katalog mata kuliah berdasarkan prodi, semester, SKS, dan tipe (Wajib/Pilihan). Katalog dibaca dari database lewat `/api/v1/courses`.
 - Modal detail mata kuliah dilengkapi **Prerequisite Flow Diagram (SVG)** untuk melihat rantai mata kuliah prasyarat.
 
 ### 3. Degree Planner
@@ -69,6 +69,8 @@ FTMM Compass helps students plan their degree journey across 8 semesters, explor
   - Mata kuliah **Wajib** otomatis terkunci di semesternya.
   - Mata kuliah **Pilihan** dapat dipindah-pindah via *drag and drop*.
   - Menegakkan aturan paritas semester (**Ganjil/Odd** $\rightarrow$ Semester 1, 3, 5, 7; **Genap/Even** $\rightarrow$ Semester 2, 4, 6, 8).
+- Rencana disimpan di server (`degree_plans` / `degree_plan_items` via `/api/v1/degree-plans`), bukan di `localStorage`: data bertahan setelah ganti perangkat atau membersihkan browser, dan status simpan ditampilkan di header.
+- Beberapa skenario rencana per mahasiswa (maksimal 10, satu `active`) dengan aksi salin dan hapus skenario.
 - Tab **Jadwal Aktif** untuk melihat distribusi kelas per semester.
 - Banner rencana personalisasi saat rencana dari Compass AI diterapkan.
 
@@ -90,7 +92,7 @@ FTMM Compass helps students plan their degree journey across 8 semesters, explor
 
 ### Backend & AI Services
 - **Python 3.10+** (managed via **[Astral UV](https://docs.astral.sh/uv/)**)
-- **FastAPI Gateway** + **Uvicorn** (RESTful API, dynamic port auto-discovery 8000–8050, & CORS)
+- **FastAPI Gateway** + **Uvicorn** (RESTful API, dynamic port auto-discovery 8001–8050, & CORS; port 8000 dipakai microservice chatbot)
 - **HTTPX** (Asynchronous client with timeout & resilient local fallback)
 - **Pydantic v2** (Strict data validation schemas & DegreePlanPayload contracts)
 - **AI Microservice (Docker)**: Hybrid RAG-CAG engine (`ftmm-compass-chatbot` on Port 8000)
@@ -157,17 +159,17 @@ Sebelum memulai, pastikan perangkat Anda telah terpasang:
    - Verifikasi: `node -v` (harus `v22.x.x`).
 
 2. **pnpm (Package Manager Frontend)**:
-   - Melalui Corepack (bawaan Node.js):
+   - Versi pnpm dipatok di `package.json` (`packageManager: pnpm@10.18.3`). Corepack memakai nilai itu secara otomatis:
      ```bash
      corepack enable pnpm
      ```
-   - Atau via npm global:
+   - Atau via npm global (pasang versi yang sama dengan pin):
      ```bash
-     npm install -g pnpm
+     npm install -g pnpm@10.18.3
      ```
-   - Verifikasi: `pnpm -v`.
+   - Verifikasi: `pnpm -v` (harus `10.18.3`). Jangan mendeklarasikan versi pnpm di tempat lain (mis. input `version` pada `pnpm/action-setup` di CI); dua nilai yang berbeda membuat action gagal.
 
-3. **Python (v3.12+) & Astral UV (Package Manager Backend)**:
+3. **Python (v3.10+, direkomendasikan 3.12 sesuai CI) & Astral UV (Package Manager Backend)**:
    - **Python:** Unduh dari [python.org](https://www.python.org/) atau via package manager bawaan OS.
    - **Astral UV** (pengelola virtual environment & paket Python super cepat):
      - *Linux & macOS:*
@@ -228,8 +230,9 @@ pnpm dev:all
 ```
 
 - **Cross-Platform**: Menggunakan `concurrently` yang mendukung signal terminate (Ctrl+C) bersih di Linux maupun Windows.
-- **Dynamic Port Auto-Discovery**: Backend otomatis memindai port kosong (mulai dari 8000 $\rightarrow$ 8001, dst. jika port 8000 sedang dipakai proses lain). Vite dev proxy secara dinamis membaca port aktif dan meneruskan request `/api`.
-- Buka **`http://localhost:8443`** di browser. Login dengan NIM dan password apa saja (simulasi autentikasi).
+- **Dynamic Port Auto-Discovery**: Backend memindai port kosong pada rentang 8001–8050 (port 8000 disediakan untuk microservice chatbot) dan menuliskan port aktif ke `.backend-port`. Vite dev proxy membaca berkas itu dan meneruskan request `/api` ke port tersebut.
+- Buka **`http://localhost:8443`** di browser. Login memakai akun hasil seeding: `mahasiswa.testing@ftmm.unair.ac.id` / `Mahasiswa2026!` (student), `dosen.testing@ftmm.unair.ac.id` / `DosenFTMM2026!` (lecturer), atau `admin@ftmm.unair.ac.id` / `AdminFTMM2026!` (admin). Identifier menerima NIM, NIP, maupun email.
+- Database harus sudah di-migrate dan di-seed (`make db-up && make migrate && make seed`), karena kredensial dan katalog dibaca dari PostgreSQL, bukan dari data statis frontend.
 
 #### B. Menjalankan Terpisah (2 Tab Terminal)
 Jika Anda lebih menyukai tab terminal terpisah untuk memantau log masing-masing service:
@@ -265,12 +268,11 @@ Jika rekan tim atau tester ingin menguji respons dan streaming Chatbot AI tanpa 
    ```bash
    cp .env.example .env
    ```
-2. Masukkan base URL Cloudflare Tunnel yang dibagikan tim backend:
+2. Masukkan base URL Cloudflare Tunnel yang dibagikan tim backend ke `VITE_API_BASE`:
    ```bash
-   VITE_BACKEND_API_URL=https://<subdomain>.trycloudflare.com
-   VITE_BACKEND_STREAM_URL=https://<subdomain>.trycloudflare.com
+   VITE_API_BASE=https://<subdomain>.trycloudflare.com
    ```
-   *(Mendukung base URL domain saja maupun URL endpoint lengkap).*
+   *(Kosongkan bila backend berjalan lokal; request `/api` otomatis lewat proxy Vite. Nilai ini hanya base URL, tanpa akhiran endpoint.)*
 3. Jalankan frontend:
    ```bash
    pnpm dev
@@ -312,24 +314,24 @@ cd ../ftmm-compass-ui && docker compose up -d
 
 ## Testing & QA Audit
 
-Proyek ini dilengkapi rangkaian pengujian otomatis untuk memvalidasi fungsi backend, integritas tipe frontend, dan kepatuhan styling:
+Suite backend berjalan terhadap PostgreSQL yang sudah di-migrate. Fixture `tests/conftest.py` menanam pengguna demo sendiri, tetapi tes katalog dan degree-plan membaca katalog 5 prodi, sehingga database harus sudah dijalankan `make seed` (yang kini juga menjalankan `seed_full_catalog.py`). CI melakukan urutan yang sama: schema baseline → `alembic upgrade head` → `seed_full_catalog.py` → `pytest`.
 
 ```bash
 # ----------------------------------------------------
 # A. Menggunakan Makefile (Cepat & Terintegrasi)
 # ----------------------------------------------------
-make test          # Typecheck TypeScript + Backend API tests + Frontend smoke test
+make test          # Typecheck TypeScript + suite pytest backend
 make lint          # Pemeriksaan format (oxfmt) + typecheck
 make format        # Auto-format seluruh codebase via oxfmt
 
 # ----------------------------------------------------
 # B. Perintah Manual / Spesifik Sub-Sistem
 # ----------------------------------------------------
-# 1. Jalankan unit test logic planner, validator, dan slot-filling agent
-uv run --directory backend python test_backend.py
+# 1. Seed katalog (sekali per database baru; idempoten)
+uv run --directory backend python seed_full_catalog.py
 
-# 2. Jalankan integration test endpoint FastAPI
-uv run --directory backend python test_api_endpoints.py
+# 2. Jalankan seluruh suite backend (domain + endpoint + polling + chat + degree-plan)
+uv run --directory backend python -m pytest tests -q
 
 # 3. Jalankan build test & type check frontend
 pnpm build
@@ -346,7 +348,7 @@ pnpm format
 
 ```
 ftmm-compass-ui/
-├── .github/workflows/ci.yml       # Automated CI pipeline (Node 22 + Python 3.11)
+├── .github/workflows/ci.yml       # Automated CI pipeline (Node 22 + Python 3.12)
 ├── Makefile                       # Developer automation interface (setup, dev, db, test)
 ├── AI_PLANNER_PIPELINE.md         # Dokumentasi detail arsitektur Study Planner Agent
 ├── DESIGN.md                      # Spesifikasi sistem desain & token visual FTMM
@@ -355,54 +357,89 @@ ftmm-compass-ui/
 ├── docker-compose.yml             # Orkestrasi multi-container (ftmm-network)
 ├── backend/                       # Python FastAPI Backend Gateway
 │   ├── README.md                  # Dokumentasi API, setup uv, & arsitektur backend
-│   ├── app.py                     # Dual-tier API gateway (/api/v1/* & /api/*)
+│   ├── app.py                     # Mount router (/api/v1 kanonik + /api legacy), lifespan, error handler
+│   ├── settings.py                # Satu-satunya pembaca environment (DSN, port, Ollama, CORS)
+│   ├── models.py                  # Pemetaan ORM SQLAlchemy (termasuk degree_plans & degree_plan_items)
 │   ├── schemas.py                 # Pydantic v2 data models & payload contracts
-│   ├── data_loader.py             # Fallback katalog resmi 5 Prodi FTMM & PRODI_ALIASES
+│   ├── catalog.py                 # Pipeline katalog: baca DB → normalisasi → list/get course
+│   ├── academics.py               # Batas SKS, total kredit, konversi nilai, parity
+│   ├── plan_storage.py            # Persistensi degree-plan & exception domain
+│   ├── api/                       # Router per resource (dipasang di /api/v1 dan /api)
+│   ├── migrations/                # Revisi Alembic (baseline skema + perubahan berikutnya)
 │   ├── pyproject.toml             # Konfigurasi dependensi uv (Astral)
 │   ├── uv.lock                    # Deterministic lockfile backend
-│   ├── requirements.txt           # Export dependensi pip standar
 │   ├── .env.example               # Template konfigurasi environment backend
+│   ├── seed.py                    # Seed pengguna demo, transkrip, polling, notifikasi
+│   ├── seed_full_catalog.py       # Seed katalog 5 prodi dari database/seed
 │   ├── tools/
 │   │   ├── prerequisite_validator.py  # Deterministic DAG, parity, & SKS validator
 │   │   └── planner.py             # Study plan synthesis & elective scoring engine
-│   ├── test_backend.py            # Unit tests untuk 5 prodi loader, validator, & planner
-│   └── test_api_endpoints.py      # Integration tests untuk seluruh rute FastAPI
+│   └── tests/                     # Suite pytest (domain, endpoint, polling, chat, degree-plan)
 ├── src/                           # React 19 + TypeScript + Tailwind v4 SPA
-│   ├── App.tsx                    # Top-level state hub & planner payload wiring
+│   ├── App.tsx                    # Shell navigasi halaman & komposisi provider state
 │   ├── main.tsx                   # React DOM entrypoint
-│   ├── data.ts                    # Core TypeScript models, TIMETABLE_DAYS, & SCHEDULE
-│   ├── courseData.ts              # Reactive catalog fetcher (fetchCatalog) & normalizer
+│   ├── data.ts                    # Tipe model (Course, ScheduleItem, offering) & TIMETABLE_DAYS
+│   ├── courseData.ts              # fetchCatalog(): katalog dari backend, normalisasi tipe
 │   ├── index.css                  # Tailwind v4 @theme design tokens (Navy, Gold, Teal)
 │   ├── utils.ts                   # cn() class merger helper
+│   ├── api/
+│   │   ├── client.ts              # Satu transport fetch: base URL, ApiError, authHeaders
+│   │   └── session.ts             # Akses token/sesi tersimpan
+│   ├── domain/                    # Aturan akademik murni (tanpa React)
+│   │   ├── academics.ts           # Batas SKS, konversi nilai, parity semester
+│   │   ├── course.ts              # Normalisasi tipe/parity mata kuliah
+│   │   ├── plan.ts                # Kontrak payload rencana studi
+│   │   ├── prerequisites.ts       # Evaluasi DAG prasyarat
+│   │   └── timetable.ts           # Deteksi bentrok jadwal
+│   ├── state/                     # Satu pemilik state per domain
+│   │   ├── session.tsx            # Sesi login & identitas pengguna
+│   │   ├── catalog.tsx            # Katalog & status pemuatan
+│   │   ├── polling.tsx            # Polling MK pilihan
+│   │   ├── academic.tsx           # Periode akademik aktif
+│   │   ├── planner.tsx            # Rencana studi aktif & jembatan ke draft
+│   │   └── degreeDrafts.ts        # Draft rencana di server: muat, simpan, salin, hapus
+│   ├── services/                  # Binding endpoint per resource
+│   │   ├── authService.ts         # Login, profil, notifikasi
+│   │   ├── dashboardService.ts    # Telemetri dashboard
+│   │   ├── academicService.ts     # Periode akademik
+│   │   ├── degreePlanService.ts   # CRUD degree-plan (rencana studi tersimpan)
+│   │   └── pollingService.ts      # Periode & vote MK pilihan
 │   ├── pages/
-│   │   ├── Login.tsx              # Simulated Cybercampus SSO authentication page
-│   │   ├── Dashboard.tsx          # Academic stats & weekly timetable widget
-│   │   ├── CourseFinder.tsx       # Course catalog explorer & filter
-│   │   ├── DegreePlanner.tsx      # Interactive 8-semester drag-and-drop roadmap
-│   │   └── Chatbot.tsx            # Compass AI conversational planner (SSE + Fallback)
+│   │   ├── Login.tsx              # Login ke /api/v1/auth/login (JWT)
+│   │   ├── Dashboard.tsx          # Statistik akademik & widget jadwal
+│   │   ├── CourseFinder.tsx       # Katalog kurikulum & filter
+│   │   ├── DegreePlanner.tsx      # Roadmap 8 semester drag-and-drop
+│   │   ├── Chatbot.tsx            # Compass AI (SSE + fallback rule engine)
+│   │   └── Profile.tsx            # Profil akademik & logout
 │   └── components/
-│       ├── TimetableGrid.tsx      # Shared weekly timetable grid & conflict detector
+│       ├── TimetableGrid.tsx      # Grid jadwal mingguan & indikator konflik
+│       ├── NotificationDropdown.tsx # Daftar notifikasi akademik
 │       ├── MarkdownRenderer.tsx   # GFM markdown renderer for chat messages
+│       ├── course/                # Badge, workload grid, dan modal shell bersama
 │       ├── course-finder/
-│       │   ├── CourseDetailView.tsx     # Full course syllabus & workload view
-│       │   ├── CourseQuickModal.tsx     # Quick preview modal
-│       │   └── PrerequisiteDiagram.tsx  # SVG DAG prerequisite flow visualizer
+│       │   ├── CourseDetailView.tsx     # Detail silabus & beban kerja
+│       │   ├── CourseQuickModal.tsx     # Preview cepat
+│       │   └── PrerequisiteDiagram.tsx  # Visualisasi DAG prasyarat (SVG)
 │       ├── degree-planner/
-│       │   ├── PlannerHeader.tsx        # AI banner, legend, & drag hints
-│       │   ├── SemesterColumn.tsx       # Semester drop column, CourseCard, & ElectiveBank
-│       │   ├── CoursePickerModal.tsx    # Manual course addition modal
-│       │   └── types.ts                 # Planner types & parity/lock rules (canDrop)
+│       │   ├── PlannerHeader.tsx        # Banner AI, legenda, hint drag
+│       │   ├── SemesterColumn.tsx       # Kolom semester, kartu MK, bank MK pilihan
+│       │   ├── CoursePickerModal.tsx    # Penambahan MK manual (dibatasi kurikulum mahasiswa)
+│       │   ├── CourseInspectModal.tsx   # Detail MK saat inspeksi
+│       │   ├── ClassSelectorPanel.tsx   # Pemilihan kelas/section per MK
+│       │   └── types.ts                 # Tipe planner & aturan parity/lock
 │       └── chatbot/
-│           ├── DegreePlanActionCard.tsx # Interactive card to apply AI plan to planner
-│           └── chatService.ts           # Chat types, endpoints, & error sanitizer
+│           ├── DegreePlanActionCard.tsx # Kartu penerapan rencana AI ke planner
+│           └── chatService.ts           # Chat types, SSE, & error sanitizer
 ├── database/                      # Canonical Database Baseline V2.1 RC1
-│   ├── schema_v2_1_rc1.sql        # PostgreSQL 16+ DDL (36 tables, 26 functions, 44 triggers)
+│   ├── schema_v2_1_rc1.sql        # PostgreSQL 16+ DDL (38 tables, 26 functions, 44 triggers)
 │   ├── schema_v2_1_rc1.dbml       # DBML diagram definition
+│   ├── seed/                      # Input seed katalog 5 prodi (canonical + reconciliation)
 │   └── README.md                  # Ringkasan paket skema database
 ├── docs/                          # Dokumentasi teknis & onboarding
 │   ├── ONBOARDING.md              # Developer Onboarding & Local Setup Guide (Makefile DX)
+│   ├── plans/                     # Plan & decision log refactor (low-level, per fase)
 │   └── database/                  # Dokumentasi & Audit Skema Database V2.1 RC1
-│       ├── DATABASE_SCHEMA_V2_1_RC1.md    # Spesifikasi arsitektur 36 tabel & rule tree
+│       ├── DATABASE_SCHEMA_V2_1_RC1.md    # Spesifikasi arsitektur 38 tabel & rule tree
 │       ├── SCHEMA_VALIDATION_V2_1_RC1.md  # Laporan 97/97 static release audit checks
 │       └── CHANGELOG_V2_TO_V2_1_RC1.md    # Catatan migrasi dari v2 ke v2.1 RC1
 ├── RANCANGAN DIAGRAM AWAL.sql     # Arsip baseline awal PostgreSQL 16 (v2)
@@ -413,4 +450,4 @@ ftmm-compass-ui/
 
 ## Database Baseline — V2.1 RC1
 
-`database/schema_v2_1_rc1.sql` adalah canonical baseline PostgreSQL 16+ untuk arsitektur basis data akademik FTMM (**36 tabel, 26 fungsi PL/pgSQL, 44 trigger, 2 read views**, dan lulus **97/97 static audit checks**). Dokumentasi lengkap keputusan desain tersedia di [`docs/database/DATABASE_SCHEMA_V2_1_RC1.md`](./docs/database/DATABASE_SCHEMA_V2_1_RC1.md) dan laporan validasinya di [`docs/database/SCHEMA_VALIDATION_V2_1_RC1.md`](./docs/database/SCHEMA_VALIDATION_V2_1_RC1.md).
+`database/schema_v2_1_rc1.sql` adalah canonical baseline PostgreSQL 16+ untuk arsitektur basis data akademik FTMM (**38 tabel, 26 fungsi PL/pgSQL, 44 trigger, 2 read views**, dan lulus **97/97 static audit checks**). Dokumentasi lengkap keputusan desain tersedia di [`docs/database/DATABASE_SCHEMA_V2_1_RC1.md`](./docs/database/DATABASE_SCHEMA_V2_1_RC1.md) dan laporan validasinya di [`docs/database/SCHEMA_VALIDATION_V2_1_RC1.md`](./docs/database/SCHEMA_VALIDATION_V2_1_RC1.md).

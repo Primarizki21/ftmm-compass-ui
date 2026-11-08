@@ -1,36 +1,6 @@
+from datetime import date, datetime
 from typing import List, Optional, Dict, Literal, Any, Union
 from pydantic import BaseModel, Field
-
-
-class ErrorDetail(BaseModel):
-    field: Optional[str] = None
-    message: str
-    code: str = "invalid_input"
-
-
-class ErrorPayload(BaseModel):
-    code: str
-    message: str
-    details: List[ErrorDetail] = Field(default_factory=list)
-
-
-class ApiErrorResponse(BaseModel):
-    error: ErrorPayload
-
-
-class PaginationMeta(BaseModel):
-    total: int
-    page: int
-    per_page: int
-    total_pages: int
-
-
-class PaginationLinks(BaseModel):
-    self: str
-    next: Optional[str] = None
-    prev: Optional[str] = None
-    first: Optional[str] = None
-    last: Optional[str] = None
 
 
 class OllamaHealthDetail(BaseModel):
@@ -88,13 +58,13 @@ class CourseModel(BaseModel):
 class AdminCourseCreateRequest(BaseModel):
     course_code: str
     course_name: str
-    program_name: str = "Teknologi Sains Data"
+    program_name: str
     credits: int = 3
     recommended_semester: int = 1
     term: Literal["ganjil", "genap"] = "ganjil"
     course_type: Literal["Wajib", "Pilihan"] = "Pilihan"
     description: Optional[str] = ""
-    lecturer: Optional[str] = "Tim Dosen FTMM UNAIR"
+    lecturer: Optional[str] = None
     prerequisites: List[str] = Field(default_factory=list)
 
 class AdminCourseUpdateRequest(BaseModel):
@@ -133,22 +103,6 @@ class PlanValidationResponse(BaseModel):
     details_per_semester: Dict[int, Dict[str, Any]] = Field(default_factory=dict)
 
 
-class CourseCatalogResponse(BaseModel):
-    source: str = "chatbot_ssot"
-    program_studi: Optional[str] = None
-    total_courses: int = 0
-    programs: List[str] = Field(default_factory=list)
-    courses: List[CourseModel] = Field(default_factory=list)
-
-
-class PaginatedCourseResponse(BaseModel):
-    source: str = "chatbot_ssot"
-    data: List[CourseModel] = Field(default_factory=list)
-    meta: PaginationMeta
-    links: PaginationLinks
-    program_studi: Optional[str] = None
-
-
 class CourseSearchItem(CourseModel):
     score: float = 0.0
 
@@ -173,6 +127,59 @@ class DegreePlanPayload(BaseModel):
     action: Literal["APPLY_DEGREE_PLAN"] = "APPLY_DEGREE_PLAN"
     summary: PlanPayloadSummary
     plan: Dict[int, List[PlacedCourseModel]] = Field(default_factory=dict)
+
+
+PlanningStatus = Literal["planned", "wishlist"]
+
+
+class DegreePlanItemRequest(BaseModel):
+    course_code: str = Field(min_length=1, max_length=40)
+    planned_semester: int = Field(ge=1, le=14)
+    planning_status: PlanningStatus = "planned"
+
+
+class DegreePlanItemsRequest(BaseModel):
+    items: List[DegreePlanItemRequest] = Field(default_factory=list, max_length=200)
+
+
+class DegreePlanCreateRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    items: List[DegreePlanItemRequest] = Field(default_factory=list, max_length=200)
+
+
+class DegreePlanUpdateRequest(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    status: Optional[Literal["draft", "active"]] = None
+
+
+class DegreePlanItemResponse(BaseModel):
+    id: str
+    course_id: str
+    code: str
+    name: str
+    credits: int
+    semester: int
+    type: Literal["Wajib", "Pilihan"]
+    parity: Literal["odd", "even"]
+    desc: str = ""
+    planning_status: PlanningStatus = "planned"
+
+
+class DegreePlanResponse(BaseModel):
+    id: str
+    name: str
+    status: Literal["draft", "active", "archived"]
+    updated_at: datetime
+    items: List[DegreePlanItemResponse] = Field(default_factory=list)
+
+
+class DegreePlanListResponse(BaseModel):
+    data: List[DegreePlanResponse] = Field(default_factory=list)
+    meta: Dict[str, int] = Field(default_factory=dict)
+
+
+class DegreePlanCatalogResponse(BaseModel):
+    data: List[CourseModel] = Field(default_factory=list)
 
 
 class ChatMessage(BaseModel):
@@ -316,13 +323,24 @@ class DashboardScheduleItem(BaseModel):
     color: Optional[str] = "teal"
 
 
+class AcademicPeriodResponse(BaseModel):
+    academic_year: str
+    term: Literal["ganjil", "genap", "pendek"]
+    label: str
+    term_label: str
+    week_label: str
+    start_date: date
+    end_date: date
+    first_week_monday: date
+    semester_weeks: int
+
+
 class StudentDashboardStats(BaseModel):
     type: Literal["student"] = "student"
     sks_completed: int
     sks_target: int = 144
     completion_percentage: float
     current_semester: int
-    term_name: str
     courses_planned: int
     sks_planned: int
     gpa: float
@@ -335,7 +353,6 @@ class LecturerDashboardStats(BaseModel):
     sks_taught: int
     total_students: int
     advisee_students: int
-    active_term: str
     status: str
 
 
@@ -345,7 +362,6 @@ class AdminDashboardStats(BaseModel):
     total_lecturers: int
     total_courses: int
     total_study_programs: int
-    active_polling_period: str
     system_status: str
 
 
@@ -356,8 +372,6 @@ class DashboardMeResponse(BaseModel):
     email: str
     student_number: Optional[str] = None
     study_program: Optional[str] = None
-    period_name: str
-    academic_week: int = 4
     stats: Union[StudentDashboardStats, LecturerDashboardStats, AdminDashboardStats]
     schedule: List[DashboardScheduleItem] = Field(default_factory=list)
 

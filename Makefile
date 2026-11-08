@@ -85,9 +85,11 @@ migrate: ## Menjalankan migrasi skema database Alembic ke head
 	@echo -e "$(CYAN)[ALEMBIC] Menjalankan migrasi database ke versi terbaru...$(RESET)"
 	@uv run --directory backend alembic upgrade head
 
-seed: ## Mengisi database dengan data awal pengguna dan kurikulum
+seed: ## Mengisi database dengan data pengguna, kurikulum, dan katalog 5 prodi
 	@echo -e "$(CYAN)[SEED] Mengisi data awal ke database...$(RESET)"
 	@uv run --directory backend python seed.py
+	@echo -e "$(CYAN)[SEED] Mengisi katalog 5 prodi dari database/seed...$(RESET)"
+	@uv run --directory backend python seed_full_catalog.py
 
 setup: doctor env-init network-init install db-up db-wait migrate seed ## Alur otomatis satu perintah untuk developer baru
 	@echo -e "\n$(GREEN)=====================================================$(RESET)"
@@ -105,13 +107,11 @@ dev-frontend: ## Hanya menjalankan server frontend Vite
 dev-backend: ## Hanya menjalankan server backend FastAPI
 	@pnpm dev:backend
 
-test: ## Menjalankan seluruh pengujian (typecheck, backend API, frontend smoke test)
+test: ## Menjalankan seluruh pengujian (typecheck frontend + suite pytest backend)
 	@echo -e "$(CYAN)[TEST] Typecheck TypeScript frontend...$(RESET)"
 	@pnpm typecheck
-	@echo -e "$(CYAN)[TEST] Pengujian backend endpoints...$(RESET)"
-	@uv run --directory backend python test_api_endpoints.py
-	@echo -e "$(CYAN)[TEST] Frontend smoke verification...$(RESET)"
-	@python3 scripts/verify_frontend.py
+	@echo -e "$(CYAN)[TEST] Suite backend (pytest)...$(RESET)"
+	@uv run --directory backend python -m pytest tests -q
 
 lint: ## Menjalankan pemeriksaan format kode dan typecheck
 	@pnpm format:check

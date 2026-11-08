@@ -14,6 +14,7 @@ import {
   getSharedTimetableFromLocation,
 } from "../utils/timetableShare"
 import { exportTimetableToIcs } from "../utils/icsExport"
+import { useAcademicPeriod } from "../state/academic"
 
 const HOURS = Array.from({ length: 10 }, (_, i) => i + 7)
 
@@ -44,6 +45,7 @@ export default function TimetableGrid({
   onLoadSharedSchedule,
   showActions = true,
 }: TimetableGridProps) {
+  const { period } = useAcademicPeriod()
   const [copied, setCopied] = useState(false)
   const [exported, setExported] = useState(false)
   const [sharedData, setSharedData] = useState<{
@@ -51,7 +53,6 @@ export default function TimetableGrid({
     semester?: number
   } | null>(null)
 
-  // Auto-read shared timetable from URL on mount
   useEffect(() => {
     const shared = getSharedTimetableFromLocation()
     if (shared && shared.schedule.length > 0) {
@@ -74,9 +75,14 @@ export default function TimetableGrid({
   }
 
   const handleExportIcs = () => {
+    if (!period) return
     const ok = exportTimetableToIcs(
       displayedSchedule,
       `jadwal-kuliah-ftmm${semester ? `-sem${semester}` : ""}.ics`,
+      {
+        firstWeekMonday: period.first_week_monday,
+        semesterWeeks: period.semester_weeks,
+      },
     )
     if (ok) {
       setExported(true)
@@ -130,7 +136,6 @@ export default function TimetableGrid({
         </div>
       </div>
 
-      {/* Shared Timetable Banner */}
       {sharedData && (
         <div className="bg-teal/15 border border-teal/40 rounded-xl p-3 mb-3 flex items-center justify-between gap-3 text-xs text-navy flex-shrink-0 print:hidden animate-in fade-in duration-200">
           <div className="flex items-center gap-2">
@@ -149,7 +154,6 @@ export default function TimetableGrid({
         </div>
       )}
 
-      {/* Timetable Action Bar (Sharing, Export ICS, Print/PDF) */}
       {!compact && showActions && (
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2.5 flex-shrink-0 print:hidden">
           <div className="flex items-center gap-2">
@@ -165,7 +169,6 @@ export default function TimetableGrid({
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Share URL Button */}
             <button
               type="button"
               onClick={handleCopyLink}
@@ -190,13 +193,17 @@ export default function TimetableGrid({
               )}
             </button>
 
-            {/* Export ICS Button */}
             <button
               type="button"
               onClick={handleExportIcs}
-              title="Ekspor ke iCalendar (.ics) untuk Google Calendar / Apple Calendar"
+              disabled={!period}
+              title={
+                period
+                  ? "Ekspor ke iCalendar (.ics) untuk Google Calendar / Apple Calendar"
+                  : "Periode akademik belum tersedia"
+              }
               className={cn(
-                "px-3 py-1.5 rounded-lg text-xs font-semibold border flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs",
+                "px-3 py-1.5 rounded-lg text-xs font-semibold border flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed",
                 exported
                   ? "bg-gold/20 text-navy border-gold/50"
                   : "bg-surface hover:bg-navy/5 text-navy border-border hover:border-navy/30",
@@ -206,7 +213,6 @@ export default function TimetableGrid({
               <span>{exported ? "Terekspor!" : "Ekspor (.ics)"}</span>
             </button>
 
-            {/* Print / Save PDF Button */}
             <button
               type="button"
               onClick={handlePrint}
@@ -220,7 +226,6 @@ export default function TimetableGrid({
         </div>
       )}
 
-      {/* Conflict banner — above grid in full mode */}
       {!compact && hasConflict && (
         <div className="bg-danger/10 border border-danger/30 rounded-xl p-4 flex items-start gap-3 mb-4 flex-shrink-0 print:hidden">
           <AlertTriangle className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" />
@@ -240,7 +245,6 @@ export default function TimetableGrid({
         </div>
       )}
 
-      {/* Timetable grid */}
       <div
         className={cn(
           "overflow-auto print-timetable-surface",
@@ -252,7 +256,6 @@ export default function TimetableGrid({
         <div
           className={cn("flex flex-col w-full min-w-0", !compact && "h-full")}
         >
-          {/* Header Row */}
           <div className="flex border-b border-border bg-background/50 sticky top-0 z-20">
             <div
               className={cn(
@@ -273,9 +276,7 @@ export default function TimetableGrid({
             ))}
           </div>
 
-          {/* Grid Body */}
           <div className={cn("flex relative", !compact && "flex-1")}>
-            {/* Time Column */}
             <div
               className={cn(
                 "border-r border-border flex flex-col flex-shrink-0 bg-background/50 sticky left-0 z-10",
@@ -302,7 +303,6 @@ export default function TimetableGrid({
               ))}
             </div>
 
-            {/* Day Columns */}
             <div
               className="flex-1 flex relative"
               style={{
@@ -383,7 +383,6 @@ export default function TimetableGrid({
         </div>
       </div>
 
-      {/* Conflict banner — below grid in compact mode */}
       {compact && hasConflict && (
         <div className="px-5 pb-5 print:hidden">
           <div className="bg-danger/10 border border-danger/30 rounded-xl p-4 flex items-start gap-3">

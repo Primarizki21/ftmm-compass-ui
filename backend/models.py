@@ -296,6 +296,16 @@ class StudentCurriculumAssignment(Base):
         nullable=False,
     )
     is_current: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    assignment_source: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="cohort_rule"
+    )
+    change_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    effective_from: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    effective_until: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class StudentCourseRecord(Base):
@@ -532,3 +542,80 @@ class ChatLog(Base):
     )
 
     user: Mapped[Optional["User"]] = relationship("User", back_populates="chat_logs")
+
+
+class DegreePlan(Base):
+    __tablename__ = "degree_plans"
+
+    degree_plan_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.user_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    student_curriculum_assignment_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey(
+            "student_curriculum_assignments.student_curriculum_assignment_id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    plan_name: Mapped[str] = mapped_column(
+        String(100), nullable=False, default="Rencana Utama"
+    )
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="draft")
+    target_graduation_semester: Mapped[Optional[int]] = mapped_column(
+        SmallInteger, nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    assignment: Mapped["StudentCurriculumAssignment"] = relationship(
+        "StudentCurriculumAssignment"
+    )
+    items: Mapped[list["DegreePlanItem"]] = relationship(
+        "DegreePlanItem",
+        back_populates="plan",
+        cascade="all, delete-orphan",
+        order_by="DegreePlanItem.planned_semester",
+    )
+
+
+class DegreePlanItem(Base):
+    __tablename__ = "degree_plan_items"
+
+    degree_plan_item_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    degree_plan_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("degree_plans.degree_plan_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    curriculum_course_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("curriculum_courses.curriculum_course_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    planned_semester: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    planning_status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="planned"
+    )
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    plan: Mapped["DegreePlan"] = relationship("DegreePlan", back_populates="items")
+    curriculum_course: Mapped["CurriculumCourse"] = relationship("CurriculumCourse")

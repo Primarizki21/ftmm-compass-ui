@@ -3,21 +3,18 @@ import { Send, Bot, Sparkles, AlertCircle, RotateCcw } from "lucide-react"
 import { cn } from "../utils"
 import MarkdownRenderer from "../components/MarkdownRenderer"
 import {
-  StudentProfileState,
-  DegreePlanPayload,
-  ChatMessage,
-  BACKEND_API_URL,
-  BACKEND_STREAM_URL,
-  BACKEND_HEALTH_URL,
-  BACKEND_LEGACY_HEALTH_URL,
+  type StudentProfileState,
+  type ChatMessage,
+  type ChatResponse,
+  CHAT_PATH,
+  CHAT_STREAM_PATH,
+  HEALTH_PATH,
   sanitizeErrorMessage,
   QUICK_PROMPTS,
-  INITIAL_CHAT_MESSAGES,
-  INITIAL_STUDENT_PROFILE,
 } from "../components/chatbot/chatService"
+import { API_BASE, ApiError, apiFetch } from "../api/client"
+import type { DegreePlanPayload } from "../domain/plan"
 import DegreePlanActionCard from "../components/chatbot/DegreePlanActionCard"
-
-export type { DegreePlanPayload } from "../components/chatbot/chatService"
 
 interface ApiChatErrorDetail {
   code?: string
@@ -25,61 +22,26 @@ interface ApiChatErrorDetail {
 }
 
 interface ChatbotProps {
-  onApplyPlan?: (payload: DegreePlanPayload) => void
-  messages?: ChatMessage[]
-  onMessagesChange?: React.Dispatch<React.SetStateAction<ChatMessage[]>>
-  profile?: StudentProfileState
-  onProfileChange?: React.Dispatch<React.SetStateAction<StudentProfileState>>
-  appliedPlanId?: string | null
-  onAppliedPlanIdChange?: (id: string | null) => void
-  onResetChat?: () => void
+  onApplyPlan: (payload: DegreePlanPayload) => void
+  messages: ChatMessage[]
+  onMessagesChange: React.Dispatch<React.SetStateAction<ChatMessage[]>>
+  profile: StudentProfileState
+  onProfileChange: React.Dispatch<React.SetStateAction<StudentProfileState>>
+  appliedPlanId: string | null
+  onAppliedPlanIdChange: (id: string | null) => void
+  onResetChat: () => void
 }
 
 export default function Chatbot({
   onApplyPlan,
-  messages: externalMessages,
-  onMessagesChange: setExternalMessages,
-  profile: externalProfile,
-  onProfileChange: setExternalProfile,
-  appliedPlanId: externalAppliedPlanId,
-  onAppliedPlanIdChange: setExternalAppliedPlanId,
+  messages,
+  onMessagesChange: setMessages,
+  profile,
+  onProfileChange: setProfile,
+  appliedPlanId,
+  onAppliedPlanIdChange: setAppliedPlanId,
   onResetChat,
 }: ChatbotProps) {
-  const [internalMessages, setInternalMessages] = useState<ChatMessage[]>(
-    INITIAL_CHAT_MESSAGES,
-  )
-  const messages = externalMessages ?? internalMessages
-  const setMessages = setExternalMessages ?? setInternalMessages
-
-  const [internalProfile, setInternalProfile] = useState<StudentProfileState>(
-    INITIAL_STUDENT_PROFILE,
-  )
-  const profile = externalProfile ?? internalProfile
-  const setProfile = setExternalProfile ?? setInternalProfile
-
-  const [internalAppliedPlanId, setInternalAppliedPlanId] =
-    useState<string | null>(null)
-  const appliedPlanId =
-    externalAppliedPlanId !== undefined
-      ? externalAppliedPlanId
-      : internalAppliedPlanId
-  const setAppliedPlanId = (id: string | null) => {
-    if (setExternalAppliedPlanId) {
-      setExternalAppliedPlanId(id)
-    } else {
-      setInternalAppliedPlanId(id)
-    }
-  }
-
-  const handleReset = () => {
-    if (onResetChat) {
-      onResetChat()
-    } else {
-      setInternalMessages(INITIAL_CHAT_MESSAGES)
-      setInternalProfile(INITIAL_STUDENT_PROFILE)
-      setInternalAppliedPlanId(null)
-    }
-  }
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [backendStatus, setBackendStatus] = useState<{
@@ -99,31 +61,31 @@ export default function Chatbot({
   } | null>(null)
 
   useEffect(() => {
-    fetch(BACKEND_HEALTH_URL, { signal: AbortSignal.timeout(4000) })
-      .then((res) =>
-        res.ok
-          ? res.json()
-          : fetch(BACKEND_LEGACY_HEALTH_URL, {
-              signal: AbortSignal.timeout(4000),
-            }).then((r) => (r.ok ? r.json() : null)),
-      )
+    apiFetch<{
+      status?: string
+      service?: string
+      ollama_online?: boolean
+      chatbot_service_online?: boolean
+      chatbot_model?: string
+      default_model?: string
+      bonsai_online?: boolean
+      generator_model?: string
+    }>(HEALTH_PATH, { signal: AbortSignal.timeout(4000) })
       .then((data) => {
-        if (data) {
-          setBackendStatus({
-            ...data,
-            chatbot_service_online:
-              data.chatbot_service_online ??
-              (data.status === "healthy" ||
-                data.status === "ok" ||
-                data.status === "online" ||
-                Boolean(data.ollama_online || data.bonsai_online)),
-            chatbot_model:
-              data.chatbot_model ||
-              data.default_model ||
-              data.generator_model ||
-              "Hybrid Engine",
-          })
-        }
+        setBackendStatus({
+          ...data,
+          chatbot_service_online:
+            data.chatbot_service_online ??
+            (data.status === "healthy" ||
+              data.status === "ok" ||
+              data.status === "online" ||
+              Boolean(data.ollama_online || data.bonsai_online)),
+          chatbot_model:
+            data.chatbot_model ||
+            data.default_model ||
+            data.generator_model ||
+            "Hybrid Engine",
+        })
       })
       .catch(() => {})
   }, [])
@@ -155,18 +117,20 @@ export default function Chatbot({
     if (!messageText) setInput("")
     setIsLoading(true)
 
+    const chatBody = {
+      message: textToSend,
+      history: messages.slice(-6).map((m) => ({
+        role: m.role,
+        content: m.content,
+      })),
+      student_profile: profile,
+    }
+
     try {
-      const streamRes = await fetch(BACKEND_STREAM_URL, {
+      const streamRes = await fetch(`${API_BASE}${CHAT_STREAM_PATH}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: textToSend,
-          history: messages.slice(-6).map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
-          student_profile: profile,
-        }),
+        body: JSON.stringify(chatBody),
       })
 
       if (streamRes.ok && streamRes.body) {
@@ -200,7 +164,7 @@ export default function Chatbot({
               }
 
               if (data.error) {
-                accumulatedContent = `⚠️ **Layanan Tidak Tersedia**\n\n${data.error.message || "Gagal memproses permintaan."}`
+                accumulatedContent = `⚠️ **Layanan Tidak Tersedia**\n\n${sanitizeErrorMessage(data.error.message) || "Gagal memproses permintaan."}`
                 setMessages((prev) =>
                   prev.map((m) =>
                     m.id === assistantMsgId
@@ -258,72 +222,39 @@ export default function Chatbot({
         return
       }
 
-      // Standard non-streaming fallback
-      const fallbackRes = await fetch(BACKEND_API_URL, {
+      const data = await apiFetch<ChatResponse>(CHAT_PATH, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: textToSend,
-          history: messages.slice(-6).map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
-          student_profile: profile,
-        }),
+        body: chatBody,
       })
-
-      if (fallbackRes.ok) {
-        const data = await fallbackRes.json()
-        if (data.updated_profile) setProfile(data.updated_profile)
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantMsgId
-              ? {
-                  ...m,
-                  content: data.reply,
-                  plan_payload: data.plan_payload,
-                  action_type: data.action_type,
-                  routing_mode: data.routing_mode,
-                  latency_ms: data.latency_ms,
-                }
-              : m,
-          ),
-        )
-      } else {
-        const errorData = (await fallbackRes.json().catch(() => null)) as {
-          error?: ApiChatErrorDetail
-          detail?: string
-        } | null
-        const detail =
-          errorData?.error?.message ||
-          sanitizeErrorMessage(errorData?.detail) ||
-          "Gagal memproses pesan. Pastikan layanan backend dan microservice aktif."
-        const isRetry =
-          fallbackRes.status === 503 ||
-          errorData?.error?.code === "upstream_service_unavailable"
-        const retryNote = isRetry
-          ? "\n\n*Layanan AI sedang inisialisasi. Silakan ulangi dalam beberapa saat.*"
-          : ""
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantMsgId
-              ? {
-                  ...m,
-                  content: `⚠️ **Layanan Tidak Tersedia (${fallbackRes.status})**\n\n${detail}${retryNote}`,
-                  action_type: "GENERAL",
-                }
-              : m,
-          ),
-        )
-      }
-    } catch {
+      if (data.updated_profile) setProfile(data.updated_profile)
       setMessages((prev) =>
         prev.map((m) =>
           m.id === assistantMsgId
             ? {
                 ...m,
-                content:
-                  "⚠️ **Koneksi Terputus**\n\nTidak dapat terhubung ke server FTMM Compass AI. Pastikan backend Gateway (`pnpm dev:backend`) dan kontainer Docker Chatbot (`ftmm-compass-chatbot`) telah aktif.",
+                content: data.reply,
+                plan_payload: data.plan_payload,
+                action_type: data.action_type,
+                routing_mode: data.routing_mode,
+                latency_ms: data.latency_ms,
+              }
+            : m,
+        ),
+      )
+    } catch (error) {
+      const failed = error instanceof ApiError
+      const retryNote =
+        failed && (error.status === 503 || error.status === 502)
+          ? "\n\n*Layanan AI sedang inisialisasi. Silakan ulangi dalam beberapa saat.*"
+          : ""
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantMsgId
+            ? {
+                ...m,
+                content: failed
+                  ? `⚠️ **Layanan Tidak Tersedia (${error.status})**\n\n${error.message}${retryNote}`
+                  : "⚠️ **Koneksi Terputus**\n\nTidak dapat terhubung ke server FTMM Compass AI. Pastikan backend Gateway (`pnpm dev:backend`) dan kontainer Docker Chatbot (`ftmm-compass-chatbot`) telah aktif.",
                 action_type: "GENERAL",
               }
             : m,
@@ -346,7 +277,6 @@ export default function Chatbot({
 
   return (
     <div className="h-full flex flex-col bg-surface border border-border rounded-xl shadow-sm overflow-hidden animate-in fade-in duration-500">
-      {/* Header */}
       <div className="p-4 border-b border-border bg-navy text-white flex justify-between items-center relative overflow-hidden flex-shrink-0">
         <div className="absolute -right-10 -top-10 w-40 h-40 bg-gold/20 rounded-full blur-3xl" />
         <div className="flex items-center gap-3 relative z-10">
@@ -381,7 +311,7 @@ export default function Chatbot({
           </div>
           <button
             type="button"
-            onClick={handleReset}
+            onClick={onResetChat}
             title="Reset percakapan ke awal"
             className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg bg-white/10 hover:bg-white/20 text-white/90 hover:text-white transition-colors cursor-pointer border border-white/10"
           >
@@ -391,7 +321,6 @@ export default function Chatbot({
         </div>
       </div>
 
-      {/* Chat Area */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-background/30">
         {messages.map((msg) => (
           <div
@@ -443,7 +372,6 @@ export default function Chatbot({
                   </div>
                 )}
 
-              {/* Interactive Degree Plan Action Card */}
               {msg.plan_payload && (
                 <DegreePlanActionCard
                   messageId={msg.id}
@@ -475,7 +403,6 @@ export default function Chatbot({
         <div ref={endOfMessagesRef} />
       </div>
 
-      {/* Suggested Quick Prompts */}
       {messages.length <= 2 && (
         <div className="px-6 py-3 flex gap-2 overflow-x-auto scrollbar-hide border-t border-border bg-background/50 flex-shrink-0">
           {QUICK_PROMPTS.map((prompt, i) => (
@@ -491,7 +418,6 @@ export default function Chatbot({
         </div>
       )}
 
-      {/* Input Area */}
       <div className="p-4 bg-surface border-t border-border flex-shrink-0">
         <div className="relative flex items-center">
           <input

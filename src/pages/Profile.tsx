@@ -25,24 +25,23 @@ import {
   Layers,
 } from "lucide-react"
 import { authService, type AuthUser } from "../services/authService"
+import { useSession } from "../state/session"
+import { useAcademicPeriod } from "../state/academic"
+import { isOddSemester, SKS_CAP_BY_IPS } from "../domain/academics"
 
 interface ProfileProps {
-  currentUser: AuthUser | null
   onNavigate: (page: string) => void
   onRequestLogout: () => void
 }
 
-export default function Profile({
-  currentUser,
-  onNavigate,
-  onRequestLogout,
-}: ProfileProps) {
-  const [user, setUser] = useState<AuthUser | null>(currentUser)
+export default function Profile({ onNavigate, onRequestLogout }: ProfileProps) {
+  const { period } = useAcademicPeriod()
+  const { user: currentUser, setUser } = useSession()
+  const [user, setLocalUser] = useState<AuthUser | null>(currentUser)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [refreshSuccess, setRefreshSuccess] = useState(false)
   const [refreshError, setRefreshError] = useState<string | null>(null)
 
-  // Edit preferences modal state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editPhone, setEditPhone] = useState(user?.phone_number || "")
   const [editBio, setEditBio] = useState(user?.bio || "")
@@ -56,7 +55,7 @@ export default function Profile({
   const [saveErrorMessage, setSaveErrorMessage] = useState<string | null>(null)
 
   useEffect(() => {
-    setUser(currentUser)
+    setLocalUser(currentUser)
     setEditPhone(currentUser?.phone_number || "")
     setEditBio(currentUser?.bio || "")
     setEditInterests(currentUser?.career_interests?.join(", ") || "")
@@ -68,6 +67,7 @@ export default function Profile({
     setRefreshSuccess(false)
     try {
       const freshUser = await authService.getMe()
+      setLocalUser(freshUser)
       setUser(freshUser)
       setRefreshSuccess(true)
       setTimeout(() => setRefreshSuccess(false), 3000)
@@ -106,6 +106,7 @@ export default function Profile({
         bio: editBio,
         career_interests: interestsArray,
       })
+      setLocalUser(updatedUser)
       setUser(updatedUser)
       setSaveSuccessMessage("Preferensi profil berhasil disimpan.")
       setTimeout(() => {
@@ -136,13 +137,10 @@ export default function Profile({
 
   const studentProfile = user?.student_profile
   const academicId =
-    user?.academic_identifier ||
-    studentProfile?.student_number ||
-    (user?.role === "student" ? "164231001" : "198803152015041002")
+    user?.academic_identifier || studentProfile?.student_number || "—"
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto animate-in fade-in duration-300 pb-12">
-      {/* Top Banner / Identity Hero */}
       <div className="bg-surface rounded-2xl border border-border shadow-sm p-6 md:p-8 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-80 h-80 bg-teal/5 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-1/3 w-64 h-64 bg-gold/5 rounded-full blur-3xl pointer-events-none" />
@@ -244,11 +242,8 @@ export default function Profile({
         )}
       </div>
 
-      {/* Main Grid: Academic Data & Account Security */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Academic Profile Cards (2 spans) */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Role-Specific Academic Identity Card */}
           {user?.role === "admin" ? (
             <div className="bg-surface rounded-2xl border border-border shadow-sm p-6 space-y-5">
               <div className="flex items-center justify-between border-b border-border/80 pb-3">
@@ -391,7 +386,7 @@ export default function Profile({
                     3 Mata Kuliah · 9 SKS
                   </p>
                   <p className="text-[11px] text-muted mt-0.5 font-mono">
-                    Semester Ganjil 2024/2025
+                    {period?.label ?? "—"}
                   </p>
                 </div>
               </div>
@@ -473,15 +468,14 @@ export default function Profile({
                     Semester {studentProfile?.current_semester || 3}
                   </p>
                   <p className="text-[11px] text-muted mt-0.5 font-mono">
-                    {(studentProfile?.current_semester || 3) % 2 === 1
+                    {isOddSemester(studentProfile?.current_semester || 3)
                       ? "Term Ganjil"
                       : "Term Genap"}{" "}
-                    2024/2025
+                    {period?.academic_year ?? "—"}
                   </p>
                 </div>
               </div>
 
-              {/* Academic Regulation Callout (SOP FTMM) */}
               <div className="p-4 rounded-xl bg-navy/5 border border-navy/10 flex items-start gap-3">
                 <Award className="w-5 h-5 text-gold flex-shrink-0 mt-0.5" />
                 <div className="text-xs text-navy/90 leading-relaxed">
@@ -493,25 +487,20 @@ export default function Profile({
                     berikutnya ditentukan oleh Indeks Prestasi Semester (IPS):
                   </p>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2 font-mono text-[11px]">
-                    <span className="bg-surface px-2 py-1 rounded border border-border">
-                      IPS &ge; 3.00: <strong>24 SKS</strong>
-                    </span>
-                    <span className="bg-surface px-2 py-1 rounded border border-border">
-                      2.50–2.99: <strong>21 SKS</strong>
-                    </span>
-                    <span className="bg-surface px-2 py-1 rounded border border-border">
-                      2.00–2.49: <strong>18 SKS</strong>
-                    </span>
-                    <span className="bg-surface px-2 py-1 rounded border border-border">
-                      &lt; 2.00: <strong>15 SKS</strong>
-                    </span>
+                    {SKS_CAP_BY_IPS.map((band) => (
+                      <span
+                        key={band.label}
+                        className="bg-surface px-2 py-1 rounded border border-border"
+                      >
+                        {band.label}: <strong>{band.sks} SKS</strong>
+                      </span>
+                    ))}
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Quick Action Navigation */}
           <div className="bg-surface rounded-2xl border border-border shadow-sm p-6">
             <h2 className="font-heading font-bold text-base text-navy mb-4 flex items-center gap-2">
               <BookOpen className="w-4 h-4 text-teal" />
@@ -567,9 +556,7 @@ export default function Profile({
           </div>
         </div>
 
-        {/* Right Column: Security, Session & Account Info (1 span) */}
         <div className="space-y-6">
-          {/* Card: Informasi Keamanan Sesi */}
           <div className="bg-surface rounded-2xl border border-border shadow-sm p-6 space-y-4">
             <h2 className="font-heading font-bold text-base text-navy flex items-center gap-2 border-b border-border/80 pb-3">
               <ShieldCheck className="w-4 h-4 text-teal" />
@@ -624,7 +611,6 @@ export default function Profile({
             </div>
           </div>
 
-          {/* Card: Kontak & Preferensi Mandiri */}
           <div className="bg-surface rounded-2xl border border-border shadow-sm p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-border/80 pb-3">
               <h2 className="font-heading font-bold text-base text-navy flex items-center gap-2">
@@ -680,7 +666,6 @@ export default function Profile({
             </div>
           </div>
 
-          {/* Card: Hak Pengguna & Bantuan */}
           <div className="bg-warm-bg/70 rounded-2xl border border-border p-5 text-xs text-muted space-y-2">
             <h3 className="font-semibold text-navy">Pusat Dukungan Akademik</h3>
             <p className="leading-relaxed">
@@ -692,7 +677,6 @@ export default function Profile({
         </div>
       </div>
 
-      {/* Edit Preferences Modal */}
       {isEditModalOpen && (
         <div
           role="dialog"
@@ -724,7 +708,6 @@ export default function Profile({
               </button>
             </div>
 
-            {/* Institutional Authority / Locked Notice */}
             {user?.role === "admin" ? (
               <div className="p-3.5 rounded-xl bg-teal/10 border border-teal/30 flex items-start gap-2.5 text-xs text-navy">
                 <ShieldCheck className="w-4 h-4 text-teal flex-shrink-0 mt-0.5" />

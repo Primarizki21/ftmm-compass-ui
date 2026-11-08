@@ -1,5 +1,4 @@
 import type { ScheduleItem } from "../data"
-import { getCurrentAcademicPeriod } from "./academicCalendar"
 
 const DAY_OFFSETS: Record<string, number> = {
   senin: 0,
@@ -29,38 +28,25 @@ function formatUtcTimestamp(date: Date): string {
   return `${y}${m}${d}T${h}${min}${s}Z`
 }
 
-function getNextSemesterMonday(): Date {
-  const now = new Date()
-  const period = getCurrentAcademicPeriod(now)
-  const fullYear = now.getFullYear()
-  const isGanjil = period.term === "ganjil"
-
-  // Sem Ganjil reference start: late August (~26 Aug); Sem Genap: mid Feb (~17 Feb)
-  const refStart = isGanjil
-    ? new Date(now.getMonth() <= 1 ? fullYear - 1 : fullYear, 7, 26)
-    : new Date(fullYear, 1, 17)
-
-  // Align to Monday
-  const day = refStart.getDay() // 0 = Sunday, 1 = Monday
-  const diffToMonday = day === 0 ? 1 : day === 1 ? 0 : 8 - day
-  const monday = new Date(refStart)
-  monday.setDate(refStart.getDate() + diffToMonday)
-  monday.setHours(0, 0, 0, 0)
-  return monday
+export interface IcsExportOptions {
+  firstWeekMonday: string
+  semesterWeeks: number
+  calendarName?: string
 }
 
-export function generateIcsCalendar(
+function parseIsoDate(value: string): Date {
+  const [year, month, day] = value.split("-").map(Number)
+  return new Date(year, month - 1, day)
+}
+
+function generateIcsCalendar(
   schedule: ScheduleItem[],
-  options?: {
-    calendarName?: string
-    semesterWeeks?: number
-  },
+  options: IcsExportOptions,
 ): string {
-  const calName = options?.calendarName || "Jadwal Perkuliahan FTMM UNAIR"
-  const weeks = options?.semesterWeeks || 16
+  const calName = options.calendarName || "Jadwal Perkuliahan FTMM UNAIR"
   const now = new Date()
   const dtStamp = formatUtcTimestamp(now)
-  const semMonday = getNextSemesterMonday()
+  const semMonday = parseIsoDate(options.firstWeekMonday)
 
   const lines: string[] = [
     "BEGIN:VCALENDAR",
@@ -115,7 +101,7 @@ export function generateIcsCalendar(
       `DTSTAMP:${dtStamp}`,
       `DTSTART;TZID=Asia/Jakarta:${dtStart}`,
       `DTEND;TZID=Asia/Jakarta:${dtEnd}`,
-      `RRULE:FREQ=WEEKLY;COUNT=${weeks}`,
+      `RRULE:FREQ=WEEKLY;COUNT=${options.semesterWeeks}`,
       `SUMMARY:${summary}`,
       `DESCRIPTION:${description}`,
       `LOCATION:${location}`,
@@ -131,13 +117,14 @@ export function generateIcsCalendar(
 export function exportTimetableToIcs(
   schedule: ScheduleItem[],
   filename = "jadwal-kuliah-ftmm.ics",
+  options?: IcsExportOptions,
 ): boolean {
-  if (typeof window === "undefined" || schedule.length === 0) {
+  if (typeof window === "undefined" || schedule.length === 0 || !options) {
     return false
   }
 
   try {
-    const icsString = generateIcsCalendar(schedule)
+    const icsString = generateIcsCalendar(schedule, options)
     const blob = new Blob([icsString], {
       type: "text/calendar;charset=utf-8",
     })

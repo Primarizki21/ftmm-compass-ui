@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react"
 import { X, BookPlus, Edit3, AlertCircle, Loader2 } from "lucide-react"
 import { Course } from "../../data"
-import { authService } from "../../services/authService"
+import { apiErrorMessage, apiFetch } from "../../api/client"
+import { termOfSemester } from "../../domain/academics"
 
 interface CourseFormModalProps {
   isOpen: boolean
@@ -22,13 +23,13 @@ export default function CourseFormModal({
 
   const [code, setCode] = useState("")
   const [name, setName] = useState("")
-  const [program, setProgram] = useState("Teknologi Sains Data")
+  const [program, setProgram] = useState("")
   const [credits, setCredits] = useState(3)
   const [semester, setSemester] = useState(1)
   const [term, setTerm] = useState<"ganjil" | "genap">("ganjil")
   const [type, setType] = useState<"Wajib" | "Pilihan">("Pilihan")
   const [desc, setDesc] = useState("")
-  const [lecturer, setLecturer] = useState("Tim Dosen FTMM UNAIR")
+  const [lecturer, setLecturer] = useState("")
   const [prereqInput, setPrereqInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -37,30 +38,32 @@ export default function CourseFormModal({
     if (initialCourse) {
       setCode(initialCourse.code || initialCourse.id || "")
       setName(initialCourse.name || "")
-      setProgram(initialCourse.program || "Teknologi Sains Data")
+      setProgram(initialCourse.program || availablePrograms[0] || "")
       setCredits(initialCourse.credits || 3)
       setSemester(initialCourse.semester || 1)
       setTerm(initialCourse.parity === "even" ? "genap" : "ganjil")
       setType(initialCourse.type === "Wajib" ? "Wajib" : "Pilihan")
       setDesc(initialCourse.desc || "")
-      setLecturer(
-        initialCourse.lecturer || "Dr. Ir. Hendra Kurniawan, S.T., M.T.",
+      setLecturer(initialCourse.lecturer || "")
+      setPrereqInput(
+        initialCourse.prerequisites
+          ?.map((prereq) => prereq.id || prereq.name)
+          .join(", ") || "",
       )
-      setPrereqInput(initialCourse.prerequisites?.join(", ") || "")
     } else {
       setCode("")
       setName("")
-      setProgram("Teknologi Sains Data")
+      setProgram(availablePrograms[0] || "")
       setCredits(3)
       setSemester(1)
       setTerm("ganjil")
       setType("Pilihan")
       setDesc("")
-      setLecturer("Tim Dosen FTMM UNAIR")
+      setLecturer("")
       setPrereqInput("")
     }
     setErrorMessage(null)
-  }, [initialCourse, isOpen])
+  }, [initialCourse, isOpen, availablePrograms])
 
   if (!isOpen) return null
 
@@ -68,13 +71,6 @@ export default function CourseFormModal({
     e.preventDefault()
     setIsLoading(true)
     setErrorMessage(null)
-
-    const token = authService.getStoredToken()
-    if (!token) {
-      setErrorMessage("Sesi autentikasi telah berakhir. Silakan login kembali.")
-      setIsLoading(false)
-      return
-    }
 
     const prereqs = prereqInput
       .split(",")
@@ -92,33 +88,15 @@ export default function CourseFormModal({
           term,
           course_type: type,
           description: desc,
-          lecturer: lecturer.trim() || "Tim Dosen FTMM UNAIR",
+          lecturer: lecturer.trim(),
           prerequisites: prereqs,
         }
 
         const courseId = initialCourse.code || initialCourse.id
-        const res = await fetch(
+        const saved = await apiFetch<Course>(
           `/api/v1/admin/courses/${encodeURIComponent(courseId)}`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(payload),
-          },
+          { method: "PUT", body: payload, auth: true },
         )
-
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}))
-          throw new Error(
-            errData.detail ||
-              errData.error?.message ||
-              "Gagal memperbarui mata kuliah",
-          )
-        }
-
-        const saved: Course = await res.json()
         onSuccess(saved)
         onClose()
       } else {
@@ -131,36 +109,20 @@ export default function CourseFormModal({
           term,
           course_type: type,
           description: desc,
-          lecturer: lecturer.trim() || "Tim Dosen FTMM UNAIR",
+          lecturer: lecturer.trim(),
           prerequisites: prereqs,
         }
 
-        const res = await fetch("/api/v1/admin/courses", {
+        const created = await apiFetch<Course>("/api/v1/admin/courses", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
+          body: payload,
+          auth: true,
         })
-
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}))
-          throw new Error(
-            errData.detail ||
-              errData.error?.message ||
-              "Gagal menambahkan mata kuliah",
-          )
-        }
-
-        const created: Course = await res.json()
         onSuccess(created)
         onClose()
       }
     } catch (err: unknown) {
-      setErrorMessage(
-        err instanceof Error ? err.message : "Terjadi kesalahan pada server",
-      )
+      setErrorMessage(apiErrorMessage(err, "Terjadi kesalahan pada server"))
     } finally {
       setIsLoading(false)
     }
@@ -315,7 +277,7 @@ export default function CourseFormModal({
                   onChange={(e) => {
                     const s = Number(e.target.value)
                     setSemester(s)
-                    setTerm(s % 2 === 1 ? "ganjil" : "genap")
+                    setTerm(termOfSemester(s))
                   }}
                   className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm text-foreground focus:border-gold focus:ring-1 focus:ring-gold outline-hidden transition-colors"
                 >
@@ -395,7 +357,7 @@ export default function CourseFormModal({
               type="text"
               value={lecturer}
               onChange={(e) => setLecturer(e.target.value)}
-              placeholder="Contoh: Dr. Ir. Hendra Kurniawan, S.T., M.T."
+              placeholder="Contoh: Nama Dosen, S.T., M.T."
               className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm text-foreground focus:border-gold focus:ring-1 focus:ring-gold outline-hidden transition-colors"
             />
           </div>

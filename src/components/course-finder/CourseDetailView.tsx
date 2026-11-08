@@ -5,17 +5,18 @@ import {
   Plus,
   GraduationCap,
   BookOpen,
-  User,
 } from "lucide-react"
 import { cn } from "../../utils"
 import { Course } from "../../data"
 import { type AuthUser } from "../../services/authService"
 import PrerequisiteDiagram from "./PrerequisiteDiagram"
 import CourseDescriptionView from "./CourseDescriptionView"
+import CourseBadges from "../course/CourseBadges"
+import WorkloadGrid from "../course/WorkloadGrid"
 
 export interface CourseDetailViewProps {
   course: Course
-  catalog?: Course[]
+  catalog: Course[]
   onBack: () => void
   onAdd: (c: Course) => void
   addedCourseIds: Set<string>
@@ -58,7 +59,6 @@ export default function CourseDetailView({
 
   return (
     <div className="h-full flex flex-col animate-in fade-in duration-300">
-      {/* Header */}
       <div className="bg-navy text-white rounded-xl p-6 mb-5 relative overflow-hidden flex-shrink-0">
         <div className="absolute -right-10 -top-10 w-64 h-64 bg-gold/10 rounded-full blur-3xl" />
         <div className="absolute -left-10 bottom-0 w-48 h-48 bg-teal/5 rounded-full blur-2xl" />
@@ -74,58 +74,19 @@ export default function CourseDetailView({
             : "Kembali ke Daftar Matkul"}
         </button>
         <div className="relative z-10">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-mono text-teal-light font-bold">
-              {currentCourse.code ?? currentCourse.id}
-            </span>
-            {currentCourse.prodiAbbr && (
-              <span
-                className="px-2 py-0.5 rounded font-mono text-xs font-bold bg-white/20 text-white tracking-wide"
-                title={`Program Studi: ${currentCourse.program}`}
-              >
-                {currentCourse.prodiAbbr} &bull; {currentCourse.program}
-              </span>
-            )}
-          </div>
-          <h1 className="font-heading text-3xl font-bold mt-1 mb-4">
+          <h1 className="font-heading text-3xl font-bold mb-4">
             {currentCourse.name}
           </h1>
-          <div className="flex gap-2 flex-wrap">
-            <span className="px-3 py-1 bg-white/10 rounded-md text-sm font-medium backdrop-blur-sm">
-              {currentCourse.credits} SKS
-            </span>
-            <span className="px-3 py-1 bg-white/10 rounded-md text-sm font-medium backdrop-blur-sm">
-              Semester {currentCourse.semester}
-            </span>
-            <span className="px-3 py-1 bg-white/10 rounded-md text-sm font-medium backdrop-blur-sm flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-teal" />
-              {currentCourse.lecturer || "Dr. Ir. Hendra Kurniawan, S.T., M.T."}
-            </span>
-            <span className="px-3 py-1 bg-gold/20 text-gold rounded-md text-sm font-bold uppercase tracking-wide border border-gold/30 backdrop-blur-sm">
-              {currentCourse.type}
-            </span>
-            <span className="px-3 py-1 bg-white/10 rounded-md text-sm font-medium backdrop-blur-sm">
-              Ditawarkan Sem{" "}
-              {currentCourse.parity === "odd"
-                ? "Ganjil (1, 3, 5, 7)"
-                : "Genap (2, 4, 6, 8)"}
-            </span>
-            {currentCourse.category === "pdb_univ" && (
-              <span className="px-3 py-1 bg-purple-500/30 text-purple-200 border border-purple-300/40 rounded-md text-sm font-bold backdrop-blur-sm">
-                PDB Universitas
-              </span>
-            )}
-            {currentCourse.category === "pdb_saintek" && (
-              <span className="px-3 py-1 bg-teal/30 text-teal-light border border-teal/40 rounded-md text-sm font-bold backdrop-blur-sm">
-                PDB Saintek
-              </span>
-            )}
-          </div>
+          <CourseBadges
+            course={currentCourse}
+            variant="overlay"
+            showParity
+            showLecturer
+          />
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto space-y-4 pb-4">
-        {/* Academic Classification Callout */}
         {currentCourse.category === "pdb_univ" && (
           <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 flex items-start gap-3">
             <div className="p-2 bg-purple-100 text-purple-700 rounded-lg flex-shrink-0 mt-0.5">
@@ -184,37 +145,21 @@ export default function CourseDetailView({
             </div>
           )}
 
-        {/* Description + Workload */}
         <div className="bg-surface rounded-xl border border-border p-6">
           <h3 className="font-heading font-bold text-lg text-navy mb-3">
             Deskripsi Mata Kuliah
           </h3>
           <CourseDescriptionView text={currentCourse.desc} />
           {currentCourse.workload && (
-            <div className="mt-5 bg-background rounded-lg p-4 grid grid-cols-3 gap-4 text-center divide-x divide-border">
-              <div>
-                <div className="text-2xl font-heading font-bold text-navy">
-                  {currentCourse.workload.hours}
-                </div>
-                <div className="text-xs text-muted mt-1">Jam/Semester</div>
-              </div>
-              <div>
-                <div className="text-2xl font-heading font-bold text-navy">
-                  {currentCourse.workload.lectureCredits}
-                </div>
-                <div className="text-xs text-muted mt-1">SKS Kuliah</div>
-              </div>
-              <div>
-                <div className="text-2xl font-heading font-bold text-navy">
-                  {currentCourse.workload.labCredits}
-                </div>
-                <div className="text-xs text-muted mt-1">SKS Praktikum</div>
-              </div>
+            <div className="mt-5">
+              <WorkloadGrid
+                workload={currentCourse.workload}
+                title="Beban Kuliah"
+              />
             </div>
           )}
         </div>
 
-        {/* Prerequisite Diagram */}
         <div className="bg-surface rounded-xl border border-border p-6">
           <h3 className="font-heading font-bold text-lg text-navy mb-5">
             Diagram Alur Prasyarat
@@ -226,7 +171,6 @@ export default function CourseDetailView({
           />
         </div>
 
-        {/* Action: Only for students */}
         {currentUser?.role === "student" && (
           <div className="bg-surface rounded-xl border border-border p-5">
             <button

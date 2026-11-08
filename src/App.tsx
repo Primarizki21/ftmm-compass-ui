@@ -10,13 +10,13 @@ import {
 } from "lucide-react"
 import { useState, useMemo, useEffect } from "react"
 import { cn } from "./utils"
-import { Course, SCHEDULE, ScheduleItem } from "./data"
+import type { Course } from "./data"
 
-// Pages
 import Dashboard from "./pages/Dashboard"
 import CourseFinder from "./pages/CourseFinder"
-import DegreePlanner, { PlacedCourse } from "./pages/DegreePlanner"
-import Chatbot, { DegreePlanPayload } from "./pages/Chatbot"
+import DegreePlanner from "./pages/DegreePlanner"
+import Chatbot from "./pages/Chatbot"
+import type { DegreePlanPayload } from "./domain/plan"
 import {
   INITIAL_CHAT_MESSAGES,
   INITIAL_STUDENT_PROFILE,
@@ -26,33 +26,42 @@ import {
 import Profile from "./pages/Profile"
 import Login from "./pages/Login"
 import ErrorBoundary from "./components/ErrorBoundary"
-import { authService, type AuthUser } from "./services/authService"
+import { SessionProvider, useSession } from "./state/session"
+import { CatalogProvider, useCatalog } from "./state/catalog"
+import { PollingProvider } from "./state/polling"
+import { PlannerProvider, usePlanner } from "./state/planner"
 
 import BrandLogo from "./components/BrandLogo"
 import AnimatedMenuToggle from "./components/AnimatedMenuToggle"
 import NotificationDropdown from "./components/NotificationDropdown"
-import { getCurrentAcademicPeriod } from "./utils/academicCalendar"
+import { AcademicPeriodProvider, useAcademicPeriod } from "./state/academic"
 
 type Page = "dashboard" | "course-finder" | "degree-planner" | "chatbot" | "profile"
 
 export default function App() {
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() =>
-    authService.getStoredUser(),
+  return (
+    <SessionProvider>
+      <AcademicPeriodProvider>
+        <CatalogProvider>
+          <PollingProvider>
+            <PlannerProvider>
+              <AppShell />
+            </PlannerProvider>
+          </PollingProvider>
+        </CatalogProvider>
+      </AcademicPeriodProvider>
+    </SessionProvider>
   )
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
-    const hasToken = Boolean(authService.getStoredToken())
-    const hasUser = Boolean(authService.getStoredUser())
-    return hasToken && hasUser
-  })
+}
+
+function AppShell() {
+  const { user, isLoggedIn, login, logout, canAccess } = useSession()
+  const { period } = useAcademicPeriod()
+  const { error: catalogError, reload: reloadCatalog } = useCatalog()
+  const planner = usePlanner()
   const [activePage, setActivePage] = useState<Page>("dashboard")
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false)
-  const [pendingCourses, setPendingCourses] = useState<Course[]>([])
-  const [customPlan, setCustomPlan] =
-    useState<Record<number, PlacedCourse[]> | null>(null)
-  const [appliedPlanSummary, setAppliedPlanSummary] =
-    useState<DegreePlanPayload["summary"] | null>(null)
-  const [activeSchedule, setActiveSchedule] = useState<ScheduleItem[]>(SCHEDULE)
   const [plannerInitialTab, setPlannerInitialTab] =
     useState<"roadmap" | "timetable">("roadmap")
   const [finderInitialCourse, setFinderInitialCourse] = useState<Course | null>(
@@ -67,14 +76,9 @@ export default function App() {
   const [chatAppliedPlanId, setChatAppliedPlanId] = useState<string | null>(
     null,
   )
-  const academicPeriod = getCurrentAcademicPeriod()
   useEffect(() => {
-    if (currentUser && currentUser.role !== "student") {
-      if (activePage === "degree-planner" || activePage === "chatbot") {
-        setActivePage("dashboard")
-      }
-    }
-  }, [currentUser, activePage])
+    if (!canAccess(activePage)) setActivePage("dashboard")
+  }, [activePage, canAccess])
 
   const handleNavigate = (
     page: string,
@@ -87,58 +91,27 @@ export default function App() {
     setFinderInitialCourse(options?.course || null)
     setActivePage(page as Page)
   }
+
   const handleApplyPlanFromChatbot = (payload: DegreePlanPayload) => {
-    const mappedPlan: Record<number, PlacedCourse[]> = {}
-    for (const [semStr, list] of Object.entries(payload.plan)) {
-      const sem = Number(semStr)
-      mappedPlan[sem] = (list || []).map((c) => ({
-        id: c.id || c.code || `${c.name}-${sem}`,
-        code: c.code,
-        name: c.name,
-        credits: c.credits || 3,
-        semester: c.semester || sem,
-        type: c.type === "Pilihan" ? "Pilihan" : "Wajib",
-        parity: c.parity === "even" ? "even" : "odd",
-        desc: "",
-        prerequisites: [],
-        status: "planned",
-      }))
-    }
-    setCustomPlan(mappedPlan)
-    setAppliedPlanSummary(payload.summary)
+    planner.applyPlan(payload)
     handleNavigate("degree-planner")
-  }
-  const handleResetPlan = () => {
-    setCustomPlan(null)
-    setAppliedPlanSummary(null)
-  }
-
-  const addCourseToPlanner = (course: Course) => {
-    setPendingCourses((prev) =>
-      prev.some((c) => c.id === course.id) ? prev : [...prev, course],
-    )
-  }
-
-  const addedCourseIds = new Set(pendingCourses.map((c) => c.id))
-
-  const handleLoginSuccess = (user: AuthUser) => {
-    setCurrentUser(user)
-    setIsLoggedIn(true)
-    setActivePage("dashboard")
   }
 
   const handleLogout = () => {
-    authService.logout()
-    setCurrentUser(null)
-    setIsLoggedIn(false)
+    logout()
     setIsLogoutModalOpen(false)
     setChatMessages(INITIAL_CHAT_MESSAGES)
     setChatProfile(INITIAL_STUDENT_PROFILE)
     setChatAppliedPlanId(null)
     setActivePage("dashboard")
   }
+
+  const addedCourseIds = new Set(
+    planner.pendingCourses.map((course) => course.id),
+  )
+
   const navItems = useMemo(() => {
-    const role = currentUser?.role || "student"
+    const role = user?.role || "student"
     if (role === "lecturer") {
       return [
         { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -157,15 +130,21 @@ export default function App() {
       { id: "degree-planner", label: "Degree Planner", icon: Map },
       { id: "chatbot", label: "Compass AI", icon: MessageSquare },
     ] as const
-  }, [currentUser?.role])
+  }, [user?.role])
 
   if (!isLoggedIn) {
-    return <Login onLogin={handleLoginSuccess} />
+    return (
+      <Login
+        onLogin={(next) => {
+          login(next)
+          setActivePage("dashboard")
+        }}
+      />
+    )
   }
 
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden font-sans text-foreground">
-      {/* Sidebar Navigation */}
       <aside
         className={cn(
           "bg-navy text-white flex flex-col flex-shrink-0 shadow-xl z-20 transition-all duration-300 ease-in-out absolute md:relative h-full overflow-hidden",
@@ -175,7 +154,6 @@ export default function App() {
         )}
       >
         <div className="flex flex-col h-full w-64 min-w-[16rem]">
-          {/* Mobile Close Button */}
           <button
             onClick={() => setIsSidebarOpen(false)}
             aria-label="Tutup menu"
@@ -184,7 +162,6 @@ export default function App() {
             <X className="w-5 h-5" />
           </button>
 
-          {/* Logos Section */}
           <div className="p-5 pb-3">
             <BrandLogo variant="sidebar" />
           </div>
@@ -249,8 +226,8 @@ export default function App() {
                       : "bg-teal text-navy-dark",
                   )}
                 >
-                  {currentUser?.full_name ? (
-                    currentUser.full_name
+                  {user?.full_name ? (
+                    user.full_name
                       .split(" ")
                       .filter(Boolean)
                       .slice(0, 2)
@@ -263,12 +240,12 @@ export default function App() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate text-white group-hover:text-gold transition-colors">
-                    {currentUser?.full_name || "Mahasiswa FTMM"}
+                    {user?.full_name || "Mahasiswa FTMM"}
                   </p>
                   <p className="text-xs text-muted font-mono truncate">
-                    {currentUser?.student_profile?.student_number ||
-                      currentUser?.email ||
-                      currentUser?.role}
+                    {user?.student_profile?.student_number ||
+                      user?.email ||
+                      user?.role}
                   </p>
                 </div>
               </button>
@@ -287,9 +264,7 @@ export default function App() {
         </div>
       </aside>
 
-      {/* Main Content Area */}
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
-        {/* Overlay for mobile when sidebar is open */}
         {isSidebarOpen && (
           <div
             className="absolute inset-0 bg-black/50 z-10 md:hidden backdrop-blur-sm"
@@ -297,7 +272,6 @@ export default function App() {
           />
         )}
 
-        {/* Topbar */}
         <header className="h-16 bg-surface border-b border-border flex items-center justify-between px-4 md:px-8 flex-shrink-0 relative z-30">
           <div className="flex items-center gap-3">
             <AnimatedMenuToggle
@@ -309,26 +283,22 @@ export default function App() {
                 ? "Compass AI"
                 : activePage === "profile"
                   ? "Profil Pengguna"
-                  : activePage === "course-finder" &&
-                      currentUser?.role === "admin"
+                  : activePage === "course-finder" && user?.role === "admin"
                     ? "Course Management"
                     : activePage.replace("-", " ")}
             </h2>
           </div>
           <div className="flex items-center gap-2 md:gap-4">
-            <NotificationDropdown currentUser={currentUser} />
+            <NotificationDropdown currentUser={user} />
             <div className="text-sm text-right hidden sm:block">
-              <p className="font-medium text-navy">
-                {academicPeriod.termDisplay}
-              </p>
+              <p className="font-medium text-navy">{period?.label ?? "—"}</p>
               <p className="text-xs text-muted font-mono">
-                {academicPeriod.weekDisplay}
+                {period?.week_label ?? ""}
               </p>
             </div>
           </div>
         </header>
 
-        {/* Page Content */}
         <div
           className={cn(
             "flex-1 overflow-auto relative",
@@ -337,6 +307,18 @@ export default function App() {
               : "p-4 md:p-8",
           )}
         >
+          {catalogError && (
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-orange/30 bg-orange/10 px-4 py-3 text-xs text-navy">
+              <span>{catalogError}</span>
+              <button
+                type="button"
+                onClick={() => void reloadCatalog()}
+                className="rounded-lg border border-orange/40 px-3 py-1.5 font-semibold text-orange transition-colors hover:bg-orange/10"
+              >
+                Coba lagi
+              </button>
+            </div>
+          )}
           <div
             className={cn(
               "mx-auto h-full",
@@ -347,32 +329,20 @@ export default function App() {
           >
             <ErrorBoundary key={activePage}>
               {activePage === "dashboard" && (
-                <Dashboard
-                  onNavigate={handleNavigate}
-                  schedule={activeSchedule}
-                  currentUser={currentUser}
-                />
+                <Dashboard onNavigate={handleNavigate} />
               )}
               {activePage === "course-finder" && (
                 <CourseFinder
-                  onAddToPlanner={addCourseToPlanner}
+                  onAddToPlanner={planner.addPendingCourse}
                   addedCourseIds={addedCourseIds}
                   initialCourse={finderInitialCourse}
                   onClearInitialCourse={() => setFinderInitialCourse(null)}
-                  currentUser={currentUser}
                 />
               )}
               {activePage === "degree-planner" && (
                 <DegreePlanner
-                  pendingCourses={pendingCourses}
-                  setPendingCourses={setPendingCourses}
-                  customPlan={customPlan}
-                  appliedSummary={appliedPlanSummary}
-                  onResetPlan={handleResetPlan}
                   onNavigate={handleNavigate}
                   initialTab={plannerInitialTab}
-                  onUpdateSchedule={setActiveSchedule}
-                  currentUser={currentUser}
                 />
               )}
               {activePage === "chatbot" && (
@@ -393,7 +363,6 @@ export default function App() {
               )}
               {activePage === "profile" && (
                 <Profile
-                  currentUser={currentUser}
                   onNavigate={handleNavigate}
                   onRequestLogout={() => setIsLogoutModalOpen(true)}
                 />
@@ -403,7 +372,6 @@ export default function App() {
         </div>
       </main>
 
-      {/* Logout Confirmation Modal */}
       {isLogoutModalOpen && (
         <div
           role="dialog"

@@ -6,7 +6,7 @@ import {
   ArrowRight,
 } from "lucide-react"
 import { cn } from "../../utils"
-import { DegreePlanPayload } from "./chatService"
+import type { DegreePlanPayload } from "../../domain/plan"
 
 export interface DegreePlanActionCardProps {
   messageId: string

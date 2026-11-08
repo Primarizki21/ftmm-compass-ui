@@ -29,18 +29,14 @@ PDF_DIR = os.path.join(EKSTRAK_DIR, "pdf")
 PANDUAN_FILE = "Panduan Pendidikan FTMM UNAIR 2024-2025.pdf"
 CATALOG_PATH = os.path.join(OUT_DIR, "catalog_canonical.json")
 # Deskripsi, CPL, dan nama dosen tidak di-commit (mengikuti aturan tim untuk Ekstrak/).
-# Subfolder, karena frontend (src/courseData.ts) dan data_loader.py membaca Ekstrak/*.json.
+# Disimpan di subfolder derived/ agar tidak ikut terbaca sebagai baris katalog Ekstrak/*.json.
 DETAILS_PATH = os.path.join(EKSTRAK_DIR, "derived", "catalog_details.json")
 TI_OCR_PATH = os.path.join(EKSTRAK_DIR, "ocr", "TI_descriptions.json")
 REPORT_PATH = os.path.join(OUT_DIR, "catalog_build_report.md")
 
-PROGRAMS = [
-    ("TSD", "S1 Teknologi Sains Data"),
-    ("RN", "S1 Rekayasa Nanoteknologi"),
-    ("TRKB", "S1 Teknik Robotika dan Kecerdasan Buatan"),
-    ("TE", "S1 Teknik Elektro"),
-    ("TI", "S1 Teknik Industri"),
-]
+from catalog import PROGRAM_HEADINGS, PROGRAM_ORDER
+
+PROGRAMS = [(code, PROGRAM_HEADINGS[code]) for code in PROGRAM_ORDER]
 
 # Salah ketik yang terbukti di Panduan sendiri (kode alternatif agama dobel).
 KNOWN_TYPOS = {("TSD", "AGK401", "Agama Konghucu II"): "AGC401"}
@@ -442,10 +438,7 @@ def attach_details(prog, rows, json_rows):
     return unused
 
 
-CURRICULUM_TEXT_DOCS = {
-    "TRKB": "754 KR KURIKULUM S1 TEKNIK ROBOTIKA KECERDASAN BUATAN FTMM stempel.pdf",
-    "TSD": "Dokumen Kurikulum TSD.pdf",
-}
+from catalog import CURRICULUM_DOCS as CURRICULUM_TEXT_DOCS
 DESC_RE = re.compile(
     r"Kode Mata (?:Kuliah|Ajar/Mata Kuliah)\s*:?\s*([A-Z]{2,3}\s?\d{3})(.{0,400}?)Prasyarat\s*:?\s*(.*?)"
     r"\s*(?:\b6\s*\.|Capaian)"

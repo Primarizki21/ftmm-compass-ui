@@ -16,28 +16,20 @@ import {
 } from "lucide-react"
 import { cn } from "../utils"
 import { Course } from "../data"
-import {
-  pollingService,
-  type PollingPeriod,
-  type StudentVote,
-  type DemandAnalyticsResponse,
-} from "../services/pollingService"
-import { type AuthUser } from "../services/authService"
+import type { StudentVote } from "../services/pollingService"
+import { useSession } from "../state/session"
+import { useCatalog } from "../state/catalog"
+import { usePolling } from "../state/polling"
 import CourseFormModal from "../components/course-finder/CourseFormModal"
-import {
-  ALL_COURSES,
-  PROGRAMS,
-  fetchCatalog,
-  getProdiAbbreviation,
-} from "../courseData"
+import { getProdiAbbreviation } from "../domain/course"
 import CourseDetailView from "../components/course-finder/CourseDetailView"
 import CourseQuickModal from "../components/course-finder/CourseQuickModal"
+import CourseIdentityBadges from "../components/course/CourseIdentityBadges"
 export interface CourseFinderProps {
   onAddToPlanner: (course: Course) => void
   addedCourseIds: Set<string>
   initialCourse?: Course | null
   onClearInitialCourse?: () => void
-  currentUser?: AuthUser | null
 }
 
 export default function CourseFinder({
@@ -45,8 +37,23 @@ export default function CourseFinder({
   addedCourseIds,
   initialCourse,
   onClearInitialCourse,
-  currentUser,
 }: CourseFinderProps) {
+  const { user: currentUser } = useSession()
+  const {
+    courses: catalogCourses,
+    programs,
+    isLoading: catalogLoading,
+    upsert,
+  } = useCatalog()
+  const {
+    period: pollingPeriod,
+    myVotes,
+    demand,
+    error: pollingError,
+    loadDemand,
+    submitVote,
+    removeVote,
+  } = usePolling()
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedType, setSelectedType] = useState<"all" | "Wajib" | "Pilihan">(
     "all",
@@ -61,9 +68,6 @@ export default function CourseFinder({
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
   const [detailCourse, setDetailCourse] = useState<Course | null>(null)
   const [filterMostDemanded, setFilterMostDemanded] = useState(false)
-  const [pollingPeriod, setPollingPeriod] = useState<PollingPeriod | null>(null)
-  const [myVotes, setMyVotes] = useState<StudentVote[]>([])
-  const [demandStats, setDemandStats] = useState<Record<string, number>>({})
   const [priorityModalCourse, setPriorityModalCourse] = useState<Course | null>(
     null,
   )
@@ -77,65 +81,45 @@ export default function CourseFinder({
     }
   }, [initialCourse])
   const [activeProgram, setActiveProgram] = useState<string>("all")
-  const [courses, setCourses] = useState<Course[]>(ALL_COURSES)
-  const [availablePrograms, setAvailablePrograms] = useState<string[]>(PROGRAMS)
-  useEffect(() => {
-    let active = true
-    fetchCatalog(activeProgram).then((res) => {
-      if (!active) return
-      if (res) {
-        setCourses(res.courses)
-        if (res.programs && res.programs.length > 0) {
-          setAvailablePrograms(res.programs)
-        }
-      } else {
-        setCourses(
-          activeProgram === "all"
-            ? ALL_COURSES
-            : ALL_COURSES.filter((c) => c.program === activeProgram),
-        )
-      }
-    })
+  const courses = useMemo(
+    () =>
+      activeProgram === "all"
+        ? catalogCourses
+        : catalogCourses.filter((course) => course.program === activeProgram),
+    [activeProgram, catalogCourses],
+  )
+  const availablePrograms = programs
+  const creditCounts = useMemo(() => {
+    const counts: Record<string, number> = { other: 0 }
+    for (const item of courses) {
+      const key =
+        item.credits >= 1 && item.credits <= 4 ? String(item.credits) : "other"
+      counts[key] = (counts[key] ?? 0) + 1
+    }
+    return counts
+  }, [courses])
 
-    return () => {
-      active = false
-    }
-  }, [activeProgram])
   useEffect(() => {
-    let mounted = true
-    Promise.all([
-      pollingService.getActivePeriod(),
-      pollingService.getMyVotes(),
-      pollingService.getDemandAnalytics("all"),
-    ]).then(
-      ([
-        period,
-        votes,
-        analytics,
-      ]: [PollingPeriod, StudentVote[], DemandAnalyticsResponse]) => {
-        if (!mounted) return
-        setPollingPeriod(period)
-        setMyVotes(votes)
-        const stats: Record<string, number> = {}
-        analytics.items.forEach((item) => {
-          stats[item.course_id] = item.total_votes
-          if (item.course_code) {
-            stats[item.course_code] = item.total_votes
-          }
-        })
-        setDemandStats(stats)
-      },
-    )
-    return () => {
-      mounted = false
+    if (!demand.all) void loadDemand("all")
+  }, [demand.all, loadDemand])
+
+  const demandStats = useMemo(() => {
+    const stats: Record<string, number> = {}
+    for (const item of demand.all?.items ?? []) {
+      if (item.course_code) stats[item.course_code] = item.total_votes
     }
-  }, [])
+    return stats
+  }, [demand])
+
+  const voteKey = (course: Course) => course.code || course.id
+  const votesFor = (course: Course) => demandStats[voteKey(course)] ?? 0
+  const voteFor = (course: Course) => myVoteMap[voteKey(course)]
 
   const rankedCourseCodes = useMemo(() => {
     const list = courses
       .map((c) => ({
         key: c.code || c.id,
-        votes: demandStats[c.id] || demandStats[c.code || ""] || 0,
+        votes: votesFor(c),
       }))
       .filter((it) => it.votes > 0)
       .sort((a, b) => b.votes - a.votes)
@@ -147,7 +131,7 @@ export default function CourseFinder({
   }, [courses, demandStats])
 
   const filtered = useMemo(() => {
-    const minQ = pollingPeriod?.min_quorum || 15
+    const minQ = pollingPeriod?.min_quorum ?? 0
     const list = courses.filter((c) => {
       const q = searchQuery.toLowerCase().trim()
       const matchesSearch =
@@ -167,7 +151,7 @@ export default function CourseFinder({
 
       const matchesType = selectedType === "all" || c.type === selectedType
 
-      const votes = demandStats[c.id] || demandStats[c.code || ""] || 0
+      const votes = votesFor(c)
       const isCourseOpen = c.type === "Wajib" || votes >= minQ
 
       const matchesAvailability =
@@ -201,13 +185,11 @@ export default function CourseFinder({
     })
 
     if (filterMostDemanded) {
-      const withVotes = list.filter(
-        (c) => (demandStats[c.id] || demandStats[c.code || ""] || 0) > 0,
-      )
+      const withVotes = list.filter((c) => votesFor(c) > 0)
       const targetList = withVotes.length > 0 ? withVotes : list
       return [...targetList].sort((a, b) => {
-        const aVotes = demandStats[a.id] || demandStats[a.code || ""] || 0
-        const bVotes = demandStats[b.id] || demandStats[b.code || ""] || 0
+        const aVotes = votesFor(a)
+        const bVotes = votesFor(b)
         return bVotes - aVotes
       })
     }
@@ -228,8 +210,9 @@ export default function CourseFinder({
   ])
   const myVoteMap = useMemo(() => {
     const map: Record<string, StudentVote> = {}
-    myVotes.forEach((v) => {
-      map[v.course_id] = v
+    myVotes.forEach((vote) => {
+      map[vote.course_id] = vote
+      if (vote.course_code) map[vote.course_code] = vote
     })
     return map
   }, [myVotes])
@@ -238,8 +221,7 @@ export default function CourseFinder({
   const remainingSlots = Math.max(0, maxVotes - myVotes.length)
 
   const handleOpenPriorityModal = (course: Course) => {
-    const currentVote =
-      myVoteMap[course.id] || (course.code ? myVoteMap[course.code] : undefined)
+    const currentVote = voteFor(course)
     setModalPriority(currentVote?.priority || 1)
     setPriorityModalCourse(course)
   }
@@ -248,26 +230,8 @@ export default function CourseFinder({
     if (!priorityModalCourse) return
     setIsSubmittingVote(true)
     try {
-      const vote = await pollingService.submitVote({
-        course_id: priorityModalCourse.id,
-        priority: modalPriority,
-      })
-      setMyVotes((prev) => {
-        const filteredVotes = prev.filter(
-          (v) =>
-            v.course_id !== priorityModalCourse.id &&
-            v.course_id !== (priorityModalCourse.code || ""),
-        )
-        return [...filteredVotes, vote]
-      })
-      setDemandStats((prev) => {
-        const existing = prev[priorityModalCourse.id] || 0
-        const hasPrior = Boolean(myVoteMap[priorityModalCourse.id])
-        return {
-          ...prev,
-          [priorityModalCourse.id]: hasPrior ? existing : existing + 1,
-        }
-      })
+      await submitVote(voteKey(priorityModalCourse), modalPriority)
+      void loadDemand("all")
       setPriorityModalCourse(null)
     } finally {
       setIsSubmittingVote(false)
@@ -277,12 +241,8 @@ export default function CourseFinder({
   const handleRemoveVote = async (courseId: string) => {
     setIsSubmittingVote(true)
     try {
-      await pollingService.removeVote(courseId)
-      setMyVotes((prev) => prev.filter((v) => v.course_id !== courseId))
-      setDemandStats((prev) => ({
-        ...prev,
-        [courseId]: Math.max(0, (prev[courseId] || 1) - 1),
-      }))
+      await removeVote(courseId)
+      void loadDemand("all")
       setPriorityModalCourse(null)
     } finally {
       setIsSubmittingVote(false)
@@ -332,7 +292,14 @@ export default function CourseFinder({
 
   return (
     <div className="h-full flex flex-col animate-in fade-in duration-500">
-      {/* Search & Filter Header */}
+      {pollingError && (
+        <div
+          role="status"
+          className="mb-3 px-4 py-2.5 rounded-xl border border-orange/30 bg-orange/10 text-xs text-navy"
+        >
+          {pollingError}
+        </div>
+      )}
       <div className="bg-surface rounded-xl border border-border shadow-sm p-4 mb-4 space-y-3.5 flex-shrink-0">
         <div className="flex items-center gap-3">
           <div className="relative flex-1">
@@ -360,7 +327,6 @@ export default function CourseFinder({
           )}
         </div>
 
-        {/* Program Tabs with Abbreviations */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           <button
             type="button"
@@ -400,10 +366,8 @@ export default function CourseFinder({
           })}
         </div>
 
-        {/* Secondary Filter Controls: Parity, SKS Dropdown, PDB Category Dropdown */}
         <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-border/50 text-xs">
           <div className="flex flex-wrap items-center gap-2">
-            {/* Type Selector: Semua Tipe, Wajib, Pilihan */}
             <div className="inline-flex rounded-lg border border-border bg-background p-0.5">
               <button
                 type="button"
@@ -443,7 +407,6 @@ export default function CourseFinder({
               </button>
             </div>
 
-            {/* Parity Selector */}
             <div className="inline-flex rounded-lg border border-border bg-background p-0.5">
               <button
                 type="button"
@@ -483,7 +446,6 @@ export default function CourseFinder({
               </button>
             </div>
 
-            {/* SKS Dropdown */}
             <div className="relative">
               <select
                 value={selectedCredits}
@@ -492,18 +454,21 @@ export default function CourseFinder({
                 aria-label="Filter Bobot SKS"
               >
                 <option value="all">Bobot SKS: Semua</option>
-                <option value="2">2 SKS (195 Matkul)</option>
-                <option value="3">3 SKS (132 Matkul)</option>
-                <option value="4">4 SKS (13 Matkul)</option>
-                <option value="1">1 SKS (Praktikum)</option>
-                <option value="other">&gt; 4 SKS (Tugas Akhir)</option>
+                <option value="2">2 SKS ({creditCounts["2"] ?? 0} MK)</option>
+                <option value="3">3 SKS ({creditCounts["3"] ?? 0} MK)</option>
+                <option value="4">4 SKS ({creditCounts["4"] ?? 0} MK)</option>
+                <option value="1">
+                  1 SKS (Praktikum, {creditCounts["1"] ?? 0})
+                </option>
+                <option value="other">
+                  &gt; 4 SKS (Tugas Akhir, {creditCounts.other})
+                </option>
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-muted">
                 <Clock className="w-3.5 h-3.5" />
               </div>
             </div>
 
-            {/* PDB Category Dropdown */}
             <div className="relative">
               <select
                 value={selectedCategory}
@@ -521,7 +486,6 @@ export default function CourseFinder({
               </div>
             </div>
 
-            {/* Status Ketersediaan Kelas Dropdown */}
             <div className="relative">
               <select
                 value={selectedAvailability}
@@ -575,12 +539,15 @@ export default function CourseFinder({
         </div>
       </div>
 
-      {/* Course Grid */}
       <div className="flex-1 overflow-y-auto">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-muted">
             <BookOpen className="w-10 h-10 opacity-20 mb-3" />
-            <p className="text-sm">Tidak ada mata kuliah yang sesuai filter.</p>
+            <p className="text-sm">
+              {catalogLoading
+                ? "Memuat katalog dari backend..."
+                : "Tidak ada mata kuliah yang sesuai filter."}
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-4">
@@ -592,35 +559,7 @@ export default function CourseFinder({
               >
                 <div className="flex justify-between items-start gap-2">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {course.prodiAbbr && (
-                        <span
-                          className="px-1.5 py-0.5 rounded font-mono text-[10px] font-bold bg-navy text-white tracking-wide flex-shrink-0"
-                          title={`Program Studi ${course.program}`}
-                        >
-                          {course.prodiAbbr}
-                        </span>
-                      )}
-                      <span className="font-mono text-xs font-bold text-navy">
-                        {course.code ?? course.id}
-                      </span>
-                      {course.category === "pdb_univ" && (
-                        <span
-                          className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200 flex-shrink-0"
-                          title="PDB Universitas (Semester 1–2)"
-                        >
-                          PDB Univ
-                        </span>
-                      )}
-                      {course.category === "pdb_saintek" && (
-                        <span
-                          className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-teal/20 text-navy border border-teal/40 flex-shrink-0"
-                          title="PDB Saintek (Semester 1–2)"
-                        >
-                          PDB Saintek
-                        </span>
-                      )}
-                    </div>
+                    <CourseIdentityBadges course={course} />
                     <div className="flex items-center justify-between gap-2">
                       <h3 className="font-heading font-semibold text-base text-foreground mt-1.5 group-hover:text-gold transition-colors line-clamp-1">
                         {course.name}
@@ -654,11 +593,8 @@ export default function CourseFinder({
                     </span>
                     {course.type === "Pilihan" &&
                       (() => {
-                        const votes =
-                          demandStats[course.id] ||
-                          demandStats[course.code || ""] ||
-                          0
-                        const minQ = pollingPeriod?.min_quorum || 15
+                        const votes = votesFor(course)
+                        const minQ = pollingPeriod?.min_quorum ?? 0
                         const isElectiveOpen = votes >= minQ
                         return (
                           <span
@@ -677,11 +613,8 @@ export default function CourseFinder({
                 </div>
                 {course.type === "Pilihan" &&
                   (() => {
-                    const votes =
-                      demandStats[course.id] ||
-                      demandStats[course.code || ""] ||
-                      0
-                    const minQ = pollingPeriod?.min_quorum || 15
+                    const votes = votesFor(course)
+                    const minQ = pollingPeriod?.min_quorum ?? 0
                     const isElectiveOpen = votes >= minQ
                     const rank = rankedCourseCodes[course.code || course.id]
                     return (
@@ -698,7 +631,8 @@ export default function CourseFinder({
                               <strong className="text-navy font-mono font-bold">
                                 {votes}
                               </strong>{" "}
-                              peminat / Min. {minQ}
+                              peminat
+                              {pollingPeriod ? ` / Min. ${minQ}` : ""}
                             </span>
                           </div>
                           {rank && votes > 0 && (
@@ -723,11 +657,7 @@ export default function CourseFinder({
                           </span>
                           {currentUser?.role === "student" &&
                             (() => {
-                              const vote =
-                                myVoteMap[course.id] ||
-                                (course.code
-                                  ? myVoteMap[course.code]
-                                  : undefined)
+                              const vote = voteFor(course)
                               const targetSem = course.semester || 6
                               return (
                                 <button
@@ -802,7 +732,6 @@ export default function CourseFinder({
         )}
       </div>
 
-      {/* Quick Modal */}
       <CourseQuickModal
         course={selectedCourse}
         catalog={courses}
@@ -815,10 +744,9 @@ export default function CourseFinder({
         }}
         currentUser={currentUser}
         demandStats={demandStats}
-        minQuorum={pollingPeriod?.min_quorum || 15}
+        minQuorum={pollingPeriod?.min_quorum ?? 0}
       />
 
-      {/* Priority & Wishlist Selection Modal */}
       {priorityModalCourse && (
         <div
           className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200"
@@ -850,19 +778,17 @@ export default function CourseFinder({
               </button>
             </div>
 
-            {/* Slot Info Banner */}
             <div className="p-3 rounded-xl bg-background border border-border flex items-center justify-between text-xs">
               <span className="text-muted font-medium">
                 Slot Wishlist Tersedia:
               </span>
               <span className="font-mono font-bold text-navy">
-                {Boolean(myVoteMap[priorityModalCourse.id])
+                {Boolean(voteFor(priorityModalCourse))
                   ? `${remainingSlots} slot tersisa (terdaftar)`
                   : `${remainingSlots} dari ${maxVotes} slot tersisa`}
               </span>
             </div>
 
-            {/* Priority Selector */}
             <div className="space-y-2">
               <label className="text-xs font-semibold text-navy block">
                 Tingkat Prioritas Peminatan:
@@ -893,19 +819,17 @@ export default function CourseFinder({
               </div>
             </div>
 
-            {/* Quorum Note */}
             <div className="text-[11px] text-muted flex items-start gap-2 bg-gold/10 text-navy p-3 rounded-xl border border-gold/30">
               <AlertCircle className="w-4 h-4 text-gold flex-shrink-0 mt-0.5" />
               <p>
-                Mata kuliah pilihan memerlukan minimal{" "}
-                <strong>{pollingPeriod?.min_quorum || 15} peminat</strong> agar
-                diusulkan buka pada semester depan.
+                {pollingPeriod
+                  ? `Mata kuliah pilihan memerlukan minimal ${pollingPeriod.min_quorum} peminat agar diusulkan buka pada semester depan.`
+                  : "Ambang kuorum belum tersedia karena periode polling belum dimuat."}
               </p>
             </div>
 
-            {/* Action Buttons */}
             <div className="flex items-center justify-between gap-3 pt-2">
-              {Boolean(myVoteMap[priorityModalCourse.id]) ? (
+              {Boolean(voteFor(priorityModalCourse)) ? (
                 <button
                   type="button"
                   disabled={isSubmittingVote}
@@ -929,7 +853,7 @@ export default function CourseFinder({
                   type="button"
                   disabled={
                     isSubmittingVote ||
-                    (!Boolean(myVoteMap[priorityModalCourse.id]) &&
+                    (!Boolean(voteFor(priorityModalCourse)) &&
                       remainingSlots <= 0)
                   }
                   onClick={handleSaveVote}
@@ -942,7 +866,6 @@ export default function CourseFinder({
           </div>
         </div>
       )}
-      {/* Admin Create/Edit Course Modal */}
       <CourseFormModal
         isOpen={isCourseFormOpen}
         onClose={() => {
@@ -951,21 +874,7 @@ export default function CourseFinder({
         }}
         initialCourse={editingCourse}
         availablePrograms={availablePrograms}
-        onSuccess={(savedCourse) => {
-          setCourses((prev) => {
-            const exists = prev.some(
-              (c) => c.code === savedCourse.code || c.id === savedCourse.id,
-            )
-            if (exists) {
-              return prev.map((c) =>
-                c.code === savedCourse.code || c.id === savedCourse.id
-                  ? savedCourse
-                  : c,
-              )
-            }
-            return [savedCourse, ...prev]
-          })
-        }}
+        onSuccess={upsert}
       />
     </div>
   )

@@ -1,12 +1,11 @@
-from typing import Dict, List, Set
+from typing import Dict, List
 from schemas import (
     StudentProfile,
     PlacedCourseModel,
     DegreePlanPayload,
     PlanPayloadSummary,
 )
-from data_loader import get_courses_for_program, normalize_prodi
-from tools.prerequisite_validator import validate_plan_constraints
+from catalog import get_courses_for_program, normalize_prodi
 
 
 def generate_study_plan(profile: StudentProfile) -> DegreePlanPayload:
@@ -20,31 +19,22 @@ def generate_study_plan(profile: StudentProfile) -> DegreePlanPayload:
     target_sem = profile.target_kelulusan_semester or 8
     max_sks = profile.maks_sks_per_semester or 24
 
-    # Build interest keyword set
     interest_keywords = [k.lower() for k in profile.minat_fokus] if profile.minat_fokus else ["data", "machine learning", "ai"]
 
     plan: Dict[int, List[PlacedCourseModel]] = {s: [] for s in range(1, target_sem + 1)}
-    completed_names: Set[str] = set(profile.riwayat_matkul_lulus)
 
-    # 1. First pass: Place all courses for past semesters (< current_sem) as completed
     for course in catalog:
         if course.semester < current_sem:
-            # If in past semester, mark as completed
             placed = PlacedCourseModel(
                 **course.model_dump(),
                 status="completed"
             )
             plan[course.semester].append(placed)
-            completed_names.add(course.name)
-            if course.code:
-                completed_names.add(course.code)
 
-    # 2. Second pass: Place Wajib (Compulsory) courses for current and future semesters
     for course in catalog:
         if course.semester >= current_sem and course.semester <= target_sem:
             if course.type == "Wajib":
                 target_dest_sem = course.semester
-                # If accelerated to 7 semesters and course was in sem 8, adjust to sem 7 if eligible
                 if target_sem == 7 and course.semester == 8:
                     target_dest_sem = 7
 
@@ -54,7 +44,6 @@ def generate_study_plan(profile: StudentProfile) -> DegreePlanPayload:
                 )
                 plan[target_dest_sem].append(placed)
 
-    # 3. Third pass: Select and place elective (Pilihan) courses based on interest keywords
     electives = [c for c in catalog if c.type == "Pilihan"]
 
     def score_elective(c) -> int:
@@ -67,13 +56,11 @@ def generate_study_plan(profile: StudentProfile) -> DegreePlanPayload:
 
     sorted_electives = sorted(electives, key=score_elective, reverse=True)
 
-    # Place top relevant electives into semesters matching their parity and SKS capacity
     for elect in sorted_electives:
         sem = elect.semester
         if sem < current_sem or sem > target_sem:
             continue
 
-        # Check if already added
         if any(c.id == elect.id for s in plan for c in plan[s]):
             continue
 
@@ -85,10 +72,6 @@ def generate_study_plan(profile: StudentProfile) -> DegreePlanPayload:
             )
             plan[sem].append(placed)
 
-    # 4. Deterministic Validation & Adjustment Loop
-    validation = validate_plan_constraints(plan, profile.riwayat_matkul_lulus, max_sks)
-    
-    # Calculate summary numbers
     total_credits = sum(
         sum(c.credits for c in plan[s])
         for s in plan

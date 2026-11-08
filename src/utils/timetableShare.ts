@@ -1,4 +1,5 @@
 import type { ScheduleItem } from "../data"
+import { markConflicts } from "../domain/timetable"
 
 export interface CompactScheduleEntry {
   c: string // code
@@ -60,7 +61,7 @@ function fromBase64Url(base64Url: string): string {
   return new TextDecoder().decode(bytes)
 }
 
-export function serializeTimetable(
+function serializeTimetable(
   schedule: ScheduleItem[],
   semester?: number,
 ): string {
@@ -84,7 +85,7 @@ export function serializeTimetable(
   return toBase64Url(jsonStr)
 }
 
-export function deserializeTimetable(
+function deserializeTimetable(
   encoded: string,
 ): DeserializedTimetableResult | null {
   try {
@@ -109,19 +110,7 @@ export function deserializeTimetable(
       conflict: false,
     }))
 
-    // Detect conflicts among items
-    for (let i = 0; i < items.length; i++) {
-      for (let j = i + 1; j < items.length; j++) {
-        const a = items[i]
-        const b = items[j]
-        const aEnd = a.start + a.duration
-        const bEnd = b.start + b.duration
-        if (a.day === b.day && a.start < bEnd && b.start < aEnd) {
-          a.conflict = true
-          b.conflict = true
-        }
-      }
-    }
+    markConflicts(items)
 
     return {
       schedule: items,
@@ -132,7 +121,7 @@ export function deserializeTimetable(
   }
 }
 
-export function generateTimetableShareUrl(
+function generateTimetableShareUrl(
   schedule: ScheduleItem[],
   semester?: number,
 ): string {
@@ -147,7 +136,6 @@ export function generateTimetableShareUrl(
 export function getSharedTimetableFromLocation(): DeserializedTimetableResult | null {
   if (typeof window === "undefined") return null
 
-  // Check URL hash first (#timetable=... or #tt=...)
   const hash = window.location.hash
   if (hash) {
     const hashParams = new URLSearchParams(hash.replace(/^#/, ""))
@@ -158,7 +146,6 @@ export function getSharedTimetableFromLocation(): DeserializedTimetableResult | 
     }
   }
 
-  // Check URL query string (?timetable=... or ?tt=...)
   const searchParams = new URLSearchParams(window.location.search)
   const queryToken = searchParams.get("timetable") || searchParams.get("tt")
   if (queryToken) {
@@ -179,7 +166,6 @@ export async function copyTimetableShareUrl(
       await navigator.clipboard.writeText(url)
       return { success: true, url }
     }
-    // Fallback if clipboard API not available
     const textarea = document.createElement("textarea")
     textarea.value = url
     textarea.style.position = "fixed"

@@ -1,14 +1,13 @@
 import { CheckCircle2, Clock, AlertCircle } from "lucide-react"
 import { Course } from "../../data"
 import {
-  ALL_COURSES,
   findCourseByNameOrCode,
   findUnlockedCourses,
-} from "../../courseData"
+} from "../../domain/course"
 
 export interface PrerequisiteDiagramProps {
   course: Course
-  catalog?: Course[]
+  catalog: Course[]
   onSelectCourse?: (targetCourse: Course) => void
 }
 
@@ -21,14 +20,13 @@ interface DiagramNodeItem {
 
 export default function PrerequisiteDiagram({
   course,
-  catalog = ALL_COURSES,
+  catalog,
   onSelectCourse,
 }: PrerequisiteDiagramProps) {
   const allPrereqs = course.prerequisites || []
   const coursePrereqs = allPrereqs.filter((p) => !p.isAdministrative)
   const adminPrereqs = allPrereqs.filter((p) => p.isAdministrative)
 
-  // 1. Resolve Inbound Prerequisites (Courses required before this course)
   const inboundNodes: DiagramNodeItem[] = coursePrereqs.map((p) => {
     const matched = findCourseByNameOrCode(p.name, catalog, course.program)
     return {
@@ -39,7 +37,6 @@ export default function PrerequisiteDiagram({
     }
   })
 
-  // 2. Resolve Outbound Courses (Courses that require this course)
   const unlockedCourses = findUnlockedCourses(course, catalog)
   const outboundNodes: DiagramNodeItem[] = unlockedCourses.map((c) => ({
     id: c.id,
@@ -51,7 +48,6 @@ export default function PrerequisiteDiagram({
   const hasInbound = inboundNodes.length > 0
   const hasOutbound = outboundNodes.length > 0
 
-  // Empty state: Neither inbound nor outbound courses exist
   if (!hasInbound && !hasOutbound) {
     if (adminPrereqs.length > 0) {
       return (
@@ -100,7 +96,6 @@ export default function PrerequisiteDiagram({
   const V_GAP = 60
   const CTRL = 26
 
-  // Tier configuration
   let numTiers = 1
   let inboundTier = -1
   let currentTier = 0
@@ -144,7 +139,6 @@ export default function PrerequisiteDiagram({
 
   return (
     <div className="space-y-4">
-      {/* Legend & Hint */}
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted pb-1 border-b border-border/50">
         <div className="flex flex-wrap items-center gap-3">
           {hasInbound && (
@@ -189,7 +183,6 @@ export default function PrerequisiteDiagram({
             </marker>
           </defs>
 
-          {/* Edges: Inbound → Current */}
           {hasInbound &&
             inboundNodes.map((p, pi) => {
               const x1 = getX(pi, inboundNodes.length) + NODE_W / 2
@@ -208,7 +201,6 @@ export default function PrerequisiteDiagram({
               )
             })}
 
-          {/* Edges: Current → Outbound */}
           {hasOutbound &&
             outboundNodes.map((p, pi) => {
               const x1 = currentX + NODE_W / 2
@@ -227,7 +219,6 @@ export default function PrerequisiteDiagram({
               )
             })}
 
-          {/* Inbound Nodes */}
           {hasInbound &&
             inboundNodes.map((node, i) => {
               const x = getX(i, inboundNodes.length)
@@ -294,7 +285,6 @@ export default function PrerequisiteDiagram({
               )
             })}
 
-          {/* Current / Active Course Node */}
           <g>
             <rect
               x={currentX}
@@ -342,7 +332,6 @@ export default function PrerequisiteDiagram({
             </text>
           </g>
 
-          {/* Outbound Unlocked Nodes */}
           {hasOutbound &&
             outboundNodes.map((node, i) => {
               const x = getX(i, outboundNodes.length)
@@ -411,7 +400,6 @@ export default function PrerequisiteDiagram({
         </svg>
       </div>
 
-      {/* Administrative Requirements Callout */}
       {adminPrereqs.length > 0 && (
         <div className="flex items-center gap-2.5 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-900 max-w-xl mx-auto">
           <AlertCircle className="w-4 h-4 text-amber-700 flex-shrink-0" />

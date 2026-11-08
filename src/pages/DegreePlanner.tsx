@@ -1,130 +1,101 @@
 import { useState, useEffect, useMemo } from "react"
 import { BookOpen, Calendar } from "lucide-react"
 import { cn } from "../utils"
-import { Course } from "../data"
-import { ALL_COURSES, PROGRAMS, fetchCatalog } from "../courseData"
+import { Course, TIMETABLE_DAYS } from "../data"
+import { SEMESTERS } from "../domain/academics"
+import { courseReligion } from "../domain/course"
 import TimetableGrid from "../components/TimetableGrid"
 import {
   PlacedCourse,
-  SEMESTERS,
-  TIMETABLE_DAYS,
   SemesterState,
   Tab,
   DegreePlannerProps,
   canDrop,
-  getCourseReligion,
+  courseKey,
 } from "../components/degree-planner/types"
 import PlannerHeader from "../components/degree-planner/PlannerHeader"
-import { useDegreePlanStorage } from "../components/degree-planner/useDegreePlanStorage"
 import {
   SemesterColumn,
   ElectiveCourseBank,
 } from "../components/degree-planner/SemesterColumn"
 import CoursePickerModal from "../components/degree-planner/CoursePickerModal"
 import CourseInspectModal from "../components/degree-planner/CourseInspectModal"
-import ClassSelectorPanel, {
-  TimetableConflict,
-} from "../components/degree-planner/ClassSelectorPanel"
+import ClassSelectorPanel from "../components/degree-planner/ClassSelectorPanel"
+import { markConflicts } from "../domain/timetable"
 import { getOfferingForCourse, ScheduleItem } from "../data"
+import { usePlanner } from "../state/planner"
+import { useSession } from "../state/session"
+import { useAcademicPeriod } from "../state/academic"
 
 export type { PlacedCourse } from "../components/degree-planner/types"
 
 export default function DegreePlanner({
-  pendingCourses,
-  setPendingCourses,
-  customPlan,
-  appliedSummary,
-  onResetPlan,
   onNavigate,
-  activeSchedule: _activeSchedule,
-  onUpdateSchedule,
   initialTab,
-  currentUser,
 }: DegreePlannerProps) {
-  const [activeTab, setActiveTab] = useState<Tab>(initialTab || "roadmap")
-
-  useEffect(() => {
-    setActiveTab(initialTab || "roadmap")
-  }, [initialTab])
+  const { period } = useAcademicPeriod()
+  const planner = usePlanner()
+  const { user } = useSession()
+  const currentProgram = user?.student_profile?.study_program ?? null
   const {
     drafts,
+    courses: catalog,
     activeDraftId,
     plan,
     setPlan,
     switchDraft,
     createDraft,
     duplicateCurrentDraft,
+    deleteDraft,
     resetCurrentDraft,
     isSaving,
     lastSaved,
-  } = useDegreePlanStorage(customPlan)
+    saveError,
+    retrySave,
+    pendingCourses,
+    removePendingCourse,
+    appliedSummary,
+    resetPlan,
+    setSchedule,
+  } = planner
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab || "roadmap")
+
+  useEffect(() => {
+    setActiveTab(initialTab || "roadmap")
+  }, [initialTab])
 
   const [pickerSem, setPickerSem] = useState<number | null>(null)
   const [pickerSearch, setPickerSearch] = useState("")
-  const [pickerProgram, setPickerProgram] = useState<string>("all")
   const [pickerType, setPickerType] = useState<"all" | "Pilihan" | "Wajib">(
     "all",
   )
-  const [catalog, setCatalog] = useState<Course[]>(ALL_COURSES)
-  const [availablePrograms, setAvailablePrograms] = useState<string[]>(PROGRAMS)
   const [inspectCourse, setInspectCourse] = useState<{
     course: PlacedCourse
     sem: number
   } | null>(null)
-  const [activeTimetableSem, setActiveTimetableSem] = useState<number>(5)
+  const [activeTimetableSem, setActiveTimetableSem] = useState<number>(() =>
+    Math.min(8, Math.max(1, user?.student_profile?.current_semester ?? 1)),
+  )
   const [selectedSections, setSelectedSections] =
-    useState<Record<string, string>>({
-      II4042: "II4042-A",
-      II4045: "II4045-A",
-      KU2001: "KU2001-A",
-      II4050: "II4050-A",
-    })
-  useEffect(() => {
-    let isMounted = true
-    fetchCatalog("all").then((res) => {
-      if (!isMounted || !res) return
-      if (res.courses?.length) {
-        const prodisInRes = new Set(
-          res.courses.map((c) => c.program).filter(Boolean),
-        )
-        if (prodisInRes.size >= 5) {
-          setCatalog(res.courses)
-        } else {
-          const fetchedIds = new Set(res.courses.map((c) => c.id))
-          const missing = ALL_COURSES.filter((c) => !fetchedIds.has(c.id))
-          setCatalog([...res.courses, ...missing])
-        }
-      }
-      if (res.programs && res.programs.length > 0) {
-        setAvailablePrograms(res.programs)
-      } else {
-        setAvailablePrograms(PROGRAMS)
-      }
-    })
-    return () => {
-      isMounted = false
-    }
-  }, [])
+    useState<Record<string, string>>({})
   const activeReligion = useMemo(() => {
     for (const courses of Object.values(plan)) {
       for (const c of courses) {
-        const rel = getCourseReligion(c)
+        const rel = courseReligion(c)
         if (rel && rel !== "Umum") return rel
       }
     }
     return null
   }, [plan])
 
-  // Map course ID to semester where it is currently placed
   const placedMap = useMemo(() => {
     const map = new Map<string, number>()
     Object.entries(plan).forEach(([semStr, list]) => {
-      list.forEach((c) => map.set(c.id, Number(semStr)))
+      list.forEach((c) => map.set(courseKey(c), Number(semStr)))
     })
     return map
   }, [plan])
 
-  // Close modal on Escape
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") setPickerSem(null)
@@ -135,6 +106,8 @@ export default function DegreePlanner({
 
   const handleAddCourseFromModal = (course: Course) => {
     if (pickerSem === null) return
+    const key = courseKey(course)
+    if (placedMap.has(key)) return
     const newCourse: PlacedCourse = {
       ...course,
       semester: pickerSem,
@@ -144,7 +117,7 @@ export default function DegreePlanner({
       ...prev,
       [pickerSem]: [...(prev[pickerSem] || []), newCourse],
     }))
-    setPendingCourses((prev) => prev.filter((c) => c.id !== course.id))
+    removePendingCourse(course.id)
   }
 
   const [dragging, setDragging] = useState<{
@@ -158,7 +131,6 @@ export default function DegreePlanner({
     index: number
   } | null>(null)
 
-  // Auto-place Wajib courses into their designated semester; Pilihan stays in bank
   useEffect(() => {
     const wajibCourses = pendingCourses.filter((c) => c.type === "Wajib")
     if (wajibCourses.length === 0) return
@@ -168,14 +140,14 @@ export default function DegreePlanner({
       wajibCourses.forEach((course) => {
         const sem = course.semester
         if (!next[sem]) next[sem] = []
-        if (!next[sem].find((c) => c.id === course.id)) {
+        if (!next[sem].find((c) => courseKey(c) === courseKey(course))) {
           next[sem] = [...next[sem], { ...course, status: "planned" }]
         }
       })
       return next
     })
-    setPendingCourses((prev) => prev.filter((c) => c.type !== "Wajib"))
-  }, [pendingCourses, setPendingCourses])
+    wajibCourses.forEach((course) => removePendingCourse(course.id))
+  }, [pendingCourses, removePendingCourse, setPlan])
 
   const semState = (sem: number): SemesterState => {
     if (!dragging) return "idle"
@@ -252,7 +224,6 @@ export default function DegreePlanner({
           : plan[sem]?.length || 0
 
     if (fromSem === sem) {
-      // Intra-semester reordering (atas-bawah)
       setPlan((prev) => {
         const currentList = [...(prev[sem] || [])]
         const fromIdx =
@@ -275,8 +246,7 @@ export default function DegreePlanner({
         return { ...prev, [sem]: currentList }
       })
     } else if (fromSem === "bank") {
-      // Drop from Bank Matkul Pilihan
-      setPendingCourses((prev) => prev.filter((c) => c.id !== course.id))
+      removePendingCourse(course.id)
       setPlan((prev) => {
         const currentList = [...(prev[sem] || [])]
         const insertAt = Math.max(0, Math.min(targetIdx, currentList.length))
@@ -288,7 +258,6 @@ export default function DegreePlanner({
         return { ...prev, [sem]: currentList }
       })
     } else {
-      // Cross-semester move (Pilihan)
       setPlan((prev) => {
         const sourceList = (prev[fromSem] || []).filter(
           (c) => c.id !== course.id,
@@ -326,13 +295,11 @@ export default function DegreePlanner({
     }))
   }
 
-  // Active semester courses for timetable view
   const currentTimetableCourses = useMemo(
     () => plan[activeTimetableSem] || [],
     [plan, activeTimetableSem],
   )
 
-  // Derive dynamic schedule items & detect conflicts
   const { dynamicSchedule, conflicts } = useMemo(() => {
     const COLOR_PALETTE = [
       "bg-teal/20 text-navy border-teal/50",
@@ -367,42 +334,14 @@ export default function DegreePlanner({
       }
     })
 
-    // Detect overlapping slots
-    const foundConflicts: TimetableConflict[] = []
-    for (let i = 0; i < items.length; i++) {
-      for (let j = i + 1; j < items.length; j++) {
-        const a = items[i]
-        const b = items[j]
-        const aEnd = a.start + a.duration
-        const bEnd = b.start + b.duration
-
-        if (a.day === b.day && a.start < bEnd && b.start < aEnd) {
-          a.conflict = true
-          b.conflict = true
-          foundConflicts.push({
-            courseA: a.course,
-            codeA: a.code,
-            sectionA: a.sectionCode || "Kelas",
-            courseB: b.course,
-            codeB: b.code,
-            sectionB: b.sectionCode || "Kelas",
-            day: a.day,
-            start: Math.max(a.start, b.start),
-            end: Math.min(aEnd, bEnd),
-          })
-        }
-      }
-    }
-
+    const foundConflicts = markConflicts(items)
     return { dynamicSchedule: items, conflicts: foundConflicts }
   }, [currentTimetableCourses, selectedSections])
 
-  // Sync timetable schedule with parent state
+  // Jadwal semester aktif menjadi sumber untuk widget dashboard.
   useEffect(() => {
-    if (onUpdateSchedule) {
-      onUpdateSchedule(dynamicSchedule)
-    }
-  }, [dynamicSchedule, onUpdateSchedule])
+    setSchedule(dynamicSchedule)
+  }, [dynamicSchedule, setSchedule])
 
   const handleSelectSection = (courseId: string, sectionId: string) => {
     setSelectedSections((prev) => ({
@@ -411,7 +350,6 @@ export default function DegreePlanner({
     }))
   }
 
-  // Auto-resolve conflicts by picking conflict-free section alternatives
   const handleAutoResolveConflicts = () => {
     const updated = { ...selectedSections }
     currentTimetableCourses.forEach((c) => {
@@ -430,7 +368,6 @@ export default function DegreePlanner({
 
   return (
     <div className="h-full flex flex-col animate-in fade-in duration-500">
-      {/* Tab Bar */}
       <div className="flex gap-1 mb-4 bg-background p-1 rounded-xl border border-border w-fit flex-shrink-0">
         {([
           { key: "roadmap", label: "Roadmap Studi", icon: BookOpen },
@@ -455,25 +392,26 @@ export default function DegreePlanner({
         })}
       </div>
 
-      {/* ─── TAB: Roadmap Studi ─── */}
       {activeTab === "roadmap" && (
         <>
           <PlannerHeader
             appliedSummary={appliedSummary}
-            onResetPlan={onResetPlan}
+            onResetPlan={resetPlan}
             dragging={dragging}
-            currentUser={currentUser}
+            currentUser={user}
             drafts={drafts}
             activeDraftId={activeDraftId}
             onSwitchDraft={switchDraft}
-            onCreateDraft={(name, desc) => createDraft(name, desc)}
+            onCreateDraft={(name) => void createDraft(name)}
             onDuplicateDraft={duplicateCurrentDraft}
+            onDeleteDraft={(draftId) => void deleteDraft(draftId)}
             onResetDraft={resetCurrentDraft}
             isSaving={isSaving}
             lastSaved={lastSaved}
+            saveError={saveError}
+            onRetrySave={retrySave}
           />
 
-          {/* Semester Columns */}
           <div className="flex-1 overflow-x-auto pb-1 min-h-0">
             <div className="flex gap-4 min-w-max h-full">
               {SEMESTERS.map((sem) => (
@@ -502,7 +440,6 @@ export default function DegreePlanner({
             </div>
           </div>
 
-          {/* Course Bank — only Pilihan */}
           <ElectiveCourseBank
             pendingCourses={pendingCourses}
             onDragStartBank={(e, course) => handleDragStart(e, course, "bank")}
@@ -512,16 +449,13 @@ export default function DegreePlanner({
             }
           />
 
-          {/* Modal Pop-up: Tambah Manual */}
           <CoursePickerModal
             pickerSem={pickerSem}
             pickerSearch={pickerSearch}
             setPickerSearch={setPickerSearch}
-            pickerProgram={pickerProgram}
-            setPickerProgram={setPickerProgram}
+            currentProgram={currentProgram}
             pickerType={pickerType}
             setPickerType={setPickerType}
-            availablePrograms={availablePrograms}
             catalog={catalog}
             placedMap={placedMap}
             onClose={() => setPickerSem(null)}
@@ -532,7 +466,6 @@ export default function DegreePlanner({
             activeReligion={activeReligion}
           />
 
-          {/* Modal Pop-up: Inspeksi Silabus & Prasyarat In-Situ */}
           <CourseInspectModal
             course={inspectCourse ? inspectCourse.course : null}
             currentSem={inspectCourse ? inspectCourse.sem : 1}
@@ -546,10 +479,8 @@ export default function DegreePlanner({
         </>
       )}
 
-      {/* ─── TAB: Jadwal Aktif ─── */}
       {activeTab === "timetable" && (
         <div className="flex-1 flex flex-col min-h-0">
-          {/* Timetable Header & Semester Picker */}
           <div className="mb-4 flex flex-wrap justify-between items-center gap-3 flex-shrink-0">
             <div>
               <div className="flex items-center gap-2">
@@ -557,7 +488,7 @@ export default function DegreePlanner({
                   Jadwal Kuliah Aktif
                 </h3>
                 <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-gold/15 text-navy border border-gold/30">
-                  Semester Ganjil 2024/2025
+                  {period?.label ?? "—"}
                 </span>
               </div>
               <p className="text-xs text-muted mt-0.5">
@@ -566,7 +497,6 @@ export default function DegreePlanner({
               </p>
             </div>
 
-            {/* Semester Switcher */}
             <div className="flex items-center gap-1.5 bg-background p-1 rounded-xl border border-border">
               <span className="text-xs text-muted font-medium px-2">
                 Tampilkan Semester:
@@ -605,9 +535,7 @@ export default function DegreePlanner({
             </div>
           </div>
 
-          {/* Timetable Body: Left Class Selector & Right Grid */}
           <div className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-4 min-h-0 overflow-y-auto lg:overflow-hidden pb-1">
-            {/* Left Column: Class Selector Panel (4 cols on desktop) */}
             <div className="lg:col-span-4 min-h-[380px] lg:h-full min-h-0 flex flex-col">
               <ClassSelectorPanel
                 activeSemester={activeTimetableSem}
@@ -619,7 +547,6 @@ export default function DegreePlanner({
               />
             </div>
 
-            {/* Right Column: Timetable Grid (8 cols on desktop) */}
             <div className="lg:col-span-8 flex flex-col min-h-0 h-full">
               <TimetableGrid
                 schedule={dynamicSchedule}

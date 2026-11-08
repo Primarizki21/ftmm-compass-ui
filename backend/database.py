@@ -1,16 +1,9 @@
-import os
-from dotenv import load_dotenv
-
-load_dotenv(override=True)
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 from sqlalchemy.orm import DeclarativeBase
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+asyncpg://postgres:postgres@localhost:5432/ftmm_compass_dev",
-)
+from settings import DATABASE_URL
 
 engine = create_async_engine(
     DATABASE_URL,

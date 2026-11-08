@@ -13,16 +13,6 @@ interface ParsedDescription {
   items: DescriptionItem[]
 }
 
-/**
- * Pure dynamic formatter that transforms bulleted / listed course descriptions
- * into a structured, readable view without hardcoding individual course texts.
- *
- * Handles common syllabus patterns:
- * - "a). ... b). ... c). ..."
- * - "1. ... 2. ... 3. ..."
- * - "1) ... 2) ... 3) ..."
- * - Multiline numbered or dashed lists
- */
 export function parseDescription(raw?: string): ParsedDescription {
   if (!raw || !raw.trim()) {
     return { intro: "", items: [] }
@@ -30,8 +20,6 @@ export function parseDescription(raw?: string): ParsedDescription {
 
   const clean = raw.trim()
 
-  // Match list markers preceded by punctuation or newline:
-  // e.g. ": a).", ", b).", "; c).", "\n1.", "1) "
   const inlineMarkerPattern =
     /(?:^|(?<=[:;,\n]\s*)|(?<=\.\s+))(?:(?:serta|dan)\s+)?(\([a-z0-9]+\)|[a-z0-9]{1,2}(?:\)|\.|\)\.))\s+/gi
 
@@ -70,7 +58,6 @@ export function parseDescription(raw?: string): ParsedDescription {
     }
   }
 
-  // Check for multiline lists (separated by \n)
   const lines = clean
     .split(/\r?\n/)
     .map((l) => l.trim())
@@ -87,7 +74,6 @@ export function parseDescription(raw?: string): ParsedDescription {
       } else if (parsedLines.length === 0) {
         detectedIntro += (detectedIntro ? " " : "") + line
       } else {
-        // Line continuation of previous item
         const last = parsedLines[parsedLines.length - 1]
         last.content += " " + line
       }

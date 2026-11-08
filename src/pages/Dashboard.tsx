@@ -18,93 +18,73 @@ import {
   Server,
   Database,
   Sparkles,
-  UserCheck,
-  ShieldAlert,
 } from "lucide-react"
-import { SCHEDULE, TIMETABLE_DAYS, ScheduleItem } from "../data"
+import { TIMETABLE_DAYS, ScheduleItem } from "../data"
 import TimetableGrid from "../components/TimetableGrid"
-import { type AuthUser } from "../services/authService"
-import {
-  pollingService,
-  type DemandAnalyticsResponse,
-  type PollingPeriod,
-  type StudentVote,
-} from "../services/pollingService"
 import {
   dashboardService,
   type DashboardMeResponse,
+  type DashboardScheduleItem,
 } from "../services/dashboardService"
+import { useAcademicPeriod } from "../state/academic"
+import { useSession } from "../state/session"
+import { usePlanner } from "../state/planner"
+import { usePolling } from "../state/polling"
+
 interface DashboardProps {
   onNavigate: (page: string) => void
-  schedule?: ScheduleItem[]
-  currentUser?: AuthUser | null
 }
-export default function Dashboard({
-  onNavigate,
-  schedule,
-  currentUser,
-}: DashboardProps) {
+
+function toScheduleItem(item: DashboardScheduleItem): ScheduleItem | null {
+  const [startHour, startMinute] = item.start_time.split(":").map(Number)
+  const [endHour, endMinute] = item.end_time.split(":").map(Number)
+  if (![startHour, startMinute, endHour, endMinute].every(Number.isFinite)) {
+    return null
+  }
+  const start = startHour + startMinute / 60
+  const end = endHour + endMinute / 60
+  if (end <= start) return null
+  return {
+    id: item.id,
+    course: item.course_name,
+    code: item.course_code,
+    day: item.day,
+    start,
+    duration: end - start,
+    color: item.color || "teal",
+    room: item.room,
+    sectionCode: item.class_name,
+    lecturer: item.lecturer,
+  }
+}
+
+export default function Dashboard({ onNavigate }: DashboardProps) {
+  const { user } = useSession()
+  const { period } = useAcademicPeriod()
+  const { schedule } = usePlanner()
+  const {
+    period: pollingPeriod,
+    myVotes: studentVotes,
+    demand,
+    error: pollingError,
+    loadDemand,
+    isLoading: isLoadingAnalytics,
+  } = usePolling()
   const [dashboardData, setDashboardData] =
     useState<DashboardMeResponse | null>(null)
   const [isLoadingDashboard, setIsLoadingDashboard] = useState<boolean>(true)
 
   const displayedSchedule = useMemo<ScheduleItem[]>(() => {
-    if (currentUser?.role === "admin") return []
-    if (currentUser?.role === "lecturer") {
-      if (dashboardData?.schedule?.length) {
-        return dashboardData.schedule.map((item) => {
-          const [sh, sm] = (item.start_time || "08:00").split(":").map(Number)
-          const [eh, em] = (item.end_time || "10:00").split(":").map(Number)
-          const startHour = (sh || 0) + (sm || 0) / 60
-          const endHour = (eh || 0) + (em || 0) / 60
-          const duration = Math.max(1, endHour - startHour)
-          return {
-            id: item.id,
-            course: item.course_name,
-            code: item.course_code,
-            day: item.day,
-            start: startHour,
-            duration: duration,
-            color: item.color || "teal",
-            room: item.room,
-            sectionCode: item.class_name,
-            lecturer: item.lecturer,
-          }
-        })
-      }
-      return []
-    }
-    if (schedule && schedule.length > 0) return schedule
-    if (!dashboardData?.schedule?.length) return SCHEDULE
-    return dashboardData.schedule.map((item) => {
-      const [sh, sm] = (item.start_time || "08:00").split(":").map(Number)
-      const [eh, em] = (item.end_time || "10:00").split(":").map(Number)
-      const startHour = (sh || 0) + (sm || 0) / 60
-      const endHour = (eh || 0) + (em || 0) / 60
-      const duration = Math.max(1, endHour - startHour)
-      return {
-        id: item.id,
-        course: item.course_name,
-        code: item.course_code,
-        day: item.day,
-        start: startHour,
-        duration: duration,
-        color: item.color || "teal",
-        room: item.room,
-        sectionCode: item.class_name,
-        lecturer: item.lecturer,
-      }
-    })
-  }, [currentUser?.role, dashboardData, schedule])
+    if (user?.role === "admin") return []
+    if (schedule.length > 0) return schedule
+    return (dashboardData?.schedule ?? [])
+      .map(toScheduleItem)
+      .filter((item): item is ScheduleItem => item !== null)
+  }, [user?.role, dashboardData, schedule])
 
-  const hasConflict = displayedSchedule.some((s) => s.conflict)
+  const hasConflict = displayedSchedule.some((item) => item.conflict)
 
   const [selectedProdi, setSelectedProdi] = useState<string>("all")
-  const [demandAnalytics, setDemandAnalytics] =
-    useState<DemandAnalyticsResponse | null>(null)
-  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false)
-  const [pollingPeriod, setPollingPeriod] = useState<PollingPeriod | null>(null)
-  const [studentVotes, setStudentVotes] = useState<StudentVote[]>([])
 
   useEffect(() => {
     let mounted = true
@@ -114,54 +94,24 @@ export default function Dashboard({
       .then((data) => {
         if (mounted) setDashboardData(data)
       })
-      .catch(() => {
-        // Fallback anggap aman jika offline
-      })
+      .catch(() => {})
       .finally(() => {
         if (mounted) setIsLoadingDashboard(false)
       })
     return () => {
       mounted = false
     }
-  }, [currentUser])
+  }, [user])
+
   useEffect(() => {
-    let mounted = true
-    setIsLoadingAnalytics(true)
+    if (!user || user.role === "student") return
+    if (demand[selectedProdi]) return
+    void loadDemand(selectedProdi)
+  }, [demand, loadDemand, selectedProdi, user])
 
-    if (currentUser?.role === "student") {
-      Promise.all([
-        pollingService.getActivePeriod(),
-        pollingService.getMyVotes(),
-      ])
-        .then(([period, votes]) => {
-          if (!mounted) return
-          setPollingPeriod(period)
-          setStudentVotes(votes)
-        })
-        .catch(() => {})
-        .finally(() => {
-          if (mounted) setIsLoadingAnalytics(false)
-        })
-    } else {
-      Promise.all([
-        pollingService.getActivePeriod(),
-        pollingService.getDemandAnalytics(selectedProdi),
-      ])
-        .then(([period, analytics]) => {
-          if (!mounted) return
-          setPollingPeriod(period)
-          setDemandAnalytics(analytics)
-        })
-        .catch(() => {})
-        .finally(() => {
-          if (mounted) setIsLoadingAnalytics(false)
-        })
-    }
-
-    return () => {
-      mounted = false
-    }
-  }, [selectedProdi, currentUser])
+  const demandAnalytics = demand[selectedProdi]
+  const adminStats =
+    dashboardData?.stats.type === "admin" ? dashboardData.stats : null
 
   const items = useMemo(() => demandAnalytics?.items || [], [demandAnalytics])
 
@@ -221,11 +171,8 @@ export default function Dashboard({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Four Stat Cards */}
-      {/* Four Dynamic Stat Cards Based on Role */}
       {dashboardData?.stats?.type === "lecturer" ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Matakuliah Diampu */}
           <div className="bg-surface rounded-xl p-5 border border-border shadow-sm flex flex-col relative overflow-hidden group">
             <div className="absolute -right-6 -top-6 w-24 h-24 bg-navy-light/10 rounded-full blur-2xl group-hover:bg-navy-light/20 transition-colors" />
             <h3 className="text-muted text-xs font-medium mb-1 flex items-center gap-2">
@@ -242,7 +189,6 @@ export default function Dashboard({
             </p>
           </div>
 
-          {/* Beban SKS Mengajar */}
           <div className="bg-surface rounded-xl p-5 border border-border shadow-sm flex flex-col relative overflow-hidden group">
             <div className="absolute -right-6 -top-6 w-24 h-24 bg-gold/10 rounded-full blur-2xl group-hover:bg-gold/20 transition-colors" />
             <h3 className="text-muted text-xs font-medium mb-1 flex items-center gap-2">
@@ -271,7 +217,6 @@ export default function Dashboard({
             </p>
           </div>
 
-          {/* Mahasiswa Diajar */}
           <div className="bg-surface rounded-xl p-5 border border-border shadow-sm flex flex-col relative overflow-hidden group">
             <div className="absolute -right-6 -top-6 w-24 h-24 bg-teal/10 rounded-full blur-2xl group-hover:bg-teal/20 transition-colors" />
             <h3 className="text-muted text-xs font-medium mb-1 flex items-center gap-2">
@@ -288,7 +233,6 @@ export default function Dashboard({
             </p>
           </div>
 
-          {/* Status Dosen */}
           <div className="bg-surface rounded-xl p-5 border border-border shadow-sm flex flex-col relative overflow-hidden group">
             <div className="absolute -right-6 -top-6 w-24 h-24 bg-teal-dark/10 rounded-full blur-2xl group-hover:bg-teal-dark/20 transition-colors" />
             <h3 className="text-muted text-xs font-medium mb-1 flex items-center gap-2">
@@ -306,7 +250,6 @@ export default function Dashboard({
         </div>
       ) : dashboardData?.stats?.type === "admin" ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Total Mahasiswa */}
           <div className="bg-surface rounded-xl p-5 border border-border shadow-sm flex flex-col relative overflow-hidden group">
             <div className="absolute -right-6 -top-6 w-24 h-24 bg-teal/10 rounded-full blur-2xl group-hover:bg-teal/20 transition-colors" />
             <h3 className="text-muted text-xs font-medium mb-1 flex items-center gap-2">
@@ -325,7 +268,6 @@ export default function Dashboard({
             </p>
           </div>
 
-          {/* Total Dosen */}
           <div className="bg-surface rounded-xl p-5 border border-border shadow-sm flex flex-col relative overflow-hidden group">
             <div className="absolute -right-6 -top-6 w-24 h-24 bg-gold/10 rounded-full blur-2xl group-hover:bg-gold/20 transition-colors" />
             <h3 className="text-muted text-xs font-medium mb-1 flex items-center gap-2">
@@ -342,7 +284,6 @@ export default function Dashboard({
             </p>
           </div>
 
-          {/* Total Kurikulum & Matkul */}
           <div className="bg-surface rounded-xl p-5 border border-border shadow-sm flex flex-col relative overflow-hidden group">
             <div className="absolute -right-6 -top-6 w-24 h-24 bg-navy-light/10 rounded-full blur-2xl group-hover:bg-navy-light/20 transition-colors" />
             <h3 className="text-muted text-xs font-medium mb-1 flex items-center gap-2">
@@ -359,7 +300,6 @@ export default function Dashboard({
             </p>
           </div>
 
-          {/* Status Sistem & Polling */}
           <div className="bg-surface rounded-xl p-5 border border-border shadow-sm flex flex-col relative overflow-hidden group">
             <div className="absolute -right-6 -top-6 w-24 h-24 bg-teal-dark/10 rounded-full blur-2xl group-hover:bg-teal-dark/20 transition-colors" />
             <h3 className="text-muted text-xs font-medium mb-1 flex items-center gap-2">
@@ -367,7 +307,11 @@ export default function Dashboard({
             </h3>
             <div className="flex items-end gap-1.5 mt-2">
               <span className="text-xl font-heading font-bold text-navy">
-                {dashboardData.stats.active_polling_period}
+                {pollingPeriod
+                  ? `${pollingPeriod.academic_year} ${
+                      pollingPeriod.term === "ganjil" ? "Ganjil" : "Genap"
+                    }`
+                  : "Tidak ada polling aktif"}
               </span>
             </div>
             <p className="text-[10px] text-muted mt-3 font-mono">
@@ -377,7 +321,6 @@ export default function Dashboard({
         </div>
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* SKS Ditempuh */}
           <div className="bg-surface rounded-xl p-5 border border-border shadow-sm flex flex-col relative overflow-hidden group">
             <div className="absolute -right-6 -top-6 w-24 h-24 bg-teal-light/10 rounded-full blur-2xl group-hover:bg-teal-light/20 transition-colors" />
             <h3 className="text-muted text-xs font-medium mb-1 flex items-center gap-2">
@@ -387,13 +330,13 @@ export default function Dashboard({
               <span className="text-3xl font-heading font-bold text-navy">
                 {dashboardData?.stats?.type === "student"
                   ? dashboardData.stats.sks_completed
-                  : 44}
+                  : 0}
               </span>
               <span className="text-muted text-xs mb-1">
                 /{" "}
                 {dashboardData?.stats?.type === "student"
                   ? dashboardData.stats.sks_target
-                  : 144}{" "}
+                  : 0}{" "}
                 SKS
               </span>
             </div>
@@ -404,7 +347,7 @@ export default function Dashboard({
                   width: `${
                     dashboardData?.stats?.type === "student"
                       ? dashboardData.stats.completion_percentage
-                      : 30.5
+                      : 0
                   }%`,
                 }}
               />
@@ -412,11 +355,10 @@ export default function Dashboard({
             <p className="text-[10px] text-muted mt-1.5 font-mono">
               {dashboardData?.stats?.type === "student"
                 ? `${dashboardData.stats.completion_percentage.toFixed(1)}% selesai`
-                : "30.5% selesai"}
+                : ""}
             </p>
           </div>
 
-          {/* Semester Aktif */}
           <div className="bg-surface rounded-xl p-5 border border-border shadow-sm flex flex-col relative overflow-hidden group">
             <div className="absolute -right-6 -top-6 w-24 h-24 bg-gold/10 rounded-full blur-2xl group-hover:bg-gold/20 transition-colors" />
             <h3 className="text-muted text-xs font-medium mb-1 flex items-center gap-2">
@@ -426,12 +368,12 @@ export default function Dashboard({
               <span className="text-3xl font-heading font-bold text-navy">
                 {dashboardData?.stats?.type === "student"
                   ? dashboardData.stats.current_semester
-                  : 3}
+                  : 0}
               </span>
               <span className="text-muted text-xs mb-1">
                 {dashboardData?.stats?.type === "student"
-                  ? dashboardData.stats.term_name
-                  : "Ganjil 24/25"}
+                  ? (period?.term_label ?? "")
+                  : ""}
               </span>
             </div>
             <p className="text-[10px] text-muted mt-3 font-mono">
@@ -439,7 +381,6 @@ export default function Dashboard({
             </p>
           </div>
 
-          {/* Matkul Direncanakan */}
           <div className="bg-surface rounded-xl p-5 border border-border shadow-sm flex flex-col relative overflow-hidden group">
             <div className="absolute -right-6 -top-6 w-24 h-24 bg-navy-light/5 rounded-full blur-2xl group-hover:bg-navy-light/10 transition-colors" />
             <h3 className="text-muted text-xs font-medium mb-1 flex items-center gap-2">
@@ -450,7 +391,7 @@ export default function Dashboard({
               <span className="text-3xl font-heading font-bold text-navy">
                 {dashboardData?.stats?.type === "student"
                   ? dashboardData.stats.courses_planned
-                  : 6}
+                  : 0}
               </span>
               <span className="text-muted text-xs mb-1">Matakuliah</span>
             </div>
@@ -458,12 +399,11 @@ export default function Dashboard({
               Total:{" "}
               {dashboardData?.stats?.type === "student"
                 ? dashboardData.stats.sks_planned
-                : 20}{" "}
+                : 0}{" "}
               SKS
             </p>
           </div>
 
-          {/* IPK Kumulatif */}
           <div className="bg-surface rounded-xl p-5 border border-border shadow-sm flex flex-col relative overflow-hidden group">
             <div className="absolute -right-6 -top-6 w-24 h-24 bg-teal/10 rounded-full blur-2xl group-hover:bg-teal/20 transition-colors" />
             <h3 className="text-muted text-xs font-medium mb-1 flex items-center gap-2">
@@ -474,7 +414,7 @@ export default function Dashboard({
               <span className="text-3xl font-heading font-bold text-navy">
                 {dashboardData?.stats?.type === "student"
                   ? dashboardData.stats.gpa.toFixed(2)
-                  : "3.78"}
+                  : "0.00"}
               </span>
               <span className="text-muted text-xs mb-1">/ 4.00</span>
             </div>
@@ -485,7 +425,7 @@ export default function Dashboard({
                   width: `${
                     dashboardData?.stats?.type === "student"
                       ? (dashboardData.stats.gpa / 4.0) * 100
-                      : 94.5
+                      : 0
                   }%`,
                 }}
               />
@@ -500,8 +440,7 @@ export default function Dashboard({
         </div>
       )}
 
-      {/* Schedule Widget (Student & Lecturer) OR Operational Monitoring (Admin) */}
-      {currentUser?.role === "admin" ? (
+      {user?.role === "admin" ? (
         <div className="bg-surface rounded-xl border border-border shadow-sm overflow-hidden p-5 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/80 pb-4">
             <div className="flex items-center gap-3">
@@ -520,7 +459,9 @@ export default function Dashboard({
             </div>
             <span className="text-xs font-mono text-emerald-800 bg-emerald-100 border border-emerald-300 px-3 py-1 rounded-full flex items-center gap-1.5 font-semibold self-start sm:self-center">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-              Sistem Operasional Normal
+              {dashboardData?.stats.type === "admin"
+                ? dashboardData.stats.system_status
+                : "Status tidak tersedia"}
             </span>
           </div>
 
@@ -529,15 +470,15 @@ export default function Dashboard({
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-navy flex items-center gap-1.5">
                   <Database className="w-4 h-4 text-gold" />
-                  PostgreSQL 16 Engine
+                  Mahasiswa Aktif
                 </span>
                 <span className="h-2 w-2 rounded-full bg-teal"></span>
               </div>
               <p className="text-xl font-heading font-bold text-navy">
-                36 Tabel Aktif
+                {adminStats?.total_active_students ?? 0}
               </p>
               <p className="text-[11px] text-muted">
-                Lulus 97/97 static audit checks (Baseline V2.1 RC1).
+                Mahasiswa terdaftar pada program studi FTMM.
               </p>
             </div>
 
@@ -545,15 +486,15 @@ export default function Dashboard({
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-navy flex items-center gap-1.5">
                   <Server className="w-4 h-4 text-teal" />
-                  FastAPI Gateway Dual-Tier
+                  Dosen
                 </span>
                 <span className="h-2 w-2 rounded-full bg-teal"></span>
               </div>
               <p className="text-xl font-heading font-bold text-navy">
-                Online &amp; Resilient
+                {adminStats?.total_lecturers ?? 0}
               </p>
               <p className="text-[11px] text-muted">
-                Rute /api/v1/* dan /api/* backward-compatible aktif.
+                Dosen aktif yang tercatat di basis data.
               </p>
             </div>
 
@@ -561,15 +502,15 @@ export default function Dashboard({
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-navy flex items-center gap-1.5">
                   <BookOpen className="w-4 h-4 text-navy-light" />
-                  Master Kurikulum 5 Prodi
+                  Mata Kuliah Aktif
                 </span>
                 <span className="h-2 w-2 rounded-full bg-teal"></span>
               </div>
               <p className="text-xl font-heading font-bold text-navy">
-                195 Mata Kuliah
+                {adminStats?.total_courses ?? 0}
               </p>
               <p className="text-[11px] text-muted">
-                TSD, TRKB, RN, TI, dan TE sinkron dengan SSOT resmi.
+                {adminStats?.total_study_programs ?? 0} program studi aktif.
               </p>
             </div>
           </div>
@@ -585,8 +526,7 @@ export default function Dashboard({
                   : "Jadwal Perkuliahan Minggu Ini"}
               </h3>
               <span className="text-xs font-mono text-muted bg-background border border-border px-2 py-0.5 rounded">
-                {dashboardData?.period_name || "Semester Ganjil 2024/2025"} ·
-                Week {dashboardData?.academic_week || 4}
+                {period?.label ?? "—"} · {period?.week_label ?? ""}
               </span>
               {hasConflict && (
                 <span className="flex items-center gap-1 text-xs font-medium text-danger bg-danger/8 px-2 py-0.5 rounded-full border border-danger/20">
@@ -594,7 +534,7 @@ export default function Dashboard({
                 </span>
               )}
             </div>
-            {currentUser?.role === "student" && (
+            {user?.role === "student" && (
               <button
                 onClick={() => onNavigate("degree-planner")}
                 className="text-sm font-medium text-navy hover:text-gold transition-colors flex items-center gap-1 cursor-pointer"
@@ -612,170 +552,40 @@ export default function Dashboard({
           />
         </div>
       )}
-      {/* Lecturer-Specific Operational Section: Kelas Ampuan & Advisee Review */}
-      {currentUser?.role === "lecturer" && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Kelas Ampuan Panel */}
-          <div className="bg-surface rounded-xl border border-border shadow-sm p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-border/80 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-lg bg-navy/10 text-navy">
-                  <BookOpen className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-heading font-bold text-base text-navy">
-                    Daftar Kelas Ampuan Aktif
-                  </h3>
-                  <p className="text-xs text-muted">
-                    Semester Ganjil 2024/2025 · 3 Kelas Paralel
-                  </p>
-                </div>
-              </div>
-              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-teal/15 text-navy-dark border border-teal/30">
-                3 Mata Kuliah
-              </span>
+      {user?.role === "lecturer" && (
+        <div className="bg-surface rounded-xl border border-border shadow-sm p-5">
+          <div className="flex items-center gap-2.5 border-b border-border/80 pb-3">
+            <div className="p-2 rounded-lg bg-navy/10 text-navy">
+              <BookOpen className="w-4 h-4" />
             </div>
-
-            <div className="space-y-3">
-              <div className="p-3.5 rounded-xl bg-background border border-border flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-navy px-1.5 py-0.5 rounded bg-surface border border-border">
-                      TSD201
-                    </span>
-                    <span className="text-sm font-semibold text-navy">
-                      Struktur Data (Kelas A)
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted flex items-center gap-2 mt-1">
-                    <span>Senin 08:00 - 10:30</span>
-                    <span>•</span>
-                    <span>RKB 3.02</span>
-                  </p>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs font-bold text-navy">38/40</span>
-                  <p className="text-[10px] text-teal-dark font-medium flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3 text-teal" /> RPS Terunggah
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-background border border-border flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-navy px-1.5 py-0.5 rounded bg-surface border border-border">
-                      TSD301
-                    </span>
-                    <span className="text-sm font-semibold text-navy">
-                      Analisis Big Data (Kelas B)
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted flex items-center gap-2 mt-1">
-                    <span>Rabu 10:00 - 12:30</span>
-                    <span>•</span>
-                    <span>Lab Komputasi FTMM</span>
-                  </p>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs font-bold text-navy">28/30</span>
-                  <p className="text-[10px] text-teal-dark font-medium flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3 text-teal" /> RPS Terunggah
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-background border border-border flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-navy px-1.5 py-0.5 rounded bg-surface border border-border">
-                      TSD302
-                    </span>
-                    <span className="text-sm font-semibold text-navy">
-                      Pembelajaran Mesin Lanjut (Kelas A)
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted flex items-center gap-2 mt-1">
-                    <span>Kamis 13:00 - 15:30</span>
-                    <span>•</span>
-                    <span>RKB 2.05</span>
-                  </p>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs font-bold text-navy">42/45</span>
-                  <p className="text-[10px] text-teal-dark font-medium flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3 text-teal" /> RPS Terunggah
-                  </p>
-                </div>
-              </div>
+            <div>
+              <h3 className="font-heading font-bold text-base text-navy">
+                Kelas Ampuan & Perwalian
+              </h3>
+              <p className="text-xs text-muted">
+                {dashboardData?.stats?.type === "lecturer"
+                  ? dashboardData.stats.status
+                  : ""}
+              </p>
             </div>
           </div>
-
-          {/* Bimbingan Perwalian Panel */}
-          <div className="bg-surface rounded-xl border border-border shadow-sm p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-border/80 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-lg bg-teal/15 text-navy">
-                  <UserCheck className="w-4 h-4 text-teal" />
-                </div>
-                <div>
-                  <h3 className="font-heading font-bold text-base text-navy">
-                    Bimbingan Akademik (Perwalian)
-                  </h3>
-                  <p className="text-xs text-muted">
-                    Status Rencana Studi 24 Mahasiswa Angkatan 2022 & 2023
-                  </p>
-                </div>
-              </div>
-              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gold/15 text-navy border border-gold/30">
-                Periode PRS
-              </span>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3">
-              <div className="p-3 rounded-xl bg-background border border-border text-center">
-                <span className="text-2xl font-bold font-heading text-navy">
-                  18
-                </span>
-                <p className="text-[11px] text-muted mt-0.5">KRS Disetujui</p>
-                <span className="inline-block mt-1 w-2 h-2 rounded-full bg-teal" />
-              </div>
-              <div className="p-3 rounded-xl bg-background border border-border text-center">
-                <span className="text-2xl font-bold font-heading text-gold">
-                  5
-                </span>
-                <p className="text-[11px] text-muted mt-0.5">
-                  Menunggu Verifikasi
-                </p>
-                <span className="inline-block mt-1 w-2 h-2 rounded-full bg-gold" />
-              </div>
-              <div className="p-3 rounded-xl bg-background border border-border text-center">
-                <span className="text-2xl font-bold font-heading text-orange">
-                  1
-                </span>
-                <p className="text-[11px] text-muted mt-0.5">
-                  Perlu Evaluasi IPS
-                </p>
-                <span className="inline-block mt-1 w-2 h-2 rounded-full bg-orange" />
-              </div>
-            </div>
-
-            <div className="p-3.5 rounded-xl bg-gold/10 border border-gold/30 flex items-start gap-3">
-              <ShieldAlert className="w-4 h-4 text-gold flex-shrink-0 mt-0.5" />
-              <div className="text-xs text-navy">
-                <p className="font-semibold">Perhatian Perwalian Aktif</p>
-                <p className="text-[11px] text-muted mt-0.5">
-                  1 mahasiswa (NIM: 164221018) mengajukan 22 SKS dengan capaian
-                  IPS semester lalu 2.45 (Batas SOP FTMM: Maksimal 18 SKS).
-                </p>
-              </div>
-            </div>
-          </div>
+          <p className="text-xs text-muted mt-4">
+            Belum ada data penugasan mengajar atau perwalian yang tersimpan pada
+            periode ini.
+          </p>
         </div>
       )}
 
-      {/* Pre-KRS Section: Separated for Student (Personal Status) vs Lecturer/Admin (Demand Analytics) */}
-      {currentUser?.role === "student" ? (
+      {pollingError && (
+        <div
+          role="status"
+          className="px-4 py-2.5 rounded-xl border border-orange/30 bg-orange/10 text-xs text-navy"
+        >
+          {pollingError}
+        </div>
+      )}
+
+      {user?.role === "student" ? (
         <div className="bg-surface rounded-xl border border-border shadow-sm overflow-hidden space-y-4 p-5">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-border/70 pb-4">
             <div className="flex items-start gap-3">
@@ -788,16 +598,17 @@ export default function Dashboard({
                     Status Partisipasi Polling Pre-KRS Saya
                   </h3>
                   <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-gold/15 text-navy border border-gold/30">
-                    {pollingPeriod?.term === "genap"
-                      ? "Semester Genap"
-                      : "Semester Ganjil"}{" "}
-                    {pollingPeriod?.academic_year || "2024/2025"}
+                    {pollingPeriod
+                      ? `Semester ${
+                          pollingPeriod.term === "genap" ? "Genap" : "Ganjil"
+                        } ${pollingPeriod.academic_year}`
+                      : "Periode belum tersedia"}
                   </span>
                 </div>
                 <p className="text-xs text-muted mt-0.5">
-                  Pilihlah hingga {pollingPeriod?.max_votes_per_student || 3}{" "}
-                  mata kuliah pilihan untuk menentukan pembukaan kelas pada
-                  semester mendatang.
+                  {pollingPeriod
+                    ? `Pilihlah hingga ${pollingPeriod.max_votes_per_student} mata kuliah pilihan untuk menentukan pembukaan kelas pada semester mendatang.`
+                    : "Periode polling belum tersedia."}
                 </p>
               </div>
             </div>
@@ -887,14 +698,15 @@ export default function Dashboard({
                     Rekap Analitik Peminatan MK Pilihan (Pre-KRS)
                   </h3>
                   <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-gold/15 text-navy border border-gold/30">
-                    {pollingPeriod?.term === "genap"
-                      ? "Semester Genap"
-                      : "Semester Ganjil"}{" "}
-                    {pollingPeriod?.academic_year || "2024/2025"}
+                    {pollingPeriod
+                      ? `Semester ${
+                          pollingPeriod.term === "genap" ? "Genap" : "Ganjil"
+                        } ${pollingPeriod.academic_year}`
+                      : "Periode belum tersedia"}
                   </span>
-                  {currentUser?.role && (
+                  {user?.role && (
                     <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-navy/10 text-navy border border-navy/20">
-                      Role: {currentUser.role}
+                      Role: {user.role}
                     </span>
                   )}
                 </div>
@@ -906,7 +718,6 @@ export default function Dashboard({
             </div>
 
             <div className="flex items-center gap-2 self-start md:self-center">
-              {/* Prodi Filter */}
               <div className="relative">
                 <select
                   value={selectedProdi}
@@ -930,7 +741,6 @@ export default function Dashboard({
                 </div>
               </div>
 
-              {/* Export CSV Button */}
               <button
                 type="button"
                 onClick={handleExportCSV}
@@ -943,7 +753,6 @@ export default function Dashboard({
             </div>
           </div>
 
-          {/* Summary Mini Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
             <div className="p-3 rounded-xl bg-background border border-border">
               <span className="text-muted block text-[11px]">
@@ -984,7 +793,6 @@ export default function Dashboard({
             </div>
           </div>
 
-          {/* Demand Forecasting Table */}
           <div className="overflow-x-auto border border-border rounded-xl">
             <table className="w-full text-left text-xs">
               <thead className="bg-background text-muted uppercase font-mono text-[10px] tracking-wider border-b border-border">
