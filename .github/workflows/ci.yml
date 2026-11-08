@@ -30,10 +30,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Versi pnpm dibaca dari field packageManager di package.json.
+      # Menambah input `version` bersamaan dengannya membuat action gagal.
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -165,6 +165,13 @@ jobs:
 
       - name: Python lint check with Ruff
         run: uv run --directory backend ruff check .
+
+      # Tes katalog dan degree-plan membaca data katalog 5 prodi; seed.py saja
+      # hanya mengisi pengguna demo dan 28 mata kuliah.
+      - name: Seed full catalog
+        env:
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/ftmm_compass_dev
+        run: uv run --directory backend python seed_full_catalog.py
 
       - name: Run backend test suite
         env:
