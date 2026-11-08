@@ -15,7 +15,7 @@ direkonsiliasi, kemudian hanya record yang sudah diverifikasi yang dipromosikan 
 
 ## Inventory
 
-Total **36 tabel**:
+Total **38 tabel**:
 
 - Identity/Student: 3
 - Curriculum History: 3
@@ -24,9 +24,9 @@ Total **36 tabel**:
 - Academic Requirements: 2
 - Academic Policy: 4
 - Planning/Academic History: 3
-- Course Delivery: 5
+- Course Delivery: 6
 - Timetable: 2
-- Feedback: 1
+- Feedback: 2
 - Chat History: 2
 
 ## Keputusan yang dikunci

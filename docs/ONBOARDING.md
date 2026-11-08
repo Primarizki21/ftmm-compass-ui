@@ -12,8 +12,8 @@ Sebelum memulai, pastikan mesin pengembang (Linux, macOS, atau Windows WSL2) tel
 |---|---|---|
 | **Git** | Versi terbaru | `sudo apt install git` / `brew install git` |
 | **Node.js** | `>= 22.x` (LTS direkomendasikan) | via [fnm](https://github.com/Schniz/fnm) atau [mise](https://mise.jdx.dev) |
-| **pnpm** | `>= 9.x` | `corepack enable && corepack prepare pnpm@latest --activate` |
-| **Python** | `>= 3.12` | `sudo apt install python3 python3-venv` / via `mise` |
+| **pnpm** | `10.18.3` (dipatok `packageManager`) | `corepack enable` (membaca pin dari `package.json`) |
+| **Python** | `>= 3.10` (CI memakai 3.12) | `sudo apt install python3 python3-venv` / via `mise` |
 | **Astral uv** | Versi terbaru | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
 | **Docker Engine & Compose** | Docker v24+ / Compose v2+ | [Docker Installation Guide](https://docs.docker.com/engine/install/) |
 | **Make** | Standar POSIX | `sudo apt install make` / `xcode-select --install` |
@@ -45,8 +45,8 @@ Secara otomatis dan berurutan:
 3. **Network Initialization**: Memastikan bridge network `ftmm-network` dibuat di Docker Engine.
 4. **Dependencies Installation**: Memasang paket frontend via `pnpm install` dan sinkronisasi virtualenv backend via `uv sync`.
 5. **Database Provisioning**: Menyalakan container PostgreSQL 16 (`docker compose up -d postgres`) dan menunggu hingga siap menerima koneksi (`pg_isready`).
-6. **Schema Migration**: Menjalankan migrasi basis data Alembic ke versi terbaru (36 tabel canonical skema v2.1 RC1).
-7. **Database Seeding**: Mengisi data awal akun pengujian (*student*, *lecturer*, *admin*) serta katalog kurikulum resmi.
+6. **Schema Migration**: Menjalankan migrasi basis data Alembic ke versi terbaru (38 tabel canonical skema v2.1 RC1).
+7. **Database Seeding**: Mengisi data awal akun pengujian (*student*, *lecturer*, *admin*) dan katalog kurikulum 5 prodi dari `database/seed`.
 
 ---
 
@@ -110,7 +110,7 @@ Gunakan: make [target]
   db-reset           Mereset database PostgreSQL (hapus volume, recreate, migrate, seed)
   install            Memasang dependensi frontend (pnpm) dan backend (uv)
   migrate            Menjalankan migrasi skema database Alembic ke head
-  seed               Mengisi database dengan data awal pengguna dan kurikulum
+  seed               Mengisi database dengan data pengguna dan katalog 5 prodi
   setup              Alur otomatis satu perintah untuk developer baru
   dev                Menjalankan frontend dan backend secara bersamaan di host native
   dev-frontend       Hanya menjalankan server frontend Vite
