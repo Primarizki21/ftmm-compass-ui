@@ -14,6 +14,12 @@ import json
 import os
 import re
 import subprocess
+from collections import Counter
+
+try:
+    from PIL import Image
+except ImportError:  # screenshots are optional: gradients fall back to a flat tint
+    Image = None
 
 PAGES = [
     ("01 · Login", "login", "src/pages/Login.tsx"),
@@ -27,6 +33,23 @@ PAGES = [
 FONTS = {"Inter": "Inter", "Poppins": "Poppins", "JetBrains Mono": "Consolas"}
 NAVY, MUTED, FG, BG = "#0f3e32", "#6b7280", "#2d333a", "#faf9f7"
 ARITY = {"m": 2, "l": 2, "h": 1, "v": 1, "c": 6, "s": 4, "q": 4, "t": 2, "a": 7, "z": 0}
+SHOTS = {
+    "login": "00-login.png", "dashboard": "01-dashboard.png", "course-finder": "02-course-finder.png",
+    "degree-planner": "03-degree-planner.png", "compass-ai": "04-compass-ai.png", "profile": "05-profile.png",
+    "logout": "06-logout-confirm.png",
+}
+BLUR_DECOR = re.compile(r"(?<!backdrop-)blur-(?:sm|md|lg|xl|2xl|3xl|\[)")
+
+
+def cell_color(img, x, y, w, h):
+    """Median colour of one grid cell (text covers well under half of a cell)."""
+    box = img.crop((max(0, int(x)), max(0, int(y)), min(img.width, int(x + w)), min(img.height, int(y + h + 0.5)))).convert("RGB")
+    px = list(box.getdata())
+    if not px:
+        return "#ffffff"
+    px.sort(key=lambda c: c[0] * 0.299 + c[1] * 0.587 + c[2] * 0.114)
+    r, g, b = px[len(px) // 2]
+    return "#%02x%02x%02x" % (r, g, b)
 
 
 def scale_path(d, s):
@@ -116,11 +139,27 @@ def fix_order(nodes):
     return nodes
 
 
-def child_cmds(doc, parent, assets):
+def child_cmds(doc, parent, assets, shot=None):
     cmds = []
     for n in fix_order(doc["nodes"]):
         meta = {"tag": n.get("tag", ""), "class": "" if n["kind"] == "svg" else (n.get("cls") or "")[:150]}
         if n["kind"] == "rect":
+            if n.get("cls") and BLUR_DECOR.search(n["cls"]):
+                continue
+            if not n.get("fill") and n.get("gradColor") and shot is not None:
+                cell = 64
+                cols = max(1, round(n["w"] / cell))
+                rows = max(1, round(n["h"] / cell))
+                cw, chh = n["w"] / cols, n["h"] / rows
+                for r in range(rows):
+                    for c in range(cols):
+                        cmds.append({"command": "node.create", "params": {
+                            "type": "rectangle", "x": round(n["x"] + c * cw, 1), "y": round(n["y"] + r * chh, 1),
+                            "width": round(cw + 0.5, 1), "height": round(chh + 0.5, 1), "parent": parent,
+                            "name": f"{n['name'][:24]} tile{r + 1}-{c + 1}",
+                            "props": {"fill": cell_color(shot, n["x"] + c * cw, n["y"] + r * chh, cw, chh)},
+                        }})
+                continue
             props = {}
             if n.get("fill"):
                 props["fill"] = n["fill"]
@@ -237,6 +276,7 @@ def main():
     ap.add_argument("--cli", default=r"C:\Program Files\FigCraft\figcraft-cli.exe")
     ap.add_argument("--out", default=None)
     ap.add_argument("--work", default="/tmp")
+    ap.add_argument("--shots", default="/tmp/ftmm-shots", help="browser screenshots, same viewport as the DOM snapshots")
     args = ap.parse_args()
     out_file = args.out or os.path.join(os.path.dirname(os.path.abspath(__file__)), "ftmm-compass-ui.figcraft")
 
@@ -271,10 +311,17 @@ def main():
     if len(frames) != len(PAGES) or len(pages) != len(PAGES):
         raise SystemExit(f"unexpected ids: frames={frames} pages={pages}")
 
+    shots = {}
+    if Image is not None:
+        for key, fn in SHOTS.items():
+            path = os.path.join(args.shots, fn)
+            if os.path.exists(path):
+                shots[key] = Image.open(path)
+
     p2 = []
     for (name, key, src), fid, pid in zip(PAGES, frames, pages):
         p2.append({"command": "page.select", "params": {"id": pid}})
-        p2 += child_cmds(docs[key], fid, assets)
+        p2 += child_cmds(docs[key], fid, assets, shots.get(key))
     s2 = os.path.join(args.work, "figcraft-build2.json")
     json.dump(p2, open(s2, "w"))
     run(cli, s2, ["--in", out_file, "--out", out_file])
