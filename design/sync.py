@@ -124,6 +124,8 @@ def child_cmds(doc, parent, assets):
             props = {}
             if n.get("fill"):
                 props["fill"] = n["fill"]
+            else:
+                props["fills"] = []
             if n.get("border"):
                 props["stroke"] = n["border"]
                 props["strokeWeight"] = n["bw"]
@@ -131,7 +133,7 @@ def child_cmds(doc, parent, assets):
                 props["cornerRadius"] = n["radius"]
             if n.get("rot"):
                 props["rotation"] = n["rot"]
-            if not props:
+            if not n.get("fill") and not n.get("border"):
                 continue
             props["pluginData"] = meta
             cmds.append({"command": "node.create", "params": {"type": "rectangle", "x": n["x"], "y": n["y"], "width": n["w"], "height": n["h"], "parent": parent, "name": n["name"][:40], "props": props}})
