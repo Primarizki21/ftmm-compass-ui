@@ -10,6 +10,7 @@ import VotePriorityModal from "@/features/course-finder/components/VotePriorityM
 import { useCourseFilters } from "@/features/course-finder/hooks/useCourseFilters"
 import { usePolling } from "@/features/polling/polling"
 import type { StudentVote } from "@/features/polling/pollingService"
+import { apiErrorMessage } from "@/shared/api/client"
 import type { Course } from "@/shared/domain/models"
 
 export interface CourseFinderProps {
@@ -48,6 +49,7 @@ export default function CourseFinder({
   )
   const [modalPriority, setModalPriority] = useState<1 | 2 | 3>(1)
   const [isSubmittingVote, setIsSubmittingVote] = useState(false)
+  const [voteError, setVoteError] = useState<string | null>(null)
   const [isCourseFormOpen, setIsCourseFormOpen] = useState(false)
   const [editingCourse, setEditingCourse] = useState<Course | null>(null)
 
@@ -95,17 +97,21 @@ export default function CourseFinder({
 
   const handleOpenPriorityModal = (course: Course) => {
     const currentVote = voteFor(course)
+    setVoteError(null)
     setModalPriority(currentVote?.priority || 1)
     setPriorityModalCourse(course)
   }
 
   const handleSaveVote = async () => {
     if (!priorityModalCourse) return
+    setVoteError(null)
     setIsSubmittingVote(true)
     try {
       await submitVote(voteKey(priorityModalCourse), modalPriority)
       void loadDemand("all")
       setPriorityModalCourse(null)
+    } catch (cause) {
+      setVoteError(apiErrorMessage(cause, "Wishlist gagal disimpan."))
     } finally {
       setIsSubmittingVote(false)
     }
@@ -200,6 +206,7 @@ export default function CourseFinder({
         maxVotes={maxVotes}
         pollingPeriod={pollingPeriod}
         isSubmitting={isSubmittingVote}
+        error={voteError}
         onSave={handleSaveVote}
         onRemove={handleRemoveVote}
         onClose={() => setPriorityModalCourse(null)}

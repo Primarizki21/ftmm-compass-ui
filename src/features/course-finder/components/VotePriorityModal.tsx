@@ -12,6 +12,7 @@ interface VotePriorityModalProps {
   maxVotes: number
   pollingPeriod: PollingPeriod | null
   isSubmitting: boolean
+  error: string | null
   onSave: () => void
   onRemove: (courseId: string) => void
   onClose: () => void
@@ -26,6 +27,7 @@ export default function VotePriorityModal({
   maxVotes,
   pollingPeriod,
   isSubmitting,
+  error,
   onSave,
   onRemove,
   onClose,
@@ -111,6 +113,15 @@ export default function VotePriorityModal({
               : "Ambang kuorum belum tersedia karena periode polling belum dimuat."}
           </p>
         </div>
+
+        {error && (
+          <div
+            role="alert"
+            className="text-[11px] font-medium text-orange bg-orange/10 p-3 rounded-xl border border-orange/30"
+          >
+            {error}
+          </div>
+        )}
 
         <div className="flex items-center justify-between gap-3 pt-2">
           {isVoted ? (
