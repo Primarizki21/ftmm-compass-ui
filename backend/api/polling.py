@@ -217,13 +217,14 @@ async def submit_vote(
         )
 
     current_sem = student_profile.current_semester
-    student_parity = "ganjil" if (current_sem % 2 == 1) else "genap"
-    if student_parity != active_period.target_term:
+    next_sem = current_sem + 1
+    next_parity = "ganjil" if next_sem % 2 == 1 else "genap"
+    if next_parity != active_period.target_term:
         return _reject(
             status.HTTP_400_BAD_REQUEST,
             "parity_mismatch",
-            f"Paritas semester tidak sesuai. Periode polling untuk semester {active_period.target_term}, "
-            f"sedangkan mahasiswa berada pada semester {student_parity} (semester {current_sem}).",
+            f"Periode polling {active_period.target_term} untuk semester berikutnya. "
+            f"Semester {current_sem} berlanjut ke semester {next_sem} ({next_parity}).",
         )
 
     needle = payload.course_id.strip().lower()

@@ -662,9 +662,9 @@ async def seed_data():
         else:
             print(f"  [EXISTS] Active Polling Period: {polling_period.title}")
 
-        # 7a. Voter demo: sembilan mahasiswa per prodi, masing-masing punya profil
-        # dengan paritas semester sesuai periode aktif. Vote diambil dari katalog,
-        # bukan daftar kode hardcoded, dan vote demo lama dihapus agar reseed idempoten.
+        # 7a. Voter demo: sembilan mahasiswa per prodi, satu semester sebelum target
+        # periode, sehingga memilih MK untuk semester berikutnya. Vote diambil dari
+        # katalog, bukan daftar kode hardcoded, dan vote demo lama dihapus agar idempoten.
         target_term = (polling_period.target_term or "ganjil").strip().lower()
         target_parity = "odd" if target_term == "ganjil" else "even"
         target_semester = int(
@@ -672,6 +672,7 @@ async def seed_data():
         )
         if (target_semester % 2 == 1) != (target_parity == "odd"):
             target_semester += 1
+        voter_semester = target_semester - 1
         max_votes = max(1, int(polling_period.max_votes_per_student or 3))
 
         await refresh_from_db(session)
@@ -714,7 +715,7 @@ async def seed_data():
                         study_program_id=prodi.study_program_id,
                         student_number=f"VOTER{i:04d}",
                         admission_year=today.year - 2,
-                        current_semester=target_semester,
+                        current_semester=voter_semester,
                     )
                 )
             else:
@@ -726,14 +727,14 @@ async def seed_data():
                             study_program_id=prodi.study_program_id,
                             student_number=f"VOTER{i:04d}",
                             admission_year=today.year - 2,
-                            current_semester=target_semester,
+                            current_semester=voter_semester,
                         )
                     )
                 else:
                     profile.study_program_id = prodi.study_program_id
                     if not profile.student_number:
                         profile.student_number = f"VOTER{i:04d}"
-                    profile.current_semester = target_semester
+                    profile.current_semester = voter_semester
             voter_users.append((vu, voter_prodi_code))
 
         demo_user_ids = [user.user_id for user, _ in voter_users] + [mhs_user.user_id]

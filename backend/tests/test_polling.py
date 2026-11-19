@@ -23,8 +23,12 @@ def _token_headers(user_id, role):
     return {"Authorization": f"Bearer {token}"}
 
 
-def _semester_for(term):
+def _target_semester(term):
     return 3 if term == "ganjil" else 4
+
+
+def _voter_semester(term):
+    return _target_semester(term) - 1
 
 
 def _active_period(client, headers):
@@ -152,7 +156,7 @@ def test_vote_outside_period_parity_is_rejected(client, db_session):
         client,
         db_session,
         role="student",
-        semester=_semester_for(period["term"]) + 1,
+        semester=_target_semester(period["term"]),
     )
     course = _electives_for_parity(period)[0]
     response = client.post(
@@ -163,13 +167,27 @@ def test_vote_outside_period_parity_is_rejected(client, db_session):
     _assert_error(response, 400, "parity_mismatch")
 
 
+def test_vote_for_next_semester_is_allowed(client, db_session):
+    period = _active_period(client, None)
+    headers = _create_user(
+        client, db_session, role="student", semester=_voter_semester(period["term"])
+    )
+    course = _electives_for_parity(period)[0]
+    response = client.post(
+        "/api/v1/polling/votes",
+        headers=headers,
+        json={"course_id": course.id, "priority": 1},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["course_code"] == course.code
+
 def test_vote_for_course_outside_period_parity_is_rejected(client, db_session):
     period = _active_period(client, None)
     headers = _create_user(
         client,
         db_session,
         role="student",
-        semester=_semester_for(period["term"]),
+        semester=_voter_semester(period["term"]),
     )
     course = _electives_for_parity(period, matching=False)[0]
     response = client.post(
@@ -301,7 +319,10 @@ def test_denominator_follows_prodi_filter(client, db_session, admin_headers):
 def test_unknown_course_is_rejected(client, db_session):
     period = _active_period(client, None)
     headers = _create_user(
-        client, db_session, role="student", semester=_semester_for(period["term"])
+        client,
+        db_session,
+        role="student",
+        semester=_voter_semester(period["term"]),
     )
     response = client.post(
         "/api/v1/polling/votes",
@@ -314,7 +335,10 @@ def test_unknown_course_is_rejected(client, db_session):
 def test_wajib_course_is_rejected(client, db_session):
     period = _active_period(client, None)
     headers = _create_user(
-        client, db_session, role="student", semester=_semester_for(period["term"])
+        client,
+        db_session,
+        role="student",
+        semester=_voter_semester(period["term"]),
     )
     course = _catalog_course("AGI101")
     response = client.post(
@@ -328,7 +352,10 @@ def test_wajib_course_is_rejected(client, db_session):
 def test_other_prodi_elective_is_rejected(client, db_session):
     period = _active_period(client, None)
     headers = _create_user(
-        client, db_session, role="student", semester=_semester_for(period["term"])
+        client,
+        db_session,
+        role="student",
+        semester=_voter_semester(period["term"]),
     )
     course = _catalog_course("RKK304")
     response = client.post(
@@ -342,7 +369,10 @@ def test_other_prodi_elective_is_rejected(client, db_session):
 def test_inactive_course_is_rejected(client, db_session):
     period = _active_period(client, None)
     headers = _create_user(
-        client, db_session, role="student", semester=_semester_for(period["term"])
+        client,
+        db_session,
+        role="student",
+        semester=_voter_semester(period["term"]),
     )
     course = _catalog_course("SIC304")
     async def deactivate():
@@ -365,7 +395,10 @@ def test_inactive_course_is_rejected(client, db_session):
 def test_duplicate_priority_is_rejected(client, db_session):
     period = _active_period(client, None)
     headers = _create_user(
-        client, db_session, role="student", semester=_semester_for(period["term"])
+        client,
+        db_session,
+        role="student",
+        semester=_voter_semester(period["term"]),
     )
     first, second = _electives_for_parity(period, limit=2)
     assert client.post(
@@ -384,7 +417,10 @@ def test_duplicate_priority_is_rejected(client, db_session):
 def test_quota_reached_is_rejected(client, db_session):
     period = _active_period(client, None)
     headers = _create_user(
-        client, db_session, role="student", semester=_semester_for(period["term"])
+        client,
+        db_session,
+        role="student",
+        semester=_voter_semester(period["term"]),
     )
 
     async def shrink_quota():
@@ -416,7 +452,10 @@ def test_quota_reached_is_rejected(client, db_session):
 def test_updating_existing_vote_changes_priority_only(client, db_session):
     period = _active_period(client, None)
     headers = _create_user(
-        client, db_session, role="student", semester=_semester_for(period["term"])
+        client,
+        db_session,
+        role="student",
+        semester=_voter_semester(period["term"]),
     )
     first, second = _electives_for_parity(period, limit=2)
     client.post(
@@ -450,7 +489,7 @@ def test_delete_vote_leaves_old_periods_untouched(client, db_session):
         db_session,
         role="student",
         email=email,
-        semester=_semester_for(period["term"]),
+        semester=_voter_semester(period["term"]),
     )
     course = _catalog_course("SIC304")
 
@@ -463,7 +502,7 @@ def test_delete_vote_leaves_old_periods_untouched(client, db_session):
             title="Periode lama",
             academic_year="2024/2025",
             target_term=period["term"],
-            target_semester=_semester_for(period["term"]),
+            target_semester=_target_semester(period["term"]),
             start_date=now - datetime.timedelta(days=400),
             end_date=now - datetime.timedelta(days=370),
             status="closed",

@@ -59,7 +59,7 @@
 ### D5. Validasi vote di server, katalog sebagai sumber kebenaran
 
 - Seeder tidak mengarang kode: MK Pilihan diambil dari `get_all_courses()`, difilter oleh `type` dan `program`.
-- `submit_vote` menolak MK bukan Pilihan, MK prodi lain (kecuali scope `fakultas`/`universitas`), MK nonaktif, paritas salah, prioritas dobel, dan kuota terlampaui.
+- `submit_vote` menolak MK bukan Pilihan, MK prodi lain (kecuali scope `fakultas`/`universitas`), MK nonaktif, MK yang paritasnya berbeda dari semester berikutnya mahasiswa, prioritas dobel, dan kuota terlampaui. Voter semester X memilih MK untuk semester X+1.
 - `course_id` disimpan sebagai id katalog kanonik; kode tetap di `course_code`.
 
 ### D6. Audit memakai jejak yang sudah ada
