@@ -65,7 +65,8 @@ def _assert_voters_and_votes_are_scoped(client, db_session) -> None:
         {code: 9 for code in EXPECTED_PJ}
     )
 
-    expected_parity = "odd" if period["target_term"] == "ganjil" else "even"
+    target_parity = "odd" if period["target_term"] == "ganjil" else "even"
+    expected_parity = "odd" if target_parity == "even" else "even"
     for voter in voters:
         actual = "odd" if voter["current_semester"] % 2 == 1 else "even"
         assert actual == expected_parity, voter["email"]
